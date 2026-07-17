@@ -11,8 +11,9 @@ class AlarmEntity(
     @JoinColumn(name = "incident_id", nullable = false)
     var incident: IncidentEntity,
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "alarm_type", nullable = false, length = 30)
-    var alarmType: String,
+    var alarmType: AlarmType,
 
     @Column(name = "triggered_at", nullable = false)
     var triggeredAt: OffsetDateTime,
