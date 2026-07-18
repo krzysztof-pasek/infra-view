@@ -28,7 +28,7 @@ class IncidentEntity(
     var endedAt: OffsetDateTime? = null,
 
     @Column(name = "status", nullable = false, length = 20)
-    var status: String
+    var status: StatusType
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
