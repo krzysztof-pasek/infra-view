@@ -27,6 +27,7 @@ class IncidentEntity(
     @Column(name = "ended_at")
     var endedAt: OffsetDateTime? = null,
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     var status: StatusType
 ) {
