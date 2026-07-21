@@ -44,4 +44,13 @@ class TelemetryService (
         )
         return telemetryRepository.save(entity).toDto()
     }
+
+    fun getByIncidentId(incidentId: Int): List<TelemetryDto> {
+        return telemetryRepository.findAllByIncidentId(incidentId).map { it.toDto() }
+    }
+
+
+    fun delete(id: Long) {
+        telemetryRepository.deleteById(id)
+    }
 }

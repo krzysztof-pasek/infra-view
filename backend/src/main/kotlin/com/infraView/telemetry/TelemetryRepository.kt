@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface TelemetryRepository: JpaRepository<TelemetryEntity, Long> {
-
+    fun findAllByIncidentId(incidentId: Int): List<TelemetryEntity>
 }

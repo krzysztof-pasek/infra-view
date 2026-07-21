@@ -31,4 +31,18 @@ class TelemetryController (
     fun addTelemetry(@RequestBody dto: TelemetryCreateDto): TelemetryDto {
         return telemetryService.add(dto)
     }
+
+    @Operation(summary = "Pobierz telemetrię dla zdarzenia", description = "Zwraca wszystkie pomiary przypisane do konkretnego zdarzenia (incidentId).")
+    @GetMapping("/incident/{incidentId}")
+    fun getByIncidentId(@PathVariable incidentId: Int): List<TelemetryDto> {
+        return telemetryService.getByIncidentId(incidentId)
+    }
+
+
+    @Operation(summary = "Usuń pomiar", description = "Usuwa pojedynczy wpis telemetryczny (np. błędny lub testowy z bazy).")
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun deleteTelemetry(@PathVariable id: Long) {
+        telemetryService.delete(id)
+    }
 }
