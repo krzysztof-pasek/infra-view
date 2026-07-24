@@ -17,8 +17,6 @@ CREATE TABLE video_recordings (
     storage_key TEXT,
     file_size_bytes BIGINT,
     duration_sec INT,
-    is_thermal BOOLEAN NOT NULL,
-    status VARCHAR(20) NOT NULL,
     CONSTRAINT fk_video_recordings_incident FOREIGN KEY (incident_id) REFERENCES incidents(id)
 );
 

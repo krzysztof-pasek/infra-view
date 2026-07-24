@@ -24,13 +24,7 @@ class VideoRecordingEntity(
     var fileSizeBytes: Long? = null,
 
     @Column(name = "duration_sec")
-    var durationSec: Int? = null,
-
-    @Column(name = "is_thermal", nullable = false)
-    var isThermal: Boolean,
-
-    @Column(name = "status", nullable = false, length = 20)
-    var status: String
+    var durationSec: Int? = null
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
