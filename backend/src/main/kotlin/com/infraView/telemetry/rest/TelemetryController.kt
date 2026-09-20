@@ -29,7 +29,7 @@ class TelemetryController (
 
     @Operation(summary = "Pobierz telemetrię dla zdarzenia", description = "Zwraca wszystkie pomiary przypisane do konkretnego zdarzenia (incidentId).")
     @GetMapping("/incident/{incidentId}")
-    fun getByIncidentId(@PathVariable incidentId: Int): List<TelemetryDto> {
+    fun getByIncidentId(@PathVariable incidentId: Long): List<TelemetryDto> {
         return useCase.getByIncidentId(incidentId).map { it.toDto() }
     }
 

@@ -5,7 +5,7 @@ import com.infraView.incident.domain.Incident
 import java.time.OffsetDateTime
 
 data class IncidentDto(
-    val id: Int?,
+    val id: Long?,
     val code: String,
     val firefighterName: String?,
     val description: String?,

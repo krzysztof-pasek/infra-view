@@ -34,7 +34,7 @@ class IncidentJpaEntity(
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    var id: Int? = null
+    var id: Long? = null
 
     @OneToMany(mappedBy = "incident", fetch = FetchType.LAZY)
     var videoRecordings: MutableList<VideoRecordingJpaEntity> = mutableListOf()

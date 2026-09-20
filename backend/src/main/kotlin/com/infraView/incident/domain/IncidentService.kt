@@ -13,7 +13,7 @@ class IncidentService(
         return incidentPort.getAll()
     }
 
-    override fun getById(id: Int): Incident? {
+    override fun getById(id: Long): Incident? {
         return incidentPort.getById(id)
     }
 
@@ -21,14 +21,14 @@ class IncidentService(
         return incidentPort.save(incident)
     }
 
-    override fun endIncident(incidentId: Int): Incident? {
+    override fun endIncident(incidentId: Long): Incident? {
         val incident = incidentPort.getById(incidentId) ?: throw RuntimeException("Incident not found")
         incident.endedAt = OffsetDateTime.now()
         incident.status = StatusType.RESOLVED
         return incidentPort.save(incident)
     }
 
-    override fun delete(incidentId: Int) {
+    override fun delete(incidentId: Long) {
         incidentPort.deleteById(incidentId)
     }
 }

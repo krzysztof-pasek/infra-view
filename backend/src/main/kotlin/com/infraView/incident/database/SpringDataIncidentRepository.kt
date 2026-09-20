@@ -5,5 +5,5 @@ import org.springframework.stereotype.Repository
 
 
 @Repository
-interface SpringDataIncidentRepository : JpaRepository<IncidentJpaEntity, Int> {
+interface SpringDataIncidentRepository : JpaRepository<IncidentJpaEntity, Long> {
 }

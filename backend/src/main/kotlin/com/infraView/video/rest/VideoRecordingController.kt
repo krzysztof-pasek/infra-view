@@ -22,14 +22,14 @@ class VideoRecordingController(
 
     @Operation(summary = "Pobierz nagranie po ID")
     @GetMapping("/{id}")
-    fun getById(@PathVariable id: Int): VideoRecordingDto {
+    fun getById(@PathVariable id: Long): VideoRecordingDto {
         return useCase.getById(id)?.toDto()
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Nagranie o ID $id nie istnieje")
     }
 
     @Operation(summary = "Pobierz nagrania dla zdarzenia", description = "Zwraca wszystkie nagrania powiązane z daną akcją.")
     @GetMapping("/incident/{incidentId}")
-    fun getByIncidentId(@PathVariable incidentId: Int): List<VideoRecordingDto> {
+    fun getByIncidentId(@PathVariable incidentId: Long): List<VideoRecordingDto> {
         return useCase.getByIncidentId(incidentId).map { it.toDto() }
     }
 
@@ -41,7 +41,7 @@ class VideoRecordingController(
 
     @Operation(summary = "Zaktualizuj nagranie (np. zakończ)", description = "Służy do aktualizacji metadanych po zakończeniu nagrywania")
     @PatchMapping("/{id}")
-    fun updateRecording(@PathVariable id: Int, @RequestBody dto: VideoRecordingUpdateDto): VideoRecordingDto {
+    fun updateRecording(@PathVariable id: Long, @RequestBody dto: VideoRecordingUpdateDto): VideoRecordingDto {
         return useCase.updateRecording(id, dto.endedAt, dto.storageKey, dto.fileSizeBytes, dto.durationSec)?.toDto()
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Nagranie o ID $id nie istnieje")
     }
@@ -49,7 +49,7 @@ class VideoRecordingController(
     @Operation(summary = "Usuń nagranie", description = "Usuwa metadane nagrania z bazy.")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    fun deleteRecording(@PathVariable id: Int) {
+    fun deleteRecording(@PathVariable id: Long) {
         useCase.delete(id)
     }
 }

@@ -13,7 +13,7 @@ class TelemetryPersistenceAdapter(
     private val entityManager: EntityManager
 ) : TelemetryPort {
 
-    override fun getAllByIncidentId(incidentId: Int): List<Telemetry> {
+    override fun getAllByIncidentId(incidentId: Long): List<Telemetry> {
         return telemetryRepository.findAllByIncidentId(incidentId).map { it.toDomain() }
     }
 
@@ -34,7 +34,7 @@ class TelemetryPersistenceAdapter(
         telemetryRepository.deleteById(id)
     }
 
-    override fun deleteAllByIncidentId(incidentId: Int) {
+    override fun deleteAllByIncidentId(incidentId: Long) {
         telemetryRepository.deleteAllByIncidentId(incidentId)
     }
 }

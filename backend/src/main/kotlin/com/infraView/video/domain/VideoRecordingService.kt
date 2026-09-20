@@ -12,15 +12,15 @@ class VideoRecordingService(
         return videoRecordingPort.getAll()
     }
 
-    override fun getById(id: Int): VideoRecording? {
+    override fun getById(id: Long): VideoRecording? {
         return videoRecordingPort.getById(id)
     }
 
-    override fun getByIncidentId(incidentId: Int): List<VideoRecording> {
+    override fun getByIncidentId(incidentId: Long): List<VideoRecording> {
         return videoRecordingPort.getByIncidentId(incidentId)
     }
 
-    override fun startRecording(incidentId: Int, startedAt: OffsetDateTime): VideoRecording {
+    override fun startRecording(incidentId: Long, startedAt: OffsetDateTime): VideoRecording {
         val video = VideoRecording(
             incidentId = incidentId,
             startedAt = startedAt
@@ -29,7 +29,7 @@ class VideoRecordingService(
     }
 
     override fun updateRecording(
-        id: Int,
+        id: Long,
         endedAt: OffsetDateTime?,
         storageKey: String?,
         fileSizeBytes: Long?,
@@ -45,7 +45,7 @@ class VideoRecordingService(
         return videoRecordingPort.save(updated)
     }
 
-    override fun delete(id: Int) {
+    override fun delete(id: Long) {
         videoRecordingPort.delete(id)
     }
 }
