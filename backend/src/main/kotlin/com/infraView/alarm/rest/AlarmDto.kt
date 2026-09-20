@@ -5,17 +5,17 @@ import com.infraView.alarm.domain.AlarmType
 import java.time.OffsetDateTime
 
 data class AlarmDto(
-    val id: Int?,
+    val id: Long?,
     val alarmType: AlarmType,
     val triggeredAt: OffsetDateTime,
     val resolvedAt: OffsetDateTime?,
-    val incidentId: Int
+    val incidentId: Long
 )
 
 data class AlarmCreateDto(
     val alarmType: AlarmType,
     val triggeredAt: OffsetDateTime,
-    val incidentId: Int
+    val incidentId: Long
 ) {
     fun toDomain() = Alarm(
         alarmType = this.alarmType,

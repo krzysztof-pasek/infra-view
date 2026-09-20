@@ -4,8 +4,8 @@ import com.infraView.video.domain.VideoRecording
 import java.time.OffsetDateTime
 
 data class VideoRecordingDto(
-    val id: Int?,
-    val incidentId: Int,
+    val id: Long?,
+    val incidentId: Long,
     val startedAt: OffsetDateTime,
     val endedAt: OffsetDateTime?,
     val storageKey: String?,
@@ -14,7 +14,7 @@ data class VideoRecordingDto(
 )
 
 data class VideoRecordingCreateDto(
-    val incidentId: Int,
+    val incidentId: Long,
     val startedAt: OffsetDateTime
 )
 

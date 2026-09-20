@@ -13,7 +13,7 @@ class AlarmPersistenceAdapter(
     private val entityManager: EntityManager
 ) : AlarmPort {
 
-    override fun getById(id: Int): Alarm? {
+    override fun getById(id: Long): Alarm? {
         return alarmRepository.findByIdOrNull(id)?.toDomain()
     }
 
@@ -27,7 +27,7 @@ class AlarmPersistenceAdapter(
         return alarmRepository.save(entityToSave).toDomain()
     }
 
-    override fun deleteById(id: Int) {
+    override fun deleteById(id: Long) {
         alarmRepository.deleteById(id)
     }
 }

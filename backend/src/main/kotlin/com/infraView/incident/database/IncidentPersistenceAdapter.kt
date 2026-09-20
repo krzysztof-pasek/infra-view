@@ -10,7 +10,7 @@ class IncidentPersistenceAdapter(
     private val incidentRepository: SpringDataIncidentRepository
 ) : IncidentPort {
 
-    override fun getById(id: Int): Incident? {
+    override fun getById(id: Long): Incident? {
         return incidentRepository.findByIdOrNull(id)?.toDomain()
     }
 
@@ -19,12 +19,17 @@ class IncidentPersistenceAdapter(
     }
 
     override fun save(incident: Incident): Incident {
+        // Tłumaczymy z domeny na bazę
         val entityToSave = incident.toJpaEntity()
+        
+        // Baza wykonuje operację (INSERT lub UPDATE)
         val savedEntity = incidentRepository.save(entityToSave)
+        
+        // Zwracamy wynik przetłumaczony z powrotem na domenę
         return savedEntity.toDomain()
     }
 
-    override fun deleteById(id: Int) {
+    override fun deleteById(id: Long) {
         incidentRepository.deleteById(id)
     }
 }

@@ -38,7 +38,7 @@ class VideoPersistenceAdapter(
         return savedEntity.toDomain()
     }
 
-    override fun getById(id: Int): VideoRecording? {
+    override fun getById(id: Long): VideoRecording? {
         return springDataRepository.findByIdOrNull(id)?.toDomain()
     }
 
@@ -46,11 +46,11 @@ class VideoPersistenceAdapter(
         return springDataRepository.findAll().map { it.toDomain() }
     }
 
-    override fun getByIncidentId(incidentId: Int): List<VideoRecording> {
-        return springDataRepository.findAllByIncidentId(incidentId).map { it.toDomain() }
+    override fun getByIncidentId(incidentId: Long): List<VideoRecording> {
+        return springDataRepository.findByIncidentId(incidentId).map { it.toDomain() }
     }
 
-    override fun delete(id: Int) {
+    override fun delete(id: Long) {
         springDataRepository.deleteById(id)
     }
 

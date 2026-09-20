@@ -8,7 +8,7 @@ class AlarmService(
     private val alarmPort: AlarmPort
 ) : ManageAlarmUseCase {
 
-    override fun getById(id: Int): Alarm? {
+    override fun getById(id: Long): Alarm? {
         return alarmPort.getById(id)
     }
 
@@ -20,13 +20,13 @@ class AlarmService(
         return alarmPort.save(alarm)
     }
 
-    override fun resolveAlarm(id: Int): Alarm? {
+    override fun resolveAlarm(id: Long): Alarm? {
         val alarm = alarmPort.getById(id) ?: throw RuntimeException("Alarm not found")
         alarm.resolvedAt = OffsetDateTime.now()
         return alarmPort.save(alarm)
     }
 
-    override fun delete(id: Int) {
+    override fun delete(id: Long) {
         alarmPort.deleteById(id)
     }
 }

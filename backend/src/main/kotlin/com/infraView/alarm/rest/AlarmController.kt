@@ -21,7 +21,7 @@ class AlarmController(
 
     @Operation(summary = "Get alarm by ID", description = "Retrieves detailed information about a specific alarm based on its unique identifier.")
     @GetMapping("/{id}")
-    fun get(@PathVariable id: Int): AlarmDto {
+    fun get(@PathVariable id: Long): AlarmDto {
         return useCase.getById(id)?.toDto()
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Alarm with ID $id not found")
     }
@@ -34,14 +34,14 @@ class AlarmController(
 
     @Operation(summary = "Resolve an alarm", description = "Changes the alarm status to resolved (sets resolved_at to the current date).")
     @PutMapping("/{id}/resolve")
-    fun resolve(@PathVariable id: Int): AlarmDto {
+    fun resolve(@PathVariable id: Long): AlarmDto {
         return useCase.resolveAlarm(id)?.toDto()
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Alarm not found")
     }
 
     @Operation(summary = "Delete an alarm", description = "Permanently removes an alarm from the database.")
     @DeleteMapping("/{id}")
-    fun delete(@PathVariable id: Int) {
+    fun delete(@PathVariable id: Long) {
         useCase.delete(id)
     }
 }

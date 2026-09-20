@@ -1,9 +1,9 @@
 package com.infraView.alarm.domain
 
 interface ManageAlarmUseCase {
-    fun getById(id: Int): Alarm?
+    fun getById(id: Long): Alarm?
     fun getAll(): List<Alarm>
     fun triggerAlarm(alarm: Alarm): Alarm
-    fun resolveAlarm(id: Int): Alarm?
-    fun delete(id: Int)
+    fun resolveAlarm(id: Long): Alarm?
+    fun delete(id: Long)
 }

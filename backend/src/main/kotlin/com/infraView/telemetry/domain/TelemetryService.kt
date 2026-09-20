@@ -11,7 +11,7 @@ class TelemetryService(
         return telemetryPort.getById(id)
     }
 
-    override fun getByIncidentId(incidentId: Int): List<Telemetry> {
+    override fun getByIncidentId(incidentId: Long): List<Telemetry> {
         return telemetryPort.getAllByIncidentId(incidentId)
     }
 

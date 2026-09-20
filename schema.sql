@@ -1,5 +1,5 @@
 CREATE TABLE incidents (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     code VARCHAR(20) NOT NULL,
     firefighter_name VARCHAR(100),
     description TEXT,
@@ -10,8 +10,8 @@ CREATE TABLE incidents (
 );
 
 CREATE TABLE video_recordings (
-    id SERIAL PRIMARY KEY,
-    incident_id INT NOT NULL,
+    id BIGSERIAL PRIMARY KEY,
+    incident_id BIGINT NOT NULL,
     started_at TIMESTAMPTZ NOT NULL,
     ended_at TIMESTAMPTZ,
     storage_key TEXT,
@@ -22,7 +22,7 @@ CREATE TABLE video_recordings (
 
 CREATE TABLE telemetry (
     id BIGSERIAL PRIMARY KEY,
-    incident_id INT NOT NULL,
+    incident_id BIGINT NOT NULL,
     recorded_at TIMESTAMPTZ NOT NULL,
     accel_raw_x DOUBLE PRECISION,
     accel_raw_y DOUBLE PRECISION,
@@ -44,8 +44,8 @@ CREATE TABLE telemetry (
 );
 
 CREATE TABLE alarms (
-    id SERIAL PRIMARY KEY,
-    incident_id INT NOT NULL,
+    id BIGSERIAL PRIMARY KEY,
+    incident_id BIGINT NOT NULL,
     alarm_type VARCHAR(30) NOT NULL,
     triggered_at TIMESTAMPTZ NOT NULL,
     resolved_at TIMESTAMPTZ,
