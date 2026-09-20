@@ -1,0 +1,27 @@
+package com.infraView.telemetry.domain
+
+import org.springframework.stereotype.Service
+
+
+@Service
+class TelemetryService(
+    private val telemetryPort: TelemetryPort
+) : ManageTelemetryUseCase {
+    override fun getById(id: Long): Telemetry? {
+        return telemetryPort.getById(id)
+    }
+
+    override fun getByIncidentId(incidentId: Int): List<Telemetry> {
+        return telemetryPort.getAllByIncidentId(incidentId)
+    }
+
+    override fun add(telemetry: Telemetry): Telemetry {
+        // TODO(fall detection)
+        return telemetryPort.save(telemetry)
+    }
+
+    override fun delete(id: Long) {
+        telemetryPort.deleteById(id)
+    }
+
+}

@@ -1,0 +1,66 @@
+package com.infraView.video.database
+
+import com.infraView.incident.database.IncidentJpaEntity
+import com.infraView.video.domain.VideoRecordingPort
+import com.infraView.video.domain.VideoRecording
+import jakarta.persistence.EntityManager
+import org.springframework.data.repository.findByIdOrNull
+import org.springframework.stereotype.Component
+
+@Component
+class VideoPersistenceAdapter(
+    private val springDataRepository: SpringDataVideoJpaRepository,
+    private val entityManager: EntityManager
+) : VideoRecordingPort {
+
+    override fun save(video: VideoRecording): VideoRecording {
+        val incidentRef = entityManager.getReference(IncidentJpaEntity::class.java, video.incidentId)
+        
+        val entity = if (video.id == null) {
+            VideoRecordingJpaEntity(
+                incident = incidentRef,
+                startedAt = video.startedAt,
+                endedAt = video.endedAt,
+                storageKey = video.storageKey,
+                fileSizeBytes = video.fileSizeBytes,
+                durationSec = video.durationSec
+            )
+        } else {
+            springDataRepository.findByIdOrNull(video.id)!!.apply {
+                this.endedAt = video.endedAt
+                this.storageKey = video.storageKey
+                this.fileSizeBytes = video.fileSizeBytes
+                this.durationSec = video.durationSec
+            }
+        }
+        
+        val savedEntity = springDataRepository.save(entity)
+        return savedEntity.toDomain()
+    }
+
+    override fun getById(id: Int): VideoRecording? {
+        return springDataRepository.findByIdOrNull(id)?.toDomain()
+    }
+
+    override fun getAll(): List<VideoRecording> {
+        return springDataRepository.findAll().map { it.toDomain() }
+    }
+
+    override fun getByIncidentId(incidentId: Int): List<VideoRecording> {
+        return springDataRepository.findAllByIncidentId(incidentId).map { it.toDomain() }
+    }
+
+    override fun delete(id: Int) {
+        springDataRepository.deleteById(id)
+    }
+
+    private fun VideoRecordingJpaEntity.toDomain() = VideoRecording(
+        id = this.id,
+        incidentId = this.incident.id!!,
+        startedAt = this.startedAt,
+        endedAt = this.endedAt,
+        storageKey = this.storageKey,
+        fileSizeBytes = this.fileSizeBytes,
+        durationSec = this.durationSec
+    )
+}
