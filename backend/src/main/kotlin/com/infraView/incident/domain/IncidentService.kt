@@ -22,14 +22,9 @@ class IncidentService(
     }
 
     override fun endIncident(incidentId: Long): Incident? {
-        // Wyciągamy czysty obiekt domenowy przez Port (zamiast starego repozytorium)
         val incident = incidentPort.getById(incidentId) ?: throw RuntimeException("Incident not found")
-        
-        // Zmieniamy stan naszej czystej domeny (bez DTO i Encji!)
         incident.endedAt = OffsetDateTime.now()
         incident.status = StatusType.RESOLVED
-
-        // Zapisujemy przez port wyjściowy i zwracamy zaktualizowaną domenę
         return incidentPort.save(incident)
     }
 

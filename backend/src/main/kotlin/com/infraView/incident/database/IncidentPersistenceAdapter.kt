@@ -19,13 +19,8 @@ class IncidentPersistenceAdapter(
     }
 
     override fun save(incident: Incident): Incident {
-        // Tłumaczymy z domeny na bazę
         val entityToSave = incident.toJpaEntity()
-        
-        // Baza wykonuje operację (INSERT lub UPDATE)
         val savedEntity = incidentRepository.save(entityToSave)
-        
-        // Zwracamy wynik przetłumaczony z powrotem na domenę
         return savedEntity.toDomain()
     }
 
