@@ -7,7 +7,7 @@ data class VideoRecording(
     val incidentId: Long,
     val startedAt: OffsetDateTime,
     var endedAt: OffsetDateTime? = null,
-    val storageKey: String? = null,
+    var filePath: String? = null,
     val fileSizeBytes: Long? = null,
     val durationSec: Int? = null
 )

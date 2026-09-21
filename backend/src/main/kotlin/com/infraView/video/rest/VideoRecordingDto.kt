@@ -8,7 +8,7 @@ data class VideoRecordingDto(
     val incidentId: Long,
     val startedAt: OffsetDateTime,
     val endedAt: OffsetDateTime?,
-    val storageKey: String?,
+    val filePath: String?,
     val fileSizeBytes: Long?,
     val durationSec: Int?
 )
@@ -20,7 +20,7 @@ data class VideoRecordingCreateDto(
 
 data class VideoRecordingUpdateDto(
     val endedAt: OffsetDateTime?,
-    val storageKey: String?,
+    val filePath: String?,
     val fileSizeBytes: Long?,
     val durationSec: Int?
 )
@@ -30,7 +30,7 @@ fun VideoRecording.toDto() = VideoRecordingDto(
     incidentId = this.incidentId,
     startedAt = this.startedAt,
     endedAt = this.endedAt,
-    storageKey = this.storageKey,
+    filePath = this.filePath,
     fileSizeBytes = this.fileSizeBytes,
     durationSec = this.durationSec
 )
