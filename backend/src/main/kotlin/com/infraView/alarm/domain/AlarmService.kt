@@ -21,7 +21,7 @@ class AlarmService(
     }
 
     override fun resolveAlarm(id: Long): Alarm? {
-        val alarm = alarmPort.getById(id) ?: throw RuntimeException("Alarm not found")
+        val alarm = alarmPort.getById(id) ?: throw RuntimeException("Alarm with ID $id not found")
         alarm.resolvedAt = OffsetDateTime.now()
         return alarmPort.save(alarm)
     }

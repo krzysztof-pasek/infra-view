@@ -24,7 +24,7 @@ class IncidentController(
     @GetMapping("/{id}")
     fun getIncident(@PathVariable id: Long): IncidentDto {
         return useCase.getById(id)?.toDto() 
-            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Incident not found")
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Incident with ID $id not found")
     }
 
     @Operation(summary = "Report a new incident", description = "Creates a new incident in the system.")
@@ -37,10 +37,10 @@ class IncidentController(
     @PutMapping("/{id}/end")
     fun endIncident(@PathVariable id: Long): IncidentDto {
         return useCase.endIncident(id)?.toDto()
-            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Incident not found")
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Incident with ID $id not found")
     }
 
-    @Operation(summary = "Delete an incident", description = "Permanently removes an incident from the database.")
+    @Operation(summary = "Delete an incident", description = "Removes an incident from the database.")
     @DeleteMapping("/{id}")
     fun deleteIncident(@PathVariable id: Long) {
         useCase.delete(id)

@@ -32,14 +32,14 @@ class AlarmController(
         return useCase.triggerAlarm(alarm.toDomain()).toDto()
     }
 
-    @Operation(summary = "Resolve an alarm", description = "Changes the alarm status to resolved (sets resolved_at to the current date).")
+    @Operation(summary = "Resolve an alarm", description = "Changes the alarm status to resolved and sets the resolution timestamp.")
     @PutMapping("/{id}/resolve")
     fun resolve(@PathVariable id: Long): AlarmDto {
         return useCase.resolveAlarm(id)?.toDto()
-            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Alarm not found")
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Alarm with ID $id not found")
     }
 
-    @Operation(summary = "Delete an alarm", description = "Permanently removes an alarm from the database.")
+    @Operation(summary = "Delete an alarm", description = "Removes an alarm from the database.")
     @DeleteMapping("/{id}")
     fun delete(@PathVariable id: Long) {
         useCase.delete(id)
