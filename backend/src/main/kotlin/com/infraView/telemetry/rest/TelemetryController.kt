@@ -18,7 +18,7 @@ class TelemetryController (
     @GetMapping("/{id}")
     fun getById(@PathVariable id: Long): TelemetryDto {
         return useCase.getById(id)?.toDto()
-            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Pomiar o ID $id nie istnieje")
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Telemetry measurement with ID $id not found")
     }
 
     @Operation(summary = "Add new telemetry measurement", description = "Saves fresh sensor data.")

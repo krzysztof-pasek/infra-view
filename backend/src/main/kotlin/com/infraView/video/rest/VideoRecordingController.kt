@@ -24,7 +24,7 @@ class VideoRecordingController(
     @GetMapping("/{id}")
     fun getById(@PathVariable id: Long): VideoRecordingDto {
         return useCase.getById(id)?.toDto()
-            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Nagranie o ID $id nie istnieje")
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Video recording with ID $id not found")
     }
 
     @Operation(summary = "Get video recordings by incident ID", description = "Returns all video recordings associated with a specific incident.")
@@ -43,7 +43,7 @@ class VideoRecordingController(
     @PatchMapping("/{id}")
     fun updateRecording(@PathVariable id: Long, @RequestBody dto: VideoRecordingUpdateDto): VideoRecordingDto {
         return useCase.updateRecording(id, dto.endedAt, dto.filePath, dto.fileSizeBytes, dto.durationSec)?.toDto()
-            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Nagranie o ID $id nie istnieje")
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Video recording with ID $id not found")
     }
 
     @Operation(summary = "Delete video recording", description = "Removes video recording metadata from the database.")

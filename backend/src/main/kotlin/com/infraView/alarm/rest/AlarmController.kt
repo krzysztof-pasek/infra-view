@@ -36,7 +36,7 @@ class AlarmController(
     @PutMapping("/{id}/resolve")
     fun resolve(@PathVariable id: Long): AlarmDto {
         return useCase.resolveAlarm(id)?.toDto()
-            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Alarm not found")
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Alarm with ID $id not found")
     }
 
     @Operation(summary = "Delete an alarm", description = "Removes an alarm from the database.")

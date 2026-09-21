@@ -22,7 +22,7 @@ class IncidentService(
     }
 
     override fun endIncident(incidentId: Long): Incident? {
-        val incident = incidentPort.getById(incidentId) ?: throw RuntimeException("Incident not found")
+        val incident = incidentPort.getById(incidentId) ?: throw RuntimeException("Incident with ID $incidentId not found")
         incident.endedAt = OffsetDateTime.now()
         incident.status = StatusType.RESOLVED
         return incidentPort.save(incident)
