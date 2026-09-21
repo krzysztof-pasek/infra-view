@@ -31,14 +31,14 @@ class VideoRecordingService(
     override fun updateRecording(
         id: Long,
         endedAt: OffsetDateTime?,
-        storageKey: String?,
+        filePath: String?,
         fileSizeBytes: Long?,
         durationSec: Int?
     ): VideoRecording? {
         val existing = videoRecordingPort.getById(id) ?: return null
         val updated = existing.copy(
             endedAt = endedAt ?: existing.endedAt,
-            storageKey = storageKey ?: existing.storageKey,
+            filePath = filePath ?: existing.filePath,
             fileSizeBytes = fileSizeBytes ?: existing.fileSizeBytes,
             durationSec = durationSec ?: existing.durationSec
         )

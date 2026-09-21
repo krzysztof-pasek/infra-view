@@ -21,14 +21,14 @@ class VideoPersistenceAdapter(
                 incident = incidentRef,
                 startedAt = video.startedAt,
                 endedAt = video.endedAt,
-                storageKey = video.storageKey,
+                filePath = video.filePath,
                 fileSizeBytes = video.fileSizeBytes,
                 durationSec = video.durationSec
             )
         } else {
             springDataRepository.findByIdOrNull(video.id)!!.apply {
                 this.endedAt = video.endedAt
-                this.storageKey = video.storageKey
+                this.filePath = video.filePath
                 this.fileSizeBytes = video.fileSizeBytes
                 this.durationSec = video.durationSec
             }
@@ -59,7 +59,7 @@ class VideoPersistenceAdapter(
         incidentId = this.incident.id!!,
         startedAt = this.startedAt,
         endedAt = this.endedAt,
-        storageKey = this.storageKey,
+        filePath = this.filePath,
         fileSizeBytes = this.fileSizeBytes,
         durationSec = this.durationSec
     )

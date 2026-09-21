@@ -17,8 +17,8 @@ class VideoRecordingJpaEntity(
     @Column(name = "ended_at")
     var endedAt: OffsetDateTime? = null,
 
-    @Column(name = "storage_key", columnDefinition = "TEXT")
-    var storageKey: String? = null,
+    @Column(name = "file_path")
+    var filePath: String? = null,
 
     @Column(name = "file_size_bytes")
     var fileSizeBytes: Long? = null,

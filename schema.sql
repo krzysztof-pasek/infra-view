@@ -14,7 +14,7 @@ CREATE TABLE video_recordings (
     incident_id BIGINT NOT NULL,
     started_at TIMESTAMPTZ NOT NULL,
     ended_at TIMESTAMPTZ,
-    storage_key TEXT,
+    file_path TEXT,
     file_size_bytes BIGINT,
     duration_sec INT,
     CONSTRAINT fk_video_recordings_incident FOREIGN KEY (incident_id) REFERENCES incidents(id)

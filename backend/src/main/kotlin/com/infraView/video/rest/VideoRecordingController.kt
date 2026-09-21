@@ -42,7 +42,7 @@ class VideoRecordingController(
     @Operation(summary = "Zaktualizuj nagranie (np. zakończ)", description = "Służy do aktualizacji metadanych po zakończeniu nagrywania")
     @PatchMapping("/{id}")
     fun updateRecording(@PathVariable id: Long, @RequestBody dto: VideoRecordingUpdateDto): VideoRecordingDto {
-        return useCase.updateRecording(id, dto.endedAt, dto.storageKey, dto.fileSizeBytes, dto.durationSec)?.toDto()
+        return useCase.updateRecording(id, dto.endedAt, dto.filePath, dto.fileSizeBytes, dto.durationSec)?.toDto()
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Nagranie o ID $id nie istnieje")
     }
 
