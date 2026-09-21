@@ -40,7 +40,7 @@ class IncidentController(
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Incident not found")
     }
 
-    @Operation(summary = "Delete an incident", description = "Permanently removes an incident from the database.")
+    @Operation(summary = "Delete an incident", description = "Removes an incident from the database.")
     @DeleteMapping("/{id}")
     fun deleteIncident(@PathVariable id: Long) {
         useCase.delete(id)
