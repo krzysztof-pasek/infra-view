@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 
-import type { Incident, Telemetry } from "./types";
+import type { Incident, Recording, Telemetry } from "./types";
 import { Metrics } from "./Metrics";
 import { Charts } from "./Charts";
+import { CameraPanel } from "./CameraPanel";
+import { RecordingList } from "./RecordingList";
 
 export function SessionDetails({ incident }: { incident: Incident }) {
   const [now, setNow] = useState(Date.now);
@@ -13,6 +15,7 @@ export function SessionDetails({ incident }: { incident: Incident }) {
   }, []);
 
   const rows: Telemetry[] = [];
+  const recordings: Recording[] = [];
 
   return (
     <>
@@ -22,7 +25,11 @@ export function SessionDetails({ incident }: { incident: Incident }) {
         ended={incident.status === "RESOLVED"}
       />
 
+      <CameraPanel />
+
       <Charts rows={rows} />
+
+      <RecordingList recordings={recordings} />
     </>
   );
 }

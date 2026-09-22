@@ -214,6 +214,39 @@ small, .muted {
   padding: 14px;
 }
 
+.camera {
+  aspect-ratio: 16 / 9;
+
+  background: #080b11;
+  color: #f5f7fa;
+
+  border-radius: 16px;
+
+  display: grid;
+  place-items: center;
+
+  text-align: center;
+
+  padding: 24px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  text-align: left;
+
+  padding: 10px;
+
+  border-bottom: 1px solid var(--border);
+}
+
 .topbar, .panel {
   animation: slideIn 0.45s ease-out both;
 }
