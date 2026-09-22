@@ -1,19 +1,40 @@
+import { useState } from "react";
+import { SessionList } from "./SessionList";
+import type { Incident } from "./types";
 import { useTheme } from "./useTheme";
 
 export default function App() {
   const { theme, toggleTheme } = useTheme();
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  const incidents: Incident[] = [];
+  const selected = incidents.find(incident => incident.id === selectedId);
 
   return (
     <div className="app">
       <header className="topbar">
-        <div><h1>INFRA VIEW</h1><p className="muted">Panel monitoringu</p></div>
+        <div>
+          <h1>RescueVision</h1>
+          <p className="muted">Panel monitoringu</p>
+        </div>
+
         <button onClick={toggleTheme}>
-          {theme === "dark" ? "Włącz jasny motyw" : "Włącz ciemny motyw"}
+          {theme === "dark" ? "Jasny motyw" : "Ciemny motyw"}
         </button>
       </header>
+
       <main className="layout">
-        <aside className="panel"><h2>Sesje strażaków</h2></aside>
-        <section className="content"><div className="panel">Wybierz sesję</div></section>
+        <SessionList
+          incidents={incidents}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+        />
+
+        <section className="content">
+          <div className="panel">
+            <h2>{selected?.firefighterName || "Wybierz sesję"}</h2>
+          </div>
+        </section>
       </main>
     </div>
   );
