@@ -1,5 +1,6 @@
 package com.infraView.telemetry.database
 
+import com.infraView.device.database.DeviceJpaEntity
 import com.infraView.incident.database.IncidentJpaEntity
 import com.infraView.telemetry.domain.Telemetry
 import com.infraView.telemetry.domain.TelemetryPort
@@ -22,11 +23,16 @@ class TelemetryPersistenceAdapter(
     }
 
     override fun save(telemetry: Telemetry): Telemetry {
-        val incidentRef = entityManager.getReference(IncidentJpaEntity::class.java, telemetry.incidentId)
-        
-        val jpaEntity = telemetry.toJpaEntity(incidentRef)
+        val incidentRef = telemetry.incidentId?.let {
+            entityManager.getReference(IncidentJpaEntity::class.java, it)
+        }
+        val deviceRef = telemetry.deviceId?.let {
+            entityManager.getReference(DeviceJpaEntity::class.java, it)
+        }
+
+        val jpaEntity = telemetry.toJpaEntity(incidentRef, deviceRef)
         val savedEntity = telemetryRepository.save(jpaEntity)
-        
+
         return savedEntity.toDomain()
     }
 
@@ -40,9 +46,13 @@ class TelemetryPersistenceAdapter(
 }
 
 
-private fun Telemetry.toJpaEntity(incidentRef: IncidentJpaEntity): TelemetryJpaEntity {
+private fun Telemetry.toJpaEntity(
+    incidentRef: IncidentJpaEntity?,
+    deviceRef: DeviceJpaEntity?
+): TelemetryJpaEntity {
     return TelemetryJpaEntity(
         incident = incidentRef,
+        device = deviceRef,
         recordedAt = this.recordedAt,
         accelRawX = this.accelRawX,
         accelRawY = this.accelRawY,
@@ -68,7 +78,8 @@ private fun Telemetry.toJpaEntity(incidentRef: IncidentJpaEntity): TelemetryJpaE
 private fun TelemetryJpaEntity.toDomain(): Telemetry {
     return Telemetry(
         id = this.id,
-        incidentId = this.incident.id,
+        incidentId = this.incident?.id,
+        deviceId = this.device?.id,
         recordedAt = this.recordedAt,
         accelRawX = this.accelRawX,
         accelRawY = this.accelRawY,

@@ -6,6 +6,7 @@ import java.time.OffsetDateTime
 data class TelemetryDto(
     val id: Long?,
     val incidentId: Long?,
+    val deviceId: Long?,
     val recordedAt: OffsetDateTime,
     val accelRawX: Double?,
     val accelRawY: Double?,
@@ -19,7 +20,7 @@ data class TelemetryDto(
     val gyroFiltX: Double?,
     val gyroFiltY: Double?,
     val gyroFiltZ: Double?,
-    val temperature: Short?,
+    val temperature: Double?,
     val gasPpm: Double?,
     val co2Ppm: Double?,
     val motionState: String?
@@ -40,7 +41,7 @@ data class TelemetryCreateDto(
     val gyroFiltX: Double? = null,
     val gyroFiltY: Double? = null,
     val gyroFiltZ: Double? = null,
-    val temperature: Short? = null,
+    val temperature: Double? = null,
     val gasPpm: Double? = null,
     val co2Ppm: Double? = null,
     val motionState: String? = null
@@ -70,6 +71,7 @@ data class TelemetryCreateDto(
 fun Telemetry.toDto() = TelemetryDto(
     id = this.id,
     incidentId = this.incidentId,
+    deviceId = this.deviceId,
     recordedAt = this.recordedAt,
     accelRawX = this.accelRawX,
     accelRawY = this.accelRawY,

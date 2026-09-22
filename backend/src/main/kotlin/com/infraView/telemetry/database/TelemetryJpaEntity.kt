@@ -1,5 +1,6 @@
 package com.infraView.telemetry.database
 
+import com.infraView.device.database.DeviceJpaEntity
 import com.infraView.incident.database.IncidentJpaEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -16,8 +17,12 @@ import java.time.OffsetDateTime
 @Table(name = "telemetry")
 class TelemetryJpaEntity(
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "incident_id", nullable = false)
-    var incident: IncidentJpaEntity,
+    @JoinColumn(name = "incident_id")
+    var incident: IncidentJpaEntity? = null,
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "device_id")
+    var device: DeviceJpaEntity? = null,
 
     @Column(name = "recorded_at", nullable = false)
     var recordedAt: OffsetDateTime,
@@ -59,7 +64,7 @@ class TelemetryJpaEntity(
     var gyroFiltZ: Double? = null,
 
     @Column(name = "temperature")
-    var temperature: Short? = null,
+    var temperature: Double? = null,
 
     @Column(name = "gas_ppm")
     var gasPpm: Double? = null,
