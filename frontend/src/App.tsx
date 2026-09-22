@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { SessionList } from "./SessionList";
+import { SessionDetails } from "./SessionDetails";
 import type { Incident } from "./types";
 import { useTheme } from "./useTheme";
 
@@ -34,6 +35,13 @@ export default function App() {
           <div className="panel">
             <h2>{selected?.firefighterName || "Wybierz sesję"}</h2>
           </div>
+
+          {selected && (
+            <SessionDetails
+              key={selected.id}
+              incident={selected}
+            />
+          )}
         </section>
       </main>
     </div>
