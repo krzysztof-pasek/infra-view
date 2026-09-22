@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { SessionList } from "./SessionList";
+import { AlarmPanel } from "./AlarmPanel";
 import { SessionDetails } from "./SessionDetails";
-import type { Incident } from "./types";
+import { SessionList } from "./SessionList";
+import type { Alarm, Incident } from "./types";
 import { useTheme } from "./useTheme";
 
 export default function App() {
@@ -9,6 +10,8 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const incidents: Incident[] = [];
+  const alarms: Alarm[] = [];
+
   const selected = incidents.find(incident => incident.id === selectedId);
 
   return (
@@ -42,6 +45,11 @@ export default function App() {
               incident={selected}
             />
           )}
+
+          <AlarmPanel
+            alarms={alarms}
+            incidents={incidents}
+          />
         </section>
       </main>
     </div>

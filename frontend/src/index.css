@@ -151,7 +151,7 @@ small, .muted {
   -webkit-backdrop-filter: blur(20px);
 }
 
-.session-list {
+.session-list, .alarm-list {
   list-style: none;
 
   padding: 0;
@@ -203,6 +203,15 @@ small, .muted {
   padding: 5px 10px;
 
   font-size: 0.85rem;
+}
+
+.alarm {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--danger);
+
+  border-radius: 14px;
+
+  padding: 14px;
 }
 
 .topbar, .panel {
