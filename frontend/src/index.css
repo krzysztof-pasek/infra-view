@@ -47,7 +47,7 @@ body {
     var(--background);
 }
 
-button {
+button, input {
   font: inherit;
   color: var(--text);
   background: var(--solid);
@@ -205,6 +205,10 @@ small, .muted {
   font-size: 0.85rem;
 }
 
+.error {
+  color: var(--danger);
+}
+
 .alarm {
   border: 1px solid var(--border);
   border-left: 4px solid var(--danger);
@@ -228,6 +232,11 @@ small, .muted {
   text-align: center;
 
   padding: 24px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
 }
 
 .table-wrap {
