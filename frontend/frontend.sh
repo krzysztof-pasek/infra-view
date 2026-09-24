@@ -8,7 +8,7 @@ case "$1" in
     docker build --pull -t infra-view-frontend:2026-09-22-01 .
     ;;
   -start)
-    docker compose -f compose.frontend.yml up -d --pull never
+    docker compose -f ../docker-compose.yml up -d --pull never frontend
     ;;
   *)
     echo "Użycie: ./frontend.sh -build lub -start"

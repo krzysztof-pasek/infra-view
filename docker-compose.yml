@@ -18,5 +18,16 @@ services:
       timeout: 5s
       retries: 10
 
+  frontend:
+    image: infra-view-frontend:2026-09-22-01
+    container_name: INFRA_VIEW_FRONTEND
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:8080"
+    env_file:
+      - ./frontend/frontend.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
 volumes:
   postgres_data:
