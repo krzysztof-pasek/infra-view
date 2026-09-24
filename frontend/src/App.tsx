@@ -148,7 +148,7 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <div>
-          <h1>RescueVision</h1>
+          <h1>infra-view</h1>
           <p className="muted">Panel monitoringu</p>
         </div>
 

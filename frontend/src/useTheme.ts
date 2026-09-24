@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 type Theme = "light" | "dark";
 
 function getInitialTheme(): Theme {
-  const savedTheme = localStorage.getItem("rescuevision-theme");
+  const savedTheme = localStorage.getItem("infra-view-theme");
 
   if (savedTheme === "light" || savedTheme === "dark") {
     return savedTheme;
@@ -21,7 +21,7 @@ export function useTheme() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    localStorage.setItem("rescuevision-theme", theme);
+    localStorage.setItem("infra-view-theme", theme);
   }, [theme]);
 
   function toggleTheme() {
