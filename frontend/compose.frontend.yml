@@ -1,14 +1,17 @@
 services:
   frontend:
-    image: infra-view-frontend:local
+    image: ${IMAGE:-infra-view-frontend:2026-09-22-01}
     container_name: INFRA_VIEW_FRONTEND
     restart: unless-stopped
-
     ports:
       - "127.0.0.1:8081:8080"
-
-    environment:
-      BACKEND_URL: "http://host.docker.internal:8080"
-
+    env_file:
+      - frontend.env
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
