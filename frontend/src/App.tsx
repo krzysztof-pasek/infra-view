@@ -148,7 +148,7 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <div>
-          <h1>infra-view</h1>
+          <h1>INFRA VIEW</h1>
           <p className="muted">Panel monitoringu</p>
         </div>
 
@@ -189,59 +189,38 @@ export default function App() {
       </label>
 
       <main className="layout">
-        <div className="content">
+        <aside className="content" aria-label="Sesje strażaków">
           <SessionList
             incidents={visible}
             selectedId={selected?.id ?? null}
             onSelect={setSelectedId}
           />
+          <NewSessionForm busy={busy} onCreate={handleCreate} />
+        </aside>
 
-          <NewSessionForm
-            busy={busy}
-            onCreate={handleCreate}
-          />
-        </div>
-
-        <section className="content">
-          <div className="panel row">
-            <h2>
-              {selected?.firefighterName ||
-                selected?.code ||
-                "Wybierz sesję"}
-            </h2>
-
-            {selected?.status === "IN_PROGRESS" && (
-              <button
-                disabled={busy || Boolean(sessions.error)}
-                onClick={handleEnd}
-              >
-                Zakończ sesję
-              </button>
-            )}
-          </div>
-
-          {selected && (
-            <SessionDetails
-              key={selected.id}
-              incident={selected}
-            />
-          )}
-
-          <LoadStatus
-            label="Alarmy"
-            error={alarms.error}
-            updatedAt={alarms.updatedAt}
-          />
-
-          {alarms.data !== null && (
-            <AlarmPanel
-              alarms={alarms.data}
-              incidents={incidents}
-              onResolve={handleResolve}
-              busy={busy || Boolean(alarms.error)}
-            />
-          )}
-        </section>
+        <SessionDetails
+          key={selected?.id ?? "empty"}
+          incident={selected}
+          busy={busy || Boolean(sessions.error)}
+          onEnd={handleEnd}
+          alarms={
+            <>
+              <LoadStatus
+                label="Alarmy"
+                error={alarms.error}
+                updatedAt={alarms.updatedAt}
+              />
+              {alarms.data !== null && (
+                <AlarmPanel
+                  alarms={alarms.data}
+                  incidents={incidents}
+                  onResolve={handleResolve}
+                  busy={busy || Boolean(alarms.error)}
+                />
+              )}
+            </>
+          }
+        />
       </main>
     </div>
   );
