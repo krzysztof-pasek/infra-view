@@ -34,7 +34,7 @@ export interface Recording {
   incidentId: number;
   startedAt: string;
   endedAt: string | null;
-  storageKey: string | null;
+  filePath: string | null;
   fileSizeBytes: number | null;
   durationSec: number | null;
 }

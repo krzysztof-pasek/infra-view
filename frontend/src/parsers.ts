@@ -137,7 +137,7 @@ export function parseRecording(value: unknown): Recording {
     incidentId: id(item.incidentId),
     startedAt: date(item.startedAt),
     endedAt: nullableDate(item.endedAt),
-    storageKey: nullableText(item.storageKey),
+    filePath: nullableText(item.filePath),
     fileSizeBytes: nullableNumber(item.fileSizeBytes),
     durationSec: nullableNumber(item.durationSec),
   };
