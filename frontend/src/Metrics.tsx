@@ -20,7 +20,7 @@ export function Metrics({ latest, now, ended }: Props) {
         <h2>Pomiary</h2>
 
         <span className="badge">
-          {ended ? "Dane historyczne" : freshness(latest?.recordedAt, now)}
+          {!latest ? "Brak pomiarów" : ended ? "Dane historyczne" : freshness(latest.recordedAt, now)}
         </span>
       </div>
 

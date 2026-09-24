@@ -199,7 +199,6 @@ export default function App() {
         </aside>
 
         <SessionDetails
-          key={selected?.id ?? "empty"}
           incident={selected}
           busy={busy || Boolean(sessions.error)}
           onEnd={handleEnd}

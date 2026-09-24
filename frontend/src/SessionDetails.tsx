@@ -102,7 +102,10 @@ function SelectedSession({ incident, busy, onEnd, alarms }: Props & { incident: 
           )}
         </div>
 
-        <Charts rows={rows} />
+        <section className="content" aria-label="Historia pomiarów">
+          <p className="muted">Wykresy: ostatnie 120 pomiarów wybranej sesji.</p>
+          <Charts rows={rows} />
+        </section>
       </section>
 
       <aside className="content monitoring" aria-label="Pomiary i alarmy">

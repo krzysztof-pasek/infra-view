@@ -26,16 +26,15 @@ export function RecordingList({ recordings }: { recordings: Recording[] }) {
                   <td>{formatDate(recording.startedAt)}</td>
 
                   <td>
-                    {formatNumber(recording.durationSec, 0)} s
+                    {recording.durationSec === null
+                      ? "Brak danych"
+                      : `${formatNumber(recording.durationSec, 0)} s`}
                   </td>
 
                   <td>
-                    {formatNumber(
-                      recording.fileSizeBytes == null
-                        ? null
-                        : recording.fileSizeBytes / 1024 / 1024
-                    )}{" "}
-                    MiB
+                    {recording.fileSizeBytes === null
+                      ? "Brak danych"
+                      : `${formatNumber(recording.fileSizeBytes / 1024 / 1024)} MiB`}
                   </td>
 
                   <td>{formatDate(recording.endedAt)}</td>
