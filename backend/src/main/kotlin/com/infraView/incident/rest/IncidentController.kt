@@ -11,7 +11,7 @@ import org.springframework.web.server.ResponseStatusException
 @RestController
 @RequestMapping("/incidents")
 class IncidentController(
-    private val useCase: ManageIncidentUseCase,
+    private val useCase: ManageIncidentUseCase
 ) {
 
     @Operation(summary = "Get all incidents", description = "Returns the full history of all incidents in the system.")
@@ -23,12 +23,13 @@ class IncidentController(
     @Operation(summary = "Get incident by ID", description = "Retrieves detailed information about a specific incident based on its unique identifier.")
     @GetMapping("/{id}")
     fun getIncident(@PathVariable id: Long): IncidentDto {
-        return useCase.getById(id)?.toDto() 
+        return useCase.getById(id)?.toDto()
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Incident with ID $id not found")
     }
 
     @Operation(summary = "Report a new incident", description = "Creates a new incident in the system.")
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     fun createIncident(@RequestBody dto: IncidentCreateDto): IncidentDto {
         return useCase.save(dto.toDomain()).toDto()
     }
@@ -42,6 +43,7 @@ class IncidentController(
 
     @Operation(summary = "Delete an incident", description = "Removes an incident from the database.")
     @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deleteIncident(@PathVariable id: Long) {
         useCase.delete(id)
     }

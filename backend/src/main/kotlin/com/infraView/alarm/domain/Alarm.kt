@@ -6,6 +6,6 @@ data class Alarm(
     val id: Long? = null,
     val alarmType: AlarmType,
     val triggeredAt: OffsetDateTime,
-    var resolvedAt: OffsetDateTime? = null,
+    val resolvedAt: OffsetDateTime? = null,
     val incidentId: Long
 )

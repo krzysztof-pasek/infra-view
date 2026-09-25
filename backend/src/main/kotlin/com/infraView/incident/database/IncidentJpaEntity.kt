@@ -1,7 +1,7 @@
 package com.infraView.incident.database
 
 import com.infraView.alarm.database.AlarmJpaEntity
-import com.infraView.incident.StatusType
+import com.infraView.incident.domain.StatusType
 import com.infraView.telemetry.database.TelemetryJpaEntity
 import com.infraView.video.database.VideoRecordingJpaEntity
 import jakarta.persistence.*

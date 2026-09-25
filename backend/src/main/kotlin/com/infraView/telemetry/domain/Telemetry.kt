@@ -4,7 +4,7 @@ import java.time.OffsetDateTime
 
 data class Telemetry (
     val id: Long? = null,
-    val incidentId: Long? = null,
+    val incidentId: Long,
     val recordedAt: OffsetDateTime,
     val accelRawX: Double? = null,
     val accelRawY: Double? = null,

@@ -1,8 +1,8 @@
 package com.infraView.incident.domain
 
-import com.infraView.incident.StatusType
 import org.springframework.stereotype.Service
 import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
 @Service
 class IncidentService(
@@ -21,14 +21,13 @@ class IncidentService(
         return incidentPort.save(incident)
     }
 
-    override fun endIncident(incidentId: Long): Incident? {
-        val incident = incidentPort.getById(incidentId) ?: throw RuntimeException("Incident with ID $incidentId not found")
-        incident.endedAt = OffsetDateTime.now()
-        incident.status = StatusType.RESOLVED
-        return incidentPort.save(incident)
+    override fun endIncident(id: Long): Incident? {
+        val incident = incidentPort.getById(id) ?: return null
+        if (incident.status == StatusType.RESOLVED) return incident
+        return incidentPort.save(incident.copy(endedAt = OffsetDateTime.now(ZoneOffset.UTC), status = StatusType.RESOLVED))
     }
 
-    override fun delete(incidentId: Long) {
-        incidentPort.deleteById(incidentId)
+    override fun delete(id: Long) {
+        incidentPort.delete(id)
     }
 }

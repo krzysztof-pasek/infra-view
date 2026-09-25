@@ -35,6 +35,7 @@ class VideoRecordingController(
 
     @Operation(summary = "Start video recording", description = "Registers the start of a new video recording session.")
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     fun startRecording(@RequestBody dto: VideoRecordingCreateDto): VideoRecordingDto {
         return useCase.startRecording(dto.incidentId, dto.startedAt).toDto()
     }

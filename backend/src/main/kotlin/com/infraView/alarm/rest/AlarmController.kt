@@ -28,6 +28,7 @@ class AlarmController(
 
     @Operation(summary = "Report a new alarm", description = "Used by sensors to report a new event within an existing incident.")
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     fun add(@RequestBody alarm: AlarmCreateDto): AlarmDto {
         return useCase.triggerAlarm(alarm.toDomain()).toDto()
     }
@@ -41,6 +42,7 @@ class AlarmController(
 
     @Operation(summary = "Delete an alarm", description = "Removes an alarm from the database.")
     @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     fun delete(@PathVariable id: Long) {
         useCase.delete(id)
     }

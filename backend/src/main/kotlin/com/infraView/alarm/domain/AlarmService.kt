@@ -2,6 +2,7 @@ package com.infraView.alarm.domain
 
 import org.springframework.stereotype.Service
 import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
 @Service
 class AlarmService(
@@ -21,12 +22,12 @@ class AlarmService(
     }
 
     override fun resolveAlarm(id: Long): Alarm? {
-        val alarm = alarmPort.getById(id) ?: throw RuntimeException("Alarm with ID $id not found")
-        alarm.resolvedAt = OffsetDateTime.now()
-        return alarmPort.save(alarm)
+        val alarm = alarmPort.getById(id) ?: return null
+        if (alarm.resolvedAt != null) return alarm
+        return alarmPort.save(alarm.copy(resolvedAt = OffsetDateTime.now(ZoneOffset.UTC)))
     }
 
     override fun delete(id: Long) {
-        alarmPort.deleteById(id)
+        alarmPort.delete(id)
     }
 }

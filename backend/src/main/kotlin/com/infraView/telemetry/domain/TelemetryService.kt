@@ -12,7 +12,7 @@ class TelemetryService(
     }
 
     override fun getByIncidentId(incidentId: Long): List<Telemetry> {
-        return telemetryPort.getAllByIncidentId(incidentId)
+        return telemetryPort.getByIncidentId(incidentId)
     }
 
     override fun add(telemetry: Telemetry): Telemetry {
@@ -21,7 +21,7 @@ class TelemetryService(
     }
 
     override fun delete(id: Long) {
-        telemetryPort.deleteById(id)
+        telemetryPort.delete(id)
     }
 
 }

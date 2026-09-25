@@ -4,5 +4,4 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface SpringDataTelemetryRepository : JpaRepository<TelemetryJpaEntity, Long> {
     fun findAllByIncidentId(incidentId: Long): List<TelemetryJpaEntity>
-    fun deleteAllByIncidentId(incidentId: Long)
 }

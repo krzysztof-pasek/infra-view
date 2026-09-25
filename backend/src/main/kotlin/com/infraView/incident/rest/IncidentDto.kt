@@ -1,6 +1,6 @@
 package com.infraView.incident.rest
 
-import com.infraView.incident.StatusType
+import com.infraView.incident.domain.StatusType
 import com.infraView.incident.domain.Incident
 import java.time.OffsetDateTime
 
