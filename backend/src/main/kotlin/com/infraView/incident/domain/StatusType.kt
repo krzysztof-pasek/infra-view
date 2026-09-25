@@ -1,4 +1,4 @@
-package com.infraView.incident
+package com.infraView.incident.domain
 
 enum class StatusType {
     RESOLVED,

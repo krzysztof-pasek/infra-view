@@ -13,7 +13,7 @@ class TelemetryPersistenceAdapter(
     private val entityManager: EntityManager
 ) : TelemetryPort {
 
-    override fun getAllByIncidentId(incidentId: Long): List<Telemetry> {
+    override fun getByIncidentId(incidentId: Long): List<Telemetry> {
         return telemetryRepository.findAllByIncidentId(incidentId).map { it.toDomain() }
     }
 
@@ -23,19 +23,11 @@ class TelemetryPersistenceAdapter(
 
     override fun save(telemetry: Telemetry): Telemetry {
         val incidentRef = entityManager.getReference(IncidentJpaEntity::class.java, telemetry.incidentId)
-        
-        val jpaEntity = telemetry.toJpaEntity(incidentRef)
-        val savedEntity = telemetryRepository.save(jpaEntity)
-        
-        return savedEntity.toDomain()
+        return telemetryRepository.save(telemetry.toJpaEntity(incidentRef)).toDomain()
     }
 
-    override fun deleteById(id: Long) {
+    override fun delete(id: Long) {
         telemetryRepository.deleteById(id)
-    }
-
-    override fun deleteAllByIncidentId(incidentId: Long) {
-        telemetryRepository.deleteAllByIncidentId(incidentId)
     }
 }
 
@@ -68,7 +60,7 @@ private fun Telemetry.toJpaEntity(incidentRef: IncidentJpaEntity): TelemetryJpaE
 private fun TelemetryJpaEntity.toDomain(): Telemetry {
     return Telemetry(
         id = this.id,
-        incidentId = this.incident.id,
+        incidentId = this.incident.id ?: throw IllegalStateException("Incident must have an ID"),
         recordedAt = this.recordedAt,
         accelRawX = this.accelRawX,
         accelRawY = this.accelRawY,

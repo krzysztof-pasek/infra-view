@@ -27,7 +27,7 @@ class AlarmPersistenceAdapter(
         return alarmRepository.save(entityToSave).toDomain()
     }
 
-    override fun deleteById(id: Long) {
+    override fun delete(id: Long) {
         alarmRepository.deleteById(id)
     }
 }

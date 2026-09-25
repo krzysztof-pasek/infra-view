@@ -26,12 +26,12 @@ class VideoPersistenceAdapter(
                 durationSec = video.durationSec
             )
         } else {
-            springDataRepository.findByIdOrNull(video.id)!!.apply {
+            springDataRepository.findByIdOrNull(video.id)?.apply {
                 this.endedAt = video.endedAt
                 this.filePath = video.filePath
                 this.fileSizeBytes = video.fileSizeBytes
                 this.durationSec = video.durationSec
-            }
+            } ?: throw IllegalStateException("Video recording with ID ${video.id} does not exist")
         }
         
         val savedEntity = springDataRepository.save(entity)
@@ -56,7 +56,7 @@ class VideoPersistenceAdapter(
 
     private fun VideoRecordingJpaEntity.toDomain() = VideoRecording(
         id = this.id,
-        incidentId = this.incident.id!!,
+        incidentId = this.incident.id ?: throw IllegalStateException("Incident must have an ID"),
         startedAt = this.startedAt,
         endedAt = this.endedAt,
         filePath = this.filePath,

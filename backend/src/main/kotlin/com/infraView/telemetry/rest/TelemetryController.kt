@@ -23,6 +23,7 @@ class TelemetryController (
 
     @Operation(summary = "Add new telemetry measurement", description = "Saves fresh sensor data.")
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     fun addTelemetry(@RequestBody dto: TelemetryCreateDto): TelemetryDto {
         return useCase.add(dto.toDomain()).toDto()
     }

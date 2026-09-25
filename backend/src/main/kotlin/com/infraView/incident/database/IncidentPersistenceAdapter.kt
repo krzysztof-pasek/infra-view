@@ -24,7 +24,7 @@ class IncidentPersistenceAdapter(
         return savedEntity.toDomain()
     }
 
-    override fun deleteById(id: Long) {
+    override fun delete(id: Long) {
         incidentRepository.deleteById(id)
     }
 }
