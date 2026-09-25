@@ -67,3 +67,19 @@ it("nie wysyła nowego żądania, dopóki poprzednie trwa", async () => {
 
   expect(load).toHaveBeenCalledTimes(1);
 });
+
+it("po błędach połączenia wraca do pobierania danych", async () => {
+  vi.useFakeTimers();
+  const load = vi.fn()
+    .mockRejectedValueOnce(new Error("Brak sieci"))
+    .mockRejectedValueOnce(new Error("Brak sieci"))
+    .mockResolvedValue(1);
+  const { result } = renderHook(() => usePolling(load, ONE_SECOND));
+
+  await act(() => vi.advanceTimersByTimeAsync(ONE_SECOND));
+  expect(result.current.error).toBe("Brak sieci");
+
+  await act(() => vi.advanceTimersByTimeAsync(ONE_SECOND));
+  expect(result.current.data).toBe(1);
+  expect(result.current.error).toBeNull();
+});
