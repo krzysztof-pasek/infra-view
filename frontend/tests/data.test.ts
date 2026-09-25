@@ -57,6 +57,12 @@ it("zostawia tylko ostatnie 120 pomiarów", () => {
   expect(result).not.toContainEqual(oldest);
 });
 
+it("pomija pomiar z nieprawidłową datą", () => {
+  const broken = { ...sample, id: 2, recordedAt: "nieprawidłowa data" };
+  const result = prepareTelemetry([broken, sample], 1);
+  expect(result.map(row => row.id)).toEqual([1]);
+});
+
 it("przyjmuje zero jako pomiar", () => {
   expect(parseTelemetry(sample).temperature).toBe(0);
 });
