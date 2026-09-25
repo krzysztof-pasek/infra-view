@@ -219,11 +219,6 @@ small, .muted { color: var(--muted); }
 
 .error { color: var(--danger); }
 
-.notice {
-  border-left: 3px solid var(--accent);
-  padding-left: 12px;
-}
-
 .alarm {
   border: 1px solid var(--border);
   border-left: 4px solid var(--danger);
@@ -414,4 +409,19 @@ details[open] > summary::before { transform: rotate(90deg); }
   .metrics {
     grid-template-columns: 1fr;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  details::details-content { transition: none !important; }
+}
+
+@media (forced-colors: active) {
+  input[type="checkbox"] { appearance: auto; }
+  input[type="checkbox"]::before { content: none; }
+  .session[aria-pressed="true"] { outline: 2px solid Highlight; }
 }
