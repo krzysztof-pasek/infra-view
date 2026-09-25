@@ -19,7 +19,7 @@ services:
       retries: 10
 
   frontend:
-    image: infra-view-frontend:2026-09-22-01
+    image: ${FRONTEND_IMAGE:-infra-view-frontend:local}
     container_name: INFRA_VIEW_FRONTEND
     restart: unless-stopped
     ports:
@@ -28,6 +28,12 @@ services:
       - ./frontend/frontend.env
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
 
 volumes:
   postgres_data:

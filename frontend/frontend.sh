@@ -3,9 +3,11 @@ set -e
 
 cd "$(dirname "$0")"
 
-case "$1" in
+case "${1:-}" in
   -build)
-    docker build --pull -t infra-view-frontend:2026-09-22-01 .
+    image="infra-view-frontend:$(date -u +%Y-%m-%d-%H%M%S)"
+    docker build --pull -t "$image" -t infra-view-frontend:local .
+    echo "Zbudowano: $image"
     ;;
   -start)
     docker compose -f ../docker-compose.yml up -d --pull never frontend
