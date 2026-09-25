@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 
 import type { ReactNode } from "react";
 
@@ -10,9 +10,10 @@ import { usePolling } from "./usePolling";
 
 import { LoadStatus } from "./LoadStatus";
 import { Metrics } from "./Metrics";
-import { Charts } from "./Charts";
 import { CameraPanel } from "./CameraPanel";
 import { RecordingList } from "./RecordingList";
+
+const Charts = lazy(() => import("./Charts").then(module => ({ default: module.Charts })));
 
 type Props = {
   incident: Incident | undefined;
@@ -104,7 +105,9 @@ function SelectedSession({ incident, busy, onEnd, alarms }: Props & { incident: 
 
         <section className="content" aria-label="Historia pomiarów">
           <p className="muted">Wykresy: ostatnie 120 pomiarów wybranej sesji.</p>
-          <Charts rows={rows} />
+          <Suspense fallback={<p role="status">Ładowanie wykresów...</p>}>
+            <Charts rows={rows} />
+          </Suspense>
         </section>
       </section>
 
