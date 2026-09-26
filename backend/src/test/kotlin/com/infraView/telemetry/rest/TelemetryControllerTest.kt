@@ -33,9 +33,10 @@ class TelemetryControllerTest {
         accelRawX = -0.037,
         accelRawY = 0.509,
         accelRawZ = 0.904,
-        temperature = 24,
-        gasPpm = 0.267,
-        co2Ppm = 400.0
+        temperature = 23.75,
+        gasVoltage = 0.267,
+        co2Ppm = 400.0,
+        tvocPpb = 12.0
     )
 
     @Test
@@ -49,8 +50,11 @@ class TelemetryControllerTest {
             .andExpect(jsonPath("$.recordedAt").value("2026-09-24T10:00:00Z"))
             .andExpect(jsonPath("$.accelRawX").value(-0.037))
             .andExpect(jsonPath("$.accelRawZ").value(0.904))
-            .andExpect(jsonPath("$.temperature").value(24))
+            .andExpect(jsonPath("$.deviceId").doesNotExist())
+            .andExpect(jsonPath("$.temperature").value(23.75))
+            .andExpect(jsonPath("$.gasVoltage").value(0.267))
             .andExpect(jsonPath("$.co2Ppm").value(400.0))
+            .andExpect(jsonPath("$.tvocPpb").value(12.0))
             .andExpect(jsonPath("$.gyroRawX").doesNotExist())
     }
 
@@ -89,9 +93,10 @@ class TelemetryControllerTest {
                       "accelRawX": -0.037,
                       "accelRawY": 0.509,
                       "accelRawZ": 0.904,
-                      "temperature": 24,
-                      "gasPpm": 0.267,
-                      "co2Ppm": 400.0
+                      "temperature": 23.75,
+                      "gasVoltage": 0.267,
+                      "co2Ppm": 400.0,
+                      "tvocPpb": 12.0
                     }
                     """.trimIndent()
                 )
