@@ -13,8 +13,12 @@ CREATE TABLE incidents (
     location VARCHAR(200),
     started_at TIMESTAMPTZ NOT NULL,
     ended_at TIMESTAMPTZ,
-    status VARCHAR(20) NOT NULL
+    status VARCHAR(20) NOT NULL,
+    device_id BIGINT,
+    CONSTRAINT fk_incidents_device FOREIGN KEY (device_id) REFERENCES devices(id)
 );
+
+CREATE UNIQUE INDEX uq_incidents_active_device ON incidents (device_id) WHERE status = 'IN_PROGRESS';
 
 CREATE TABLE video_recordings (
     id BIGSERIAL PRIMARY KEY,

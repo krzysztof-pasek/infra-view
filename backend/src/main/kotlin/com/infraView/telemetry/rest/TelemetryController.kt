@@ -3,6 +3,7 @@ package com.infraView.telemetry.rest
 import com.infraView.telemetry.domain.ManageTelemetryUseCase
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
@@ -13,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException
 class TelemetryController (
     private val useCase: ManageTelemetryUseCase
 ) {
+    private val log = LoggerFactory.getLogger(TelemetryController::class.java)
 
     @Operation(summary = "Get telemetry by ID", description = "Retrieves details of a single telemetry measurement.")
     @GetMapping("/{id}")
@@ -25,7 +27,9 @@ class TelemetryController (
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     fun addTelemetry(@RequestBody dto: TelemetryCreateDto): TelemetryDto {
-        return useCase.add(dto.toDomain()).toDto()
+        val saved = useCase.add(dto.toDomain())
+        log.info("Telemetry added via REST: telemetryId={}, incidentId={}", saved.id, saved.incidentId)
+        return saved.toDto()
     }
 
     @Operation(summary = "Get telemetry by incident ID", description = "Returns all telemetry measurements assigned to a specific incident.")

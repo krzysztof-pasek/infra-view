@@ -30,7 +30,10 @@ class IncidentJpaEntity(
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    var status: StatusType
+    var status: StatusType,
+
+    @Column(name = "device_id")
+    var deviceId: Long? = null
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

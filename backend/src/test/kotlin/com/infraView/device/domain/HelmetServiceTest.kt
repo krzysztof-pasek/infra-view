@@ -1,5 +1,8 @@
 package com.infraView.device.domain
 
+import com.infraView.incident.domain.Incident
+import com.infraView.incident.domain.ManageIncidentUseCase
+import com.infraView.incident.domain.StatusType
 import com.infraView.telemetry.domain.ManageTelemetryUseCase
 import com.infraView.telemetry.domain.Telemetry
 import io.mockk.every
@@ -22,11 +25,19 @@ class HelmetServiceTest {
     private val devicePort = mockk<DevicePort>()
     private val thermalFramePort = mockk<ThermalFramePort>()
     private val telemetryUseCase = mockk<ManageTelemetryUseCase>()
-    private val service = HelmetService(devicePort, thermalFramePort, telemetryUseCase)
+    private val incidentUseCase = mockk<ManageIncidentUseCase>()
+    private val service = HelmetService(devicePort, thermalFramePort, telemetryUseCase, incidentUseCase)
 
     private val mac = "d8:3a:dd:ed:3f:42"
     private val uuid = "689d8e89-2503-4739-9dd8-c93bc9d7c14d"
     private val device = Device(id = 1L, mac = mac, uuid = uuid, registeredAt = OffsetDateTime.parse("2026-09-26T10:00:00Z"))
+    private val session = Incident(
+        id = 7L,
+        code = "HELMET-1-0926100000",
+        startedAt = OffsetDateTime.parse("2026-09-26T10:00:00Z"),
+        status = StatusType.IN_PROGRESS,
+        deviceId = 1L
+    )
 
     private val fullPacket = listOf(
         SensorReading("bmi160", "ax", -0.037),
@@ -67,6 +78,7 @@ class HelmetServiceTest {
     fun `should map every sensor reading to its telemetry field`() {
         val saved = slot<Telemetry>()
         every { devicePort.getByUuid(uuid) } returns device
+        every { incidentUseCase.getOrStartDeviceSession(1L) } returns session
         every { telemetryUseCase.add(capture(saved)) } answers { saved.captured.copy(id = 10L) }
 
         val result = service.ingestReadings(uuid, fullPacket)
@@ -75,6 +87,7 @@ class HelmetServiceTest {
         val telemetry = saved.captured
         assertEquals(
             Telemetry(
+                incidentId = 7L,
                 deviceId = 1L,
                 recordedAt = telemetry.recordedAt,
                 accelRawX = -0.037,
@@ -90,7 +103,6 @@ class HelmetServiceTest {
             ),
             telemetry
         )
-        assertNull(telemetry.incidentId)
         assertNull(telemetry.gasPpm)
         assertEquals(ZoneOffset.UTC, telemetry.recordedAt.offset)
     }
@@ -99,6 +111,7 @@ class HelmetServiceTest {
     fun `should keep failed and missing sensors as null and ignore unknown ones`() {
         val saved = slot<Telemetry>()
         every { devicePort.getByUuid(uuid) } returns device
+        every { incidentUseCase.getOrStartDeviceSession(1L) } returns session
         every { telemetryUseCase.add(capture(saved)) } answers { saved.captured }
 
         service.ingestReadings(
@@ -110,7 +123,7 @@ class HelmetServiceTest {
             )
         )
 
-        assertEquals(Telemetry(deviceId = 1L, recordedAt = saved.captured.recordedAt, accelRawX = 0.1), saved.captured)
+        assertEquals(Telemetry(incidentId = 7L, deviceId = 1L, recordedAt = saved.captured.recordedAt, accelRawX = 0.1), saved.captured)
     }
 
     @Test
@@ -119,6 +132,7 @@ class HelmetServiceTest {
 
         assertNull(service.ingestReadings("unknown", fullPacket))
         verify(exactly = 0) { telemetryUseCase.add(any()) }
+        verify(exactly = 0) { incidentUseCase.getOrStartDeviceSession(any()) }
     }
 
     @Test

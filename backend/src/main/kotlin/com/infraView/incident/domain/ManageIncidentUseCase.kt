@@ -5,5 +5,6 @@ interface ManageIncidentUseCase {
     fun getById(id: Long): Incident?
     fun save(incident: Incident): Incident
     fun endIncident(id: Long): Incident?
+    fun getOrStartDeviceSession(deviceId: Long): Incident
     fun delete(id: Long)
 }

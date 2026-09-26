@@ -6,6 +6,7 @@ import io.mockk.slot
 import io.mockk.verify
 import org.junit.jupiter.api.Test
 import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -46,6 +47,43 @@ class IncidentServiceTest {
 
         assertEquals(resolved, service.endIncident(1L))
         verify(exactly = 0) { incidentPort.save(any()) }
+    }
+
+    @Test
+    fun `should reuse active session of device`() {
+        val session = incident.copy(deviceId = 5L)
+        every { incidentPort.getActiveByDeviceId(5L) } returns session
+
+        assertEquals(session, service.getOrStartDeviceSession(5L))
+        verify(exactly = 0) { incidentPort.save(any()) }
+    }
+
+    @Test
+    fun `should start new session when device has no active one`() {
+        val saved = slot<Incident>()
+        every { incidentPort.getActiveByDeviceId(5L) } returns null
+        every { incidentPort.save(capture(saved)) } answers { saved.captured.copy(id = 9L) }
+
+        val result = service.getOrStartDeviceSession(5L)
+
+        assertEquals(9L, result.id)
+        assertEquals(5L, saved.captured.deviceId)
+        assertEquals(StatusType.IN_PROGRESS, saved.captured.status)
+        assertNull(saved.captured.endedAt)
+        assertEquals(ZoneOffset.UTC, saved.captured.startedAt.offset)
+        assertTrue(Regex("^HELMET-5-\\d{10}$").matches(saved.captured.code), saved.captured.code)
+    }
+
+    @Test
+    fun `should keep device when ending a helmet session`() {
+        val saved = slot<Incident>()
+        every { incidentPort.getById(1L) } returns incident.copy(deviceId = 5L)
+        every { incidentPort.save(capture(saved)) } answers { saved.captured }
+
+        service.endIncident(1L)
+
+        assertEquals(5L, saved.captured.deviceId)
+        assertEquals(StatusType.RESOLVED, saved.captured.status)
     }
 
     @Test

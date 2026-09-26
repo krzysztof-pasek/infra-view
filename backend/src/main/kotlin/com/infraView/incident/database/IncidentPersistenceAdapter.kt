@@ -2,6 +2,7 @@ package com.infraView.incident.database
 
 import com.infraView.incident.domain.Incident
 import com.infraView.incident.domain.IncidentPort
+import com.infraView.incident.domain.StatusType
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
@@ -12,6 +13,10 @@ class IncidentPersistenceAdapter(
 
     override fun getById(id: Long): Incident? {
         return incidentRepository.findByIdOrNull(id)?.toDomain()
+    }
+
+    override fun getActiveByDeviceId(deviceId: Long): Incident? {
+        return incidentRepository.findFirstByDeviceIdAndStatus(deviceId, StatusType.IN_PROGRESS)?.toDomain()
     }
 
     override fun getAll(): List<Incident> {
@@ -38,7 +43,8 @@ private fun Incident.toJpaEntity(): IncidentJpaEntity {
         location = this.location,
         startedAt = this.startedAt,
         endedAt = this.endedAt,
-        status = this.status
+        status = this.status,
+        deviceId = this.deviceId
     ).apply {
         this.id = this@toJpaEntity.id
     }
@@ -53,6 +59,7 @@ private fun IncidentJpaEntity.toDomain(): Incident {
         location = this.location,
         startedAt = this.startedAt,
         endedAt = this.endedAt,
-        status = this.status
+        status = this.status,
+        deviceId = this.deviceId
     )
 }

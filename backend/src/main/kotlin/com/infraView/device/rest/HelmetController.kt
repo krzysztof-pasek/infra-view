@@ -3,7 +3,6 @@ package com.infraView.device.rest
 import com.infraView.device.domain.ManageHelmetUseCase
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
-import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*
@@ -14,8 +13,6 @@ import org.springframework.web.server.ResponseStatusException
 class HelmetController(
     private val useCase: ManageHelmetUseCase
 ) {
-    private val log = LoggerFactory.getLogger(HelmetController::class.java)
-
     @Operation(summary = "Register helmet", description = "Registers a helmet by its MAC address and returns its UUID. The same MAC always gets the same UUID.")
     @PostMapping("/auth", consumes = [MediaType.APPLICATION_JSON_VALUE])
     fun auth(@RequestBody body: AuthRequestDto): AuthResponseDto {
@@ -23,9 +20,7 @@ class HelmetController(
         if (!MAC_PATTERN.matches(mac)) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid MAC address")
         }
-        val device = useCase.register(mac)
-        log.info("Helmet registered: mac={}, deviceId={}", device.mac, device.id)
-        return AuthResponseDto(uuid = device.uuid)
+        return AuthResponseDto(uuid = useCase.register(mac).uuid)
     }
 
     @Operation(summary = "Receive sensor readings", description = "Receives one packet of sensor readings (sent once per second) and stores it as telemetry of the helmet.")
