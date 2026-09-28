@@ -8,7 +8,7 @@ import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 
-@Tag(name = "Helmet API", description = "Endpoints called by the helmet (Raspberry Pi), see API.md")
+@Tag(name = "Helmet API", description = "Endpoints called by the helmet (Raspberry Pi)")
 @RestController
 class HelmetController(
     private val useCase: ManageHelmetUseCase
@@ -23,7 +23,7 @@ class HelmetController(
         return AuthResponseDto(uuid = useCase.register(mac).uuid)
     }
 
-    @Operation(summary = "Receive sensor readings", description = "Receives one packet of sensor readings (sent once per second) and stores it as telemetry of the helmet.")
+    @Operation(summary = "Receive sensor readings", description = "Receives one packet of sensor readings sent once per second and stores it as telemetry of the helmet.")
     @PostMapping("/{uuid}/data", consumes = [MediaType.APPLICATION_JSON_VALUE])
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun data(@PathVariable uuid: String, @RequestBody packet: DataPacketDto) {
@@ -31,7 +31,7 @@ class HelmetController(
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown device")
     }
 
-    @Operation(summary = "Receive thermal camera frame", description = "Receives a raw JPEG frame from the thermal camera (about 8-9 per second) and keeps it as the latest frame of the helmet.")
+    @Operation(summary = "Receive thermal camera frame", description = "Receives a raw JPEG frame from the thermal camera, about 8-9 per second and keeps it as the latest frame of the helmet.")
     @PostMapping("/{uuid}/view", consumes = [MediaType.IMAGE_JPEG_VALUE])
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun view(@PathVariable uuid: String, @RequestBody jpeg: ByteArray) {
