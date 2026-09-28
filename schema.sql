@@ -31,6 +31,19 @@ CREATE TABLE video_recordings (
     CONSTRAINT fk_video_recordings_incident FOREIGN KEY (incident_id) REFERENCES incidents(id)
 );
 
+CREATE TABLE video_frames (
+    id BIGSERIAL PRIMARY KEY,
+    device_id BIGINT NOT NULL,
+    incident_id BIGINT NOT NULL,
+    captured_at TIMESTAMPTZ NOT NULL,
+    image BYTEA NOT NULL,
+    CONSTRAINT fk_video_frames_device FOREIGN KEY (device_id) REFERENCES devices(id),
+    CONSTRAINT fk_video_frames_incident FOREIGN KEY (incident_id) REFERENCES incidents(id)
+);
+
+CREATE INDEX idx_video_frames_incident_id_captured_at ON video_frames (incident_id, captured_at);
+CREATE INDEX idx_video_frames_device_id_captured_at ON video_frames (device_id, captured_at);
+
 CREATE TABLE telemetry (
     id BIGSERIAL PRIMARY KEY,
     incident_id BIGINT,

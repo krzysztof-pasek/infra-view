@@ -1,5 +1,6 @@
 package com.infraView.device.domain
 
+import com.infraView.incident.domain.Incident
 import com.infraView.incident.domain.ManageIncidentUseCase
 import com.infraView.telemetry.domain.ManageTelemetryUseCase
 import com.infraView.telemetry.domain.Telemetry
@@ -69,15 +70,25 @@ class HelmetService(
             return false
         }
         val deviceId = device.requireId()
-        thermalFramePort.saveLatest(deviceId, jpeg)
+        val session = incidentUseCase.getOrStartDeviceSession(deviceId)
+        val saved = thermalFramePort.save(
+            ThermalFrame(
+                deviceId = deviceId,
+                incidentId = session.requireId(),
+                capturedAt = OffsetDateTime.now(ZoneOffset.UTC),
+                image = jpeg
+            )
+        )
         if (streamingDevices.add(deviceId)) {
-            log.info("Thermal stream started: deviceId={}", deviceId)
+            log.info("Thermal stream started: deviceId={}, incidentId={}", deviceId, saved.incidentId)
         }
-        log.debug("Thermal frame received: deviceId={}, bytes={}", deviceId, jpeg.size)
+        log.debug("Thermal frame received: deviceId={}, frameId={}, bytes={}", deviceId, saved.id, jpeg.size)
         return true
     }
 
     private fun Device.requireId(): Long = id ?: throw IllegalStateException("Device must have an ID")
+
+    private fun Incident.requireId(): Long = id ?: throw IllegalStateException("Incident must have an ID")
 
     private fun List<SensorReading>.toTelemetry(deviceId: Long, incidentId: Long?): Telemetry {
         val values = associate { (it.sensor to it.metric) to it.value }

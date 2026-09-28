@@ -6,9 +6,7 @@ import com.infraView.incident.domain.StatusType
 import com.infraView.telemetry.domain.ManageTelemetryUseCase
 import com.infraView.telemetry.domain.Telemetry
 import io.mockk.every
-import io.mockk.just
 import io.mockk.mockk
-import io.mockk.runs
 import io.mockk.slot
 import io.mockk.verify
 import org.junit.jupiter.api.Test
@@ -136,13 +134,19 @@ class HelmetServiceTest {
     }
 
     @Test
-    fun `should store frame of known device`() {
+    fun `should store frame of known device in its session`() {
         val jpeg = byteArrayOf(0xFF.toByte(), 0xD8.toByte())
+        val saved = slot<ThermalFrame>()
         every { devicePort.getByUuid(uuid) } returns device
-        every { thermalFramePort.saveLatest(1L, jpeg) } just runs
+        every { incidentUseCase.getOrStartDeviceSession(1L) } returns session
+        every { thermalFramePort.save(capture(saved)) } answers { saved.captured.copy(id = 20L) }
 
         assertTrue(service.ingestFrame(uuid, jpeg))
-        verify(exactly = 1) { thermalFramePort.saveLatest(1L, jpeg) }
+        assertEquals(
+            ThermalFrame(deviceId = 1L, incidentId = 7L, capturedAt = saved.captured.capturedAt, image = jpeg),
+            saved.captured
+        )
+        assertEquals(ZoneOffset.UTC, saved.captured.capturedAt.offset)
     }
 
     @Test
@@ -150,6 +154,7 @@ class HelmetServiceTest {
         every { devicePort.getByUuid("unknown") } returns null
 
         assertFalse(service.ingestFrame("unknown", byteArrayOf(0xFF.toByte(), 0xD8.toByte())))
-        verify(exactly = 0) { thermalFramePort.saveLatest(any(), any()) }
+        verify(exactly = 0) { thermalFramePort.save(any()) }
+        verify(exactly = 0) { incidentUseCase.getOrStartDeviceSession(any()) }
     }
 }
