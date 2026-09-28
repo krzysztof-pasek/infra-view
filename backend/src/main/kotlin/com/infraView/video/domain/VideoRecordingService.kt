@@ -5,19 +5,19 @@ import java.time.OffsetDateTime
 
 @Service
 class VideoRecordingService(
-    private val videoRecordingPort: VideoRecordingPort
-) : ManageVideoRecordingUseCase {
+    private val videoRecordingRepository: VideoRecordingRepository
+) : VideoRecordingUseCase {
 
     override fun getAll(): List<VideoRecording> {
-        return videoRecordingPort.getAll()
+        return videoRecordingRepository.getAll()
     }
 
     override fun getById(id: Long): VideoRecording? {
-        return videoRecordingPort.getById(id)
+        return videoRecordingRepository.getById(id)
     }
 
     override fun getByIncidentId(incidentId: Long): List<VideoRecording> {
-        return videoRecordingPort.getByIncidentId(incidentId)
+        return videoRecordingRepository.getByIncidentId(incidentId)
     }
 
     override fun startRecording(incidentId: Long, startedAt: OffsetDateTime): VideoRecording {
@@ -25,7 +25,7 @@ class VideoRecordingService(
             incidentId = incidentId,
             startedAt = startedAt
         )
-        return videoRecordingPort.save(video)
+        return videoRecordingRepository.save(video)
     }
 
     override fun updateRecording(
@@ -35,17 +35,17 @@ class VideoRecordingService(
         fileSizeBytes: Long?,
         durationSec: Int?
     ): VideoRecording? {
-        val existing = videoRecordingPort.getById(id) ?: return null
+        val existing = videoRecordingRepository.getById(id) ?: return null
         val updated = existing.copy(
             endedAt = endedAt ?: existing.endedAt,
             filePath = filePath ?: existing.filePath,
             fileSizeBytes = fileSizeBytes ?: existing.fileSizeBytes,
             durationSec = durationSec ?: existing.durationSec
         )
-        return videoRecordingPort.save(updated)
+        return videoRecordingRepository.save(updated)
     }
 
     override fun delete(id: Long) {
-        videoRecordingPort.delete(id)
+        videoRecordingRepository.delete(id)
     }
 }

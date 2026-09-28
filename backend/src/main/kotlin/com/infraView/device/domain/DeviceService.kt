@@ -1,8 +1,8 @@
 package com.infraView.device.domain
 
 import com.infraView.incident.domain.Incident
-import com.infraView.incident.domain.ManageIncidentUseCase
-import com.infraView.telemetry.domain.ManageTelemetryUseCase
+import com.infraView.incident.domain.IncidentUseCase
+import com.infraView.telemetry.domain.TelemetryUseCase
 import com.infraView.telemetry.domain.Telemetry
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -12,22 +12,22 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 @Service
-class HelmetService(
-    private val devicePort: DevicePort,
-    private val thermalFramePort: ThermalFramePort,
-    private val telemetryUseCase: ManageTelemetryUseCase,
-    private val incidentUseCase: ManageIncidentUseCase
-) : ManageHelmetUseCase {
+class DeviceService(
+    private val deviceRepository: DeviceRepository,
+    private val thermalFrameRepository: ThermalFrameRepository,
+    private val telemetryUseCase: TelemetryUseCase,
+    private val incidentUseCase: IncidentUseCase
+) : DeviceUseCase {
 
-    private val log = LoggerFactory.getLogger(HelmetService::class.java)
+    private val log = LoggerFactory.getLogger(DeviceService::class.java)
     private val streamingDevices = ConcurrentHashMap.newKeySet<Long>()
 
     override fun register(mac: String): Device {
-        devicePort.getByMac(mac)?.let {
+        deviceRepository.getByMac(mac)?.let {
             log.info("Helmet reconnected: mac={}, deviceId={}", it.mac, it.id)
             return it
         }
-        val device = devicePort.save(
+        val device = deviceRepository.save(
             Device(
                 mac = mac,
                 uuid = UUID.randomUUID().toString(),
@@ -39,7 +39,7 @@ class HelmetService(
     }
 
     override fun ingestReadings(uuid: String, readings: List<SensorReading>): Telemetry? {
-        val device = devicePort.getByUuid(uuid)
+        val device = deviceRepository.getByUuid(uuid)
         if (device == null) {
             log.warn("Rejected {} readings from unknown device", readings.size)
             return null
@@ -64,14 +64,14 @@ class HelmetService(
     }
 
     override fun ingestFrame(uuid: String, jpeg: ByteArray): Boolean {
-        val device = devicePort.getByUuid(uuid)
+        val device = deviceRepository.getByUuid(uuid)
         if (device == null) {
             log.warn("Rejected thermal frame from unknown device")
             return false
         }
         val deviceId = device.requireId()
         val session = incidentUseCase.getOrStartDeviceSession(deviceId)
-        val saved = thermalFramePort.save(
+        val saved = thermalFrameRepository.save(
             ThermalFrame(
                 deviceId = deviceId,
                 incidentId = session.requireId(),

@@ -1,16 +1,16 @@
 package com.infraView.device.database
 
 import com.infraView.device.domain.ThermalFrame
-import com.infraView.device.domain.ThermalFramePort
+import com.infraView.device.domain.ThermalFrameRepository
 import com.infraView.incident.database.IncidentJpaEntity
 import jakarta.persistence.EntityManager
 import org.springframework.stereotype.Component
 
 @Component
-class ThermalFramePersistenceAdapter(
-    private val thermalFrameRepository: SpringDataThermalFrameRepository,
+class ThermalFrameRepositoryAdapter(
+    private val jpaRepository: ThermalFrameJpaRepository,
     private val entityManager: EntityManager
-) : ThermalFramePort {
+) : ThermalFrameRepository {
 
     override fun save(frame: ThermalFrame): ThermalFrame {
         val entity = ThermalFrameJpaEntity(
@@ -19,7 +19,7 @@ class ThermalFramePersistenceAdapter(
             capturedAt = frame.capturedAt,
             image = frame.image
         )
-        return thermalFrameRepository.save(entity).toDomain()
+        return jpaRepository.save(entity).toDomain()
     }
 
     private fun ThermalFrameJpaEntity.toDomain() = ThermalFrame(

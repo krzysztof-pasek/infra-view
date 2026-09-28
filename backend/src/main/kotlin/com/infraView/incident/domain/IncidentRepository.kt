@@ -1,6 +1,6 @@
 package com.infraView.incident.domain
 
-interface IncidentPort {
+interface IncidentRepository {
     fun getById(id: Long): Incident?
     fun getAll(): List<Incident>
     fun getActiveByDeviceId(deviceId: Long): Incident?

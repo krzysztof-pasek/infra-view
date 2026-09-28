@@ -1,8 +1,8 @@
 package com.infraView.incident.rest
 
 import com.infraView.incident.domain.Incident
-import com.infraView.incident.domain.ManageIncidentUseCase
-import com.infraView.incident.domain.StatusType
+import com.infraView.incident.domain.IncidentUseCase
+import com.infraView.incident.domain.IncidentStatus
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Runs
 import io.mockk.every
@@ -25,7 +25,7 @@ class IncidentControllerTest {
     private lateinit var mockMvc: MockMvc
 
     @MockkBean
-    private lateinit var useCase: ManageIncidentUseCase
+    private lateinit var useCase: IncidentUseCase
 
     private val startedAt = OffsetDateTime.parse("2026-09-24T10:00:00Z")
     private val incident = Incident(
@@ -35,7 +35,7 @@ class IncidentControllerTest {
         description = "Pożar mieszkania",
         location = "Warszawa",
         startedAt = startedAt,
-        status = StatusType.IN_PROGRESS
+        status = IncidentStatus.IN_PROGRESS
     )
 
     @Test
@@ -114,7 +114,7 @@ class IncidentControllerTest {
     @Test
     fun `should end incident`() {
         val endedAt = startedAt.plusHours(1)
-        every { useCase.endIncident(1L) } returns incident.copy(endedAt = endedAt, status = StatusType.RESOLVED)
+        every { useCase.endIncident(1L) } returns incident.copy(endedAt = endedAt, status = IncidentStatus.RESOLVED)
 
         mockMvc.perform(put("/incidents/1/end"))
             .andExpect(status().isOk)

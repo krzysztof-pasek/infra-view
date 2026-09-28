@@ -1,6 +1,6 @@
 package com.infraView.incident.domain
 
-interface ManageIncidentUseCase {
+interface IncidentUseCase {
     fun getAll(): List<Incident>
     fun getById(id: Long): Incident?
     fun save(incident: Incident): Incident

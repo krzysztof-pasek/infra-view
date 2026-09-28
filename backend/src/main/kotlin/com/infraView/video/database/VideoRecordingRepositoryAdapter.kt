@@ -1,17 +1,17 @@
 package com.infraView.video.database
 
 import com.infraView.incident.database.IncidentJpaEntity
-import com.infraView.video.domain.VideoRecordingPort
+import com.infraView.video.domain.VideoRecordingRepository
 import com.infraView.video.domain.VideoRecording
 import jakarta.persistence.EntityManager
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 @Component
-class VideoPersistenceAdapter(
-    private val springDataRepository: SpringDataVideoJpaRepository,
+class VideoRecordingRepositoryAdapter(
+    private val jpaRepository: VideoRecordingJpaRepository,
     private val entityManager: EntityManager
-) : VideoRecordingPort {
+) : VideoRecordingRepository {
 
     override fun save(video: VideoRecording): VideoRecording {
         val incidentRef = entityManager.getReference(IncidentJpaEntity::class.java, video.incidentId)
@@ -26,7 +26,7 @@ class VideoPersistenceAdapter(
                 durationSec = video.durationSec
             )
         } else {
-            springDataRepository.findByIdOrNull(video.id)?.apply {
+            jpaRepository.findByIdOrNull(video.id)?.apply {
                 this.endedAt = video.endedAt
                 this.filePath = video.filePath
                 this.fileSizeBytes = video.fileSizeBytes
@@ -34,24 +34,24 @@ class VideoPersistenceAdapter(
             } ?: throw IllegalStateException("Video recording with ID ${video.id} does not exist")
         }
         
-        val savedEntity = springDataRepository.save(entity)
+        val savedEntity = jpaRepository.save(entity)
         return savedEntity.toDomain()
     }
 
     override fun getById(id: Long): VideoRecording? {
-        return springDataRepository.findByIdOrNull(id)?.toDomain()
+        return jpaRepository.findByIdOrNull(id)?.toDomain()
     }
 
     override fun getAll(): List<VideoRecording> {
-        return springDataRepository.findAll().map { it.toDomain() }
+        return jpaRepository.findAll().map { it.toDomain() }
     }
 
     override fun getByIncidentId(incidentId: Long): List<VideoRecording> {
-        return springDataRepository.findByIncidentId(incidentId).map { it.toDomain() }
+        return jpaRepository.findByIncidentId(incidentId).map { it.toDomain() }
     }
 
     override fun delete(id: Long) {
-        springDataRepository.deleteById(id)
+        jpaRepository.deleteById(id)
     }
 
     private fun VideoRecordingJpaEntity.toDomain() = VideoRecording(

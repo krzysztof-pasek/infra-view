@@ -2,7 +2,7 @@ package com.infraView.video.domain
 
 import java.time.OffsetDateTime
 
-interface ManageVideoRecordingUseCase {
+interface VideoRecordingUseCase {
     fun getAll(): List<VideoRecording>
     fun getById(id: Long): VideoRecording?
     fun getByIncidentId(incidentId: Long): List<VideoRecording>

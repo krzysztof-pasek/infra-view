@@ -1,6 +1,6 @@
 package com.infraView.incident.rest
 
-import com.infraView.incident.domain.ManageIncidentUseCase
+import com.infraView.incident.domain.IncidentUseCase
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
@@ -11,7 +11,7 @@ import org.springframework.web.server.ResponseStatusException
 @RestController
 @RequestMapping("/incidents")
 class IncidentController(
-    private val useCase: ManageIncidentUseCase
+    private val useCase: IncidentUseCase
 ) {
 
     @Operation(summary = "Get all incidents", description = "Returns the full history of all incidents in the system.")

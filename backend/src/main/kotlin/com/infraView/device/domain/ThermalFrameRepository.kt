@@ -1,5 +1,5 @@
 package com.infraView.device.domain
 
-interface ThermalFramePort {
+interface ThermalFrameRepository {
     fun save(frame: ThermalFrame): ThermalFrame
 }

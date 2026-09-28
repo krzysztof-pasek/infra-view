@@ -3,33 +3,33 @@ package com.infraView.telemetry.database
 import com.infraView.device.database.DeviceJpaEntity
 import com.infraView.incident.database.IncidentJpaEntity
 import com.infraView.telemetry.domain.Telemetry
-import com.infraView.telemetry.domain.TelemetryPort
+import com.infraView.telemetry.domain.TelemetryRepository
 import jakarta.persistence.EntityManager
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 @Component
-class TelemetryPersistenceAdapter(
-    private val telemetryRepository: SpringDataTelemetryRepository,
+class TelemetryRepositoryAdapter(
+    private val jpaRepository: TelemetryJpaRepository,
     private val entityManager: EntityManager
-) : TelemetryPort {
+) : TelemetryRepository {
 
     override fun getByIncidentId(incidentId: Long): List<Telemetry> {
-        return telemetryRepository.findAllByIncidentId(incidentId).map { it.toDomain() }
+        return jpaRepository.findAllByIncidentId(incidentId).map { it.toDomain() }
     }
 
     override fun getById(id: Long): Telemetry? {
-        return telemetryRepository.findByIdOrNull(id)?.toDomain()
+        return jpaRepository.findByIdOrNull(id)?.toDomain()
     }
 
     override fun save(telemetry: Telemetry): Telemetry {
         val incidentRef = telemetry.incidentId?.let { entityManager.getReference(IncidentJpaEntity::class.java, it) }
         val deviceRef = telemetry.deviceId?.let { entityManager.getReference(DeviceJpaEntity::class.java, it) }
-        return telemetryRepository.save(telemetry.toJpaEntity(incidentRef, deviceRef)).toDomain()
+        return jpaRepository.save(telemetry.toJpaEntity(incidentRef, deviceRef)).toDomain()
     }
 
     override fun delete(id: Long) {
-        telemetryRepository.deleteById(id)
+        jpaRepository.deleteById(id)
     }
 }
 
