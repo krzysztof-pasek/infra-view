@@ -12,7 +12,8 @@ data class IncidentDto(
     val location: String?,
     val startedAt: OffsetDateTime,
     val endedAt: OffsetDateTime?,
-    val status: StatusType
+    val status: StatusType,
+    val deviceId: Long?
 )
 
 data class IncidentCreateDto(
@@ -43,5 +44,6 @@ fun Incident.toDto() = IncidentDto(
     location = this.location,
     startedAt = this.startedAt,
     endedAt = this.endedAt,
-    status = this.status
+    status = this.status,
+    deviceId = this.deviceId
 )

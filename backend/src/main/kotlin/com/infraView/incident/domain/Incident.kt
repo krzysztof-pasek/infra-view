@@ -10,5 +10,6 @@ data class Incident(
     val location: String? = null,
     val startedAt: OffsetDateTime,
     val endedAt: OffsetDateTime? = null,
-    val status: StatusType
+    val status: StatusType,
+    val deviceId: Long? = null
 )

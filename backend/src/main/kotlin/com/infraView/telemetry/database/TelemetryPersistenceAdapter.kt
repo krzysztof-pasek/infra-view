@@ -1,5 +1,6 @@
 package com.infraView.telemetry.database
 
+import com.infraView.device.database.DeviceJpaEntity
 import com.infraView.incident.database.IncidentJpaEntity
 import com.infraView.telemetry.domain.Telemetry
 import com.infraView.telemetry.domain.TelemetryPort
@@ -22,8 +23,9 @@ class TelemetryPersistenceAdapter(
     }
 
     override fun save(telemetry: Telemetry): Telemetry {
-        val incidentRef = entityManager.getReference(IncidentJpaEntity::class.java, telemetry.incidentId)
-        return telemetryRepository.save(telemetry.toJpaEntity(incidentRef)).toDomain()
+        val incidentRef = telemetry.incidentId?.let { entityManager.getReference(IncidentJpaEntity::class.java, it) }
+        val deviceRef = telemetry.deviceId?.let { entityManager.getReference(DeviceJpaEntity::class.java, it) }
+        return telemetryRepository.save(telemetry.toJpaEntity(incidentRef, deviceRef)).toDomain()
     }
 
     override fun delete(id: Long) {
@@ -32,9 +34,10 @@ class TelemetryPersistenceAdapter(
 }
 
 
-private fun Telemetry.toJpaEntity(incidentRef: IncidentJpaEntity): TelemetryJpaEntity {
+private fun Telemetry.toJpaEntity(incidentRef: IncidentJpaEntity?, deviceRef: DeviceJpaEntity?): TelemetryJpaEntity {
     return TelemetryJpaEntity(
         incident = incidentRef,
+        device = deviceRef,
         recordedAt = this.recordedAt,
         accelRawX = this.accelRawX,
         accelRawY = this.accelRawY,
@@ -50,7 +53,9 @@ private fun Telemetry.toJpaEntity(incidentRef: IncidentJpaEntity): TelemetryJpaE
         gyroFiltZ = this.gyroFiltZ,
         temperature = this.temperature,
         gasPpm = this.gasPpm,
+        gasVoltage = this.gasVoltage,
         co2Ppm = this.co2Ppm,
+        tvocPpb = this.tvocPpb,
         motionState = this.motionState
     ).apply {
         this.id = this@toJpaEntity.id
@@ -60,7 +65,8 @@ private fun Telemetry.toJpaEntity(incidentRef: IncidentJpaEntity): TelemetryJpaE
 private fun TelemetryJpaEntity.toDomain(): Telemetry {
     return Telemetry(
         id = this.id,
-        incidentId = this.incident.id ?: throw IllegalStateException("Incident must have an ID"),
+        incidentId = this.incident?.id,
+        deviceId = this.device?.id,
         recordedAt = this.recordedAt,
         accelRawX = this.accelRawX,
         accelRawY = this.accelRawY,
@@ -76,7 +82,9 @@ private fun TelemetryJpaEntity.toDomain(): Telemetry {
         gyroFiltZ = this.gyroFiltZ,
         temperature = this.temperature,
         gasPpm = this.gasPpm,
+        gasVoltage = this.gasVoltage,
         co2Ppm = this.co2Ppm,
+        tvocPpb = this.tvocPpb,
         motionState = this.motionState
     )
 }
