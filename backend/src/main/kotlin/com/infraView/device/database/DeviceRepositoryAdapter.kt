@@ -1,24 +1,24 @@
 package com.infraView.device.database
 
 import com.infraView.device.domain.Device
-import com.infraView.device.domain.DevicePort
+import com.infraView.device.domain.DeviceRepository
 import org.springframework.stereotype.Component
 
 @Component
-class DevicePersistenceAdapter(
-    private val deviceRepository: SpringDataDeviceRepository
-) : DevicePort {
+class DeviceRepositoryAdapter(
+    private val jpaRepository: DeviceJpaRepository
+) : DeviceRepository {
 
     override fun getByMac(mac: String): Device? {
-        return deviceRepository.findByMac(mac)?.toDomain()
+        return jpaRepository.findByMac(mac)?.toDomain()
     }
 
     override fun getByUuid(uuid: String): Device? {
-        return deviceRepository.findByUuid(uuid)?.toDomain()
+        return jpaRepository.findByUuid(uuid)?.toDomain()
     }
 
     override fun save(device: Device): Device {
-        return deviceRepository.save(device.toJpaEntity()).toDomain()
+        return jpaRepository.save(device.toJpaEntity()).toDomain()
     }
 }
 

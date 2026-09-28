@@ -1,6 +1,6 @@
 package com.infraView.telemetry.rest
 
-import com.infraView.telemetry.domain.ManageTelemetryUseCase
+import com.infraView.telemetry.domain.TelemetryUseCase
 import com.infraView.telemetry.domain.Telemetry
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Runs
@@ -23,7 +23,7 @@ class TelemetryControllerTest {
     private lateinit var mockMvc: MockMvc
 
     @MockkBean
-    private lateinit var useCase: ManageTelemetryUseCase
+    private lateinit var useCase: TelemetryUseCase
 
     private val recordedAt = OffsetDateTime.parse("2026-09-24T10:00:00Z")
     private val telemetry = Telemetry(

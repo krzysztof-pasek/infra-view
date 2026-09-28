@@ -1,6 +1,6 @@
 package com.infraView.video.rest
 
-import com.infraView.video.domain.ManageVideoRecordingUseCase
+import com.infraView.video.domain.VideoRecordingUseCase
 import com.infraView.video.domain.VideoRecording
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Runs
@@ -23,7 +23,7 @@ class VideoRecordingControllerTest {
     private lateinit var mockMvc: MockMvc
 
     @MockkBean
-    private lateinit var useCase: ManageVideoRecordingUseCase
+    private lateinit var useCase: VideoRecordingUseCase
 
     private val startedAt = OffsetDateTime.parse("2026-09-24T10:00:00Z")
     private val video = VideoRecording(

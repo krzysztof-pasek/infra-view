@@ -8,37 +8,37 @@ import java.time.format.DateTimeFormatter
 
 @Service
 class IncidentService(
-    private val incidentPort: IncidentPort
-) : ManageIncidentUseCase {
+    private val incidentRepository: IncidentRepository
+) : IncidentUseCase {
 
     private val log = LoggerFactory.getLogger(IncidentService::class.java)
 
     override fun getAll(): List<Incident> {
-        return incidentPort.getAll()
+        return incidentRepository.getAll()
     }
 
     override fun getById(id: Long): Incident? {
-        return incidentPort.getById(id)
+        return incidentRepository.getById(id)
     }
 
     override fun save(incident: Incident): Incident {
-        return incidentPort.save(incident)
+        return incidentRepository.save(incident)
     }
 
     override fun endIncident(id: Long): Incident? {
-        val incident = incidentPort.getById(id) ?: return null
-        if (incident.status == StatusType.RESOLVED) return incident
-        return incidentPort.save(incident.copy(endedAt = OffsetDateTime.now(ZoneOffset.UTC), status = StatusType.RESOLVED))
+        val incident = incidentRepository.getById(id) ?: return null
+        if (incident.status == IncidentStatus.RESOLVED) return incident
+        return incidentRepository.save(incident.copy(endedAt = OffsetDateTime.now(ZoneOffset.UTC), status = IncidentStatus.RESOLVED))
     }
 
     override fun getOrStartDeviceSession(deviceId: Long): Incident {
-        incidentPort.getActiveByDeviceId(deviceId)?.let { return it }
+        incidentRepository.getActiveByDeviceId(deviceId)?.let { return it }
         val startedAt = OffsetDateTime.now(ZoneOffset.UTC)
-        val session = incidentPort.save(
+        val session = incidentRepository.save(
             Incident(
                 code = "HELMET-$deviceId-${startedAt.format(SESSION_CODE_TIME)}".take(20),
                 startedAt = startedAt,
-                status = StatusType.IN_PROGRESS,
+                status = IncidentStatus.IN_PROGRESS,
                 deviceId = deviceId
             )
         )
@@ -47,7 +47,7 @@ class IncidentService(
     }
 
     override fun delete(id: Long) {
-        incidentPort.delete(id)
+        incidentRepository.delete(id)
     }
 
     companion object {

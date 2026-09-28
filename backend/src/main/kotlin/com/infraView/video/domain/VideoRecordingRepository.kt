@@ -1,6 +1,6 @@
 package com.infraView.video.domain
 
-interface VideoRecordingPort {
+interface VideoRecordingRepository {
     fun getById(id: Long): VideoRecording?
     fun getAll(): List<VideoRecording>
     fun getByIncidentId(incidentId: Long): List<VideoRecording>

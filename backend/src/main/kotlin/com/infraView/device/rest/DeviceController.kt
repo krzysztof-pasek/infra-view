@@ -1,6 +1,6 @@
 package com.infraView.device.rest
 
-import com.infraView.device.domain.ManageHelmetUseCase
+import com.infraView.device.domain.DeviceUseCase
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
@@ -10,8 +10,8 @@ import org.springframework.web.server.ResponseStatusException
 
 @Tag(name = "Helmet API", description = "Endpoints called by the helmet (Raspberry Pi)")
 @RestController
-class HelmetController(
-    private val useCase: ManageHelmetUseCase
+class DeviceController(
+    private val useCase: DeviceUseCase
 ) {
     @Operation(summary = "Register helmet", description = "Registers a helmet by its MAC address and returns its UUID. The same MAC always gets the same UUID.")
     @PostMapping("/auth", consumes = [MediaType.APPLICATION_JSON_VALUE])

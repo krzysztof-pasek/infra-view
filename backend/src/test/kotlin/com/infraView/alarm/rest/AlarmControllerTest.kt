@@ -2,7 +2,7 @@ package com.infraView.alarm.rest
 
 import com.infraView.alarm.domain.Alarm
 import com.infraView.alarm.domain.AlarmType
-import com.infraView.alarm.domain.ManageAlarmUseCase
+import com.infraView.alarm.domain.AlarmUseCase
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Runs
 import io.mockk.every
@@ -25,7 +25,7 @@ class AlarmControllerTest {
     private lateinit var mockMvc: MockMvc
 
     @MockkBean
-    private lateinit var useCase: ManageAlarmUseCase
+    private lateinit var useCase: AlarmUseCase
 
     private val triggeredAt = OffsetDateTime.parse("2026-09-24T10:00:00Z")
     private val alarm = Alarm(

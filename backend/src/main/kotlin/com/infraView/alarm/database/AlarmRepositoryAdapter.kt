@@ -1,34 +1,34 @@
 package com.infraView.alarm.database
 
 import com.infraView.alarm.domain.Alarm
-import com.infraView.alarm.domain.AlarmPort
+import com.infraView.alarm.domain.AlarmRepository
 import com.infraView.incident.database.IncidentJpaEntity
 import jakarta.persistence.EntityManager
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 @Component
-class AlarmPersistenceAdapter(
-    private val alarmRepository: SpringDataAlarmRepository,
+class AlarmRepositoryAdapter(
+    private val jpaRepository: AlarmJpaRepository,
     private val entityManager: EntityManager
-) : AlarmPort {
+) : AlarmRepository {
 
     override fun getById(id: Long): Alarm? {
-        return alarmRepository.findByIdOrNull(id)?.toDomain()
+        return jpaRepository.findByIdOrNull(id)?.toDomain()
     }
 
     override fun getAll(): List<Alarm> {
-        return alarmRepository.findAll().map { it.toDomain() }
+        return jpaRepository.findAll().map { it.toDomain() }
     }
 
     override fun save(alarm: Alarm): Alarm {
         val incidentRef = entityManager.getReference(IncidentJpaEntity::class.java, alarm.incidentId)
         val entityToSave = alarm.toJpaEntity(incidentRef)
-        return alarmRepository.save(entityToSave).toDomain()
+        return jpaRepository.save(entityToSave).toDomain()
     }
 
     override fun delete(id: Long) {
-        alarmRepository.deleteById(id)
+        jpaRepository.deleteById(id)
     }
 }
 

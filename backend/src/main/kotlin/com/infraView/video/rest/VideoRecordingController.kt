@@ -1,6 +1,6 @@
 package com.infraView.video.rest
 
-import com.infraView.video.domain.ManageVideoRecordingUseCase
+import com.infraView.video.domain.VideoRecordingUseCase
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
@@ -11,7 +11,7 @@ import org.springframework.web.server.ResponseStatusException
 @RequestMapping("/videos")
 @RestController
 class VideoRecordingController(
-    private val useCase: ManageVideoRecordingUseCase
+    private val useCase: VideoRecordingUseCase
 ) {
 
     @Operation(summary = "Get all video recordings", description = "Returns a list of all video recordings in the system.")

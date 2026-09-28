@@ -1,9 +1,9 @@
 package com.infraView.device.domain
 
 import com.infraView.incident.domain.Incident
-import com.infraView.incident.domain.ManageIncidentUseCase
-import com.infraView.incident.domain.StatusType
-import com.infraView.telemetry.domain.ManageTelemetryUseCase
+import com.infraView.incident.domain.IncidentUseCase
+import com.infraView.incident.domain.IncidentStatus
+import com.infraView.telemetry.domain.TelemetryUseCase
 import com.infraView.telemetry.domain.Telemetry
 import io.mockk.every
 import io.mockk.mockk
@@ -18,13 +18,13 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class HelmetServiceTest {
+class DeviceServiceTest {
 
-    private val devicePort = mockk<DevicePort>()
-    private val thermalFramePort = mockk<ThermalFramePort>()
-    private val telemetryUseCase = mockk<ManageTelemetryUseCase>()
-    private val incidentUseCase = mockk<ManageIncidentUseCase>()
-    private val service = HelmetService(devicePort, thermalFramePort, telemetryUseCase, incidentUseCase)
+    private val deviceRepository = mockk<DeviceRepository>()
+    private val thermalFrameRepository = mockk<ThermalFrameRepository>()
+    private val telemetryUseCase = mockk<TelemetryUseCase>()
+    private val incidentUseCase = mockk<IncidentUseCase>()
+    private val service = DeviceService(deviceRepository, thermalFrameRepository, telemetryUseCase, incidentUseCase)
 
     private val mac = "d8:3a:dd:ed:3f:42"
     private val uuid = "689d8e89-2503-4739-9dd8-c93bc9d7c14d"
@@ -33,7 +33,7 @@ class HelmetServiceTest {
         id = 7L,
         code = "HELMET-1-0926100000",
         startedAt = OffsetDateTime.parse("2026-09-26T10:00:00Z"),
-        status = StatusType.IN_PROGRESS,
+        status = IncidentStatus.IN_PROGRESS,
         deviceId = 1L
     )
 
@@ -52,17 +52,17 @@ class HelmetServiceTest {
 
     @Test
     fun `should return existing device for known mac`() {
-        every { devicePort.getByMac(mac) } returns device
+        every { deviceRepository.getByMac(mac) } returns device
 
         assertEquals(device, service.register(mac))
-        verify(exactly = 0) { devicePort.save(any()) }
+        verify(exactly = 0) { deviceRepository.save(any()) }
     }
 
     @Test
     fun `should create device with new uuid for unknown mac`() {
         val saved = slot<Device>()
-        every { devicePort.getByMac(mac) } returns null
-        every { devicePort.save(capture(saved)) } answers { saved.captured.copy(id = 2L) }
+        every { deviceRepository.getByMac(mac) } returns null
+        every { deviceRepository.save(capture(saved)) } answers { saved.captured.copy(id = 2L) }
 
         val result = service.register(mac)
 
@@ -75,7 +75,7 @@ class HelmetServiceTest {
     @Test
     fun `should map every sensor reading to its telemetry field`() {
         val saved = slot<Telemetry>()
-        every { devicePort.getByUuid(uuid) } returns device
+        every { deviceRepository.getByUuid(uuid) } returns device
         every { incidentUseCase.getOrStartDeviceSession(1L) } returns session
         every { telemetryUseCase.add(capture(saved)) } answers { saved.captured.copy(id = 10L) }
 
@@ -108,7 +108,7 @@ class HelmetServiceTest {
     @Test
     fun `should keep failed and missing sensors as null and ignore unknown ones`() {
         val saved = slot<Telemetry>()
-        every { devicePort.getByUuid(uuid) } returns device
+        every { deviceRepository.getByUuid(uuid) } returns device
         every { incidentUseCase.getOrStartDeviceSession(1L) } returns session
         every { telemetryUseCase.add(capture(saved)) } answers { saved.captured }
 
@@ -126,7 +126,7 @@ class HelmetServiceTest {
 
     @Test
     fun `should not store readings from unknown device`() {
-        every { devicePort.getByUuid("unknown") } returns null
+        every { deviceRepository.getByUuid("unknown") } returns null
 
         assertNull(service.ingestReadings("unknown", fullPacket))
         verify(exactly = 0) { telemetryUseCase.add(any()) }
@@ -137,9 +137,9 @@ class HelmetServiceTest {
     fun `should store frame of known device in its session`() {
         val jpeg = byteArrayOf(0xFF.toByte(), 0xD8.toByte())
         val saved = slot<ThermalFrame>()
-        every { devicePort.getByUuid(uuid) } returns device
+        every { deviceRepository.getByUuid(uuid) } returns device
         every { incidentUseCase.getOrStartDeviceSession(1L) } returns session
-        every { thermalFramePort.save(capture(saved)) } answers { saved.captured.copy(id = 20L) }
+        every { thermalFrameRepository.save(capture(saved)) } answers { saved.captured.copy(id = 20L) }
 
         assertTrue(service.ingestFrame(uuid, jpeg))
         assertEquals(
@@ -151,10 +151,10 @@ class HelmetServiceTest {
 
     @Test
     fun `should not store frame from unknown device`() {
-        every { devicePort.getByUuid("unknown") } returns null
+        every { deviceRepository.getByUuid("unknown") } returns null
 
         assertFalse(service.ingestFrame("unknown", byteArrayOf(0xFF.toByte(), 0xD8.toByte())))
-        verify(exactly = 0) { thermalFramePort.save(any()) }
+        verify(exactly = 0) { thermalFrameRepository.save(any()) }
         verify(exactly = 0) { incidentUseCase.getOrStartDeviceSession(any()) }
     }
 }

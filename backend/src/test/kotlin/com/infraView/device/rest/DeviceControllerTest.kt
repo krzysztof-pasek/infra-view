@@ -1,7 +1,7 @@
 package com.infraView.device.rest
 
 import com.infraView.device.domain.Device
-import com.infraView.device.domain.ManageHelmetUseCase
+import com.infraView.device.domain.DeviceUseCase
 import com.infraView.device.domain.SensorReading
 import com.infraView.telemetry.domain.Telemetry
 import com.ninjasquad.springmockk.MockkBean
@@ -16,14 +16,14 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import java.time.OffsetDateTime
 
-@WebMvcTest(HelmetController::class)
-class HelmetControllerTest {
+@WebMvcTest(DeviceController::class)
+class DeviceControllerTest {
 
     @Autowired
     private lateinit var mockMvc: MockMvc
 
     @MockkBean
-    private lateinit var useCase: ManageHelmetUseCase
+    private lateinit var useCase: DeviceUseCase
 
     private val uuid = "689d8e89-2503-4739-9dd8-c93bc9d7c14d"
     private val device = Device(

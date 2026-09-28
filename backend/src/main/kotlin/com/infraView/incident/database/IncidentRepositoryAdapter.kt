@@ -1,36 +1,36 @@
 package com.infraView.incident.database
 
 import com.infraView.incident.domain.Incident
-import com.infraView.incident.domain.IncidentPort
-import com.infraView.incident.domain.StatusType
+import com.infraView.incident.domain.IncidentRepository
+import com.infraView.incident.domain.IncidentStatus
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 @Component
-class IncidentPersistenceAdapter(
-    private val incidentRepository: SpringDataIncidentRepository
-) : IncidentPort {
+class IncidentRepositoryAdapter(
+    private val jpaRepository: IncidentJpaRepository
+) : IncidentRepository {
 
     override fun getById(id: Long): Incident? {
-        return incidentRepository.findByIdOrNull(id)?.toDomain()
+        return jpaRepository.findByIdOrNull(id)?.toDomain()
     }
 
     override fun getActiveByDeviceId(deviceId: Long): Incident? {
-        return incidentRepository.findFirstByDeviceIdAndStatus(deviceId, StatusType.IN_PROGRESS)?.toDomain()
+        return jpaRepository.findFirstByDeviceIdAndStatus(deviceId, IncidentStatus.IN_PROGRESS)?.toDomain()
     }
 
     override fun getAll(): List<Incident> {
-        return incidentRepository.findAll().map { it.toDomain() }
+        return jpaRepository.findAll().map { it.toDomain() }
     }
 
     override fun save(incident: Incident): Incident {
         val entityToSave = incident.toJpaEntity()
-        val savedEntity = incidentRepository.save(entityToSave)
+        val savedEntity = jpaRepository.save(entityToSave)
         return savedEntity.toDomain()
     }
 
     override fun delete(id: Long) {
-        incidentRepository.deleteById(id)
+        jpaRepository.deleteById(id)
     }
 }
 

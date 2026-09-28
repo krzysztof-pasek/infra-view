@@ -1,6 +1,6 @@
 package com.infraView.incident.domain
 
-enum class StatusType {
+enum class IncidentStatus {
     RESOLVED,
     IN_PROGRESS,
 }

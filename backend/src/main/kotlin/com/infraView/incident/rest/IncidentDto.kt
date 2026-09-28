@@ -1,6 +1,6 @@
 package com.infraView.incident.rest
 
-import com.infraView.incident.domain.StatusType
+import com.infraView.incident.domain.IncidentStatus
 import com.infraView.incident.domain.Incident
 import java.time.OffsetDateTime
 
@@ -12,7 +12,7 @@ data class IncidentDto(
     val location: String?,
     val startedAt: OffsetDateTime,
     val endedAt: OffsetDateTime?,
-    val status: StatusType,
+    val status: IncidentStatus,
     val deviceId: Long?
 )
 
@@ -23,7 +23,7 @@ data class IncidentCreateDto(
     val location: String?,
     val startedAt: OffsetDateTime,
     val endedAt: OffsetDateTime?,
-    val status: StatusType
+    val status: IncidentStatus
 ) {
     fun toDomain() = Incident(
         code = this.code,

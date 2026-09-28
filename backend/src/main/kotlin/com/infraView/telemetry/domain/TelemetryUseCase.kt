@@ -1,6 +1,6 @@
 package com.infraView.telemetry.domain
 
-interface ManageTelemetryUseCase {
+interface TelemetryUseCase {
     fun getById(id: Long): Telemetry?
     fun getByIncidentId(incidentId: Long): List<Telemetry>
     fun add(telemetry: Telemetry): Telemetry

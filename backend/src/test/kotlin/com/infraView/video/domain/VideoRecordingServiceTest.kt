@@ -11,8 +11,8 @@ import kotlin.test.assertNull
 
 class VideoRecordingServiceTest {
 
-    private val videoRecordingPort = mockk<VideoRecordingPort>()
-    private val service = VideoRecordingService(videoRecordingPort)
+    private val videoRecordingRepository = mockk<VideoRecordingRepository>()
+    private val service = VideoRecordingService(videoRecordingRepository)
 
     private val startedAt = OffsetDateTime.parse("2026-09-24T10:00:00Z")
     private val video = VideoRecording(
@@ -26,7 +26,7 @@ class VideoRecordingServiceTest {
     @Test
     fun `should create recording with only incident and start time`() {
         val saved = slot<VideoRecording>()
-        every { videoRecordingPort.save(capture(saved)) } answers { saved.captured.copy(id = 1L) }
+        every { videoRecordingRepository.save(capture(saved)) } answers { saved.captured.copy(id = 1L) }
 
         val result = service.startRecording(100L, startedAt)
 
@@ -38,8 +38,8 @@ class VideoRecordingServiceTest {
     fun `should update only fields that were provided`() {
         val saved = slot<VideoRecording>()
         val endedAt = startedAt.plusMinutes(10)
-        every { videoRecordingPort.getById(1L) } returns video
-        every { videoRecordingPort.save(capture(saved)) } answers { saved.captured }
+        every { videoRecordingRepository.getById(1L) } returns video
+        every { videoRecordingRepository.save(capture(saved)) } answers { saved.captured }
 
         service.updateRecording(1L, endedAt = endedAt, filePath = null, fileSizeBytes = null, durationSec = 600)
 
@@ -48,9 +48,9 @@ class VideoRecordingServiceTest {
 
     @Test
     fun `should return null when updating non-existent recording`() {
-        every { videoRecordingPort.getById(99L) } returns null
+        every { videoRecordingRepository.getById(99L) } returns null
 
         assertNull(service.updateRecording(99L, null, null, null, null))
-        verify(exactly = 0) { videoRecordingPort.save(any()) }
+        verify(exactly = 0) { videoRecordingRepository.save(any()) }
     }
 }

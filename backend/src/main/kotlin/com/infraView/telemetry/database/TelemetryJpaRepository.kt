@@ -2,6 +2,6 @@ package com.infraView.telemetry.database
 
 import org.springframework.data.jpa.repository.JpaRepository
 
-interface SpringDataTelemetryRepository : JpaRepository<TelemetryJpaEntity, Long> {
+interface TelemetryJpaRepository : JpaRepository<TelemetryJpaEntity, Long> {
     fun findAllByIncidentId(incidentId: Long): List<TelemetryJpaEntity>
 }

@@ -1,6 +1,6 @@
 package com.infraView.telemetry.rest
 
-import com.infraView.telemetry.domain.ManageTelemetryUseCase
+import com.infraView.telemetry.domain.TelemetryUseCase
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.slf4j.LoggerFactory
@@ -12,7 +12,7 @@ import org.springframework.web.server.ResponseStatusException
 @RequestMapping("/telemetry")
 @RestController
 class TelemetryController (
-    private val useCase: ManageTelemetryUseCase
+    private val useCase: TelemetryUseCase
 ) {
     private val log = LoggerFactory.getLogger(TelemetryController::class.java)
 
