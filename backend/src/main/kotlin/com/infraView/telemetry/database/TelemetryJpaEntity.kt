@@ -36,15 +36,6 @@ class TelemetryJpaEntity(
     @Column(name = "accel_raw_z")
     var accelRawZ: Double? = null,
 
-    @Column(name = "accel_filt_x")
-    var accelFiltX: Double? = null,
-
-    @Column(name = "accel_filt_y")
-    var accelFiltY: Double? = null,
-
-    @Column(name = "accel_filt_z")
-    var accelFiltZ: Double? = null,
-
     @Column(name = "gyro_raw_x")
     var gyroRawX: Double? = null,
 
@@ -53,15 +44,6 @@ class TelemetryJpaEntity(
 
     @Column(name = "gyro_raw_z")
     var gyroRawZ: Double? = null,
-
-    @Column(name = "gyro_filt_x")
-    var gyroFiltX: Double? = null,
-
-    @Column(name = "gyro_filt_y")
-    var gyroFiltY: Double? = null,
-
-    @Column(name = "gyro_filt_z")
-    var gyroFiltZ: Double? = null,
 
     @Column(name = "temperature")
     var temperature: Double? = null,
