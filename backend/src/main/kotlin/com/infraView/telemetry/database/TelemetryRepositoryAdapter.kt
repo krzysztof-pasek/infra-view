@@ -5,6 +5,7 @@ import com.infraView.incident.database.IncidentJpaEntity
 import com.infraView.telemetry.domain.Telemetry
 import com.infraView.telemetry.domain.TelemetryRepository
 import jakarta.persistence.EntityManager
+import org.springframework.data.domain.Limit
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
@@ -16,6 +17,12 @@ class TelemetryRepositoryAdapter(
 
     override fun getByIncidentId(incidentId: Long): List<Telemetry> {
         return jpaRepository.findAllByIncidentId(incidentId).map { it.toDomain() }
+    }
+
+    override fun getRecentByDeviceId(deviceId: Long, limit: Int): List<Telemetry> {
+        return jpaRepository.findByDeviceIdOrderByRecordedAtDescIdDesc(deviceId, Limit.of(limit))
+            .map { it.toDomain() }
+            .asReversed()
     }
 
     override fun getById(id: Long): Telemetry? {
