@@ -1,15 +1,19 @@
 package com.infraView.device.domain
 
 import com.infraView.incident.domain.Incident
+import com.infraView.incident.domain.IncidentStatus
 import com.infraView.incident.domain.IncidentUseCase
 import com.infraView.telemetry.domain.TelemetryUseCase
 import com.infraView.telemetry.domain.Telemetry
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.time.Duration
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 @Service
 class DeviceService(
@@ -21,6 +25,10 @@ class DeviceService(
 
     private val log = LoggerFactory.getLogger(DeviceService::class.java)
     private val streamingDevices = ConcurrentHashMap.newKeySet<Long>()
+    private val liveLock = ReentrantLock()
+    private val newLiveFrame = liveLock.newCondition()
+    private val liveFrames = HashMap<Long, LiveFrame>()
+    private var liveSequence = 0L
 
     override fun register(mac: String): Device {
         deviceRepository.getByMac(mac)?.let {
@@ -71,6 +79,7 @@ class DeviceService(
         }
         val deviceId = device.requireId()
         val session = incidentUseCase.getOrStartDeviceSession(deviceId)
+        publishLiveFrame(deviceId, session.requireId(), jpeg)
         val saved = thermalFrameRepository.save(
             ThermalFrame(
                 deviceId = deviceId,
@@ -84,6 +93,31 @@ class DeviceService(
         }
         log.debug("Thermal frame received: deviceId={}, frameId={}, bytes={}", deviceId, saved.id, jpeg.size)
         return true
+    }
+
+    override fun getLiveDeviceId(incidentId: Long): Long? {
+        val incident = incidentUseCase.getById(incidentId) ?: return null
+        if (incident.status != IncidentStatus.IN_PROGRESS) return null
+        return incident.deviceId
+    }
+
+    override fun awaitLiveFrame(deviceId: Long, afterSequence: Long, timeout: Duration): LiveFrame? {
+        var remainingNanos = timeout.toNanos()
+        liveLock.withLock {
+            while (true) {
+                val frame = liveFrames[deviceId]
+                if (frame != null && frame.sequence > afterSequence) return frame
+                if (remainingNanos <= 0) return null
+                remainingNanos = newLiveFrame.awaitNanos(remainingNanos)
+            }
+        }
+    }
+
+    private fun publishLiveFrame(deviceId: Long, incidentId: Long, jpeg: ByteArray) {
+        liveLock.withLock {
+            liveFrames[deviceId] = LiveFrame(sequence = ++liveSequence, incidentId = incidentId, image = jpeg)
+            newLiveFrame.signalAll()
+        }
     }
 
     private fun Device.requireId(): Long = id ?: throw IllegalStateException("Device must have an ID")

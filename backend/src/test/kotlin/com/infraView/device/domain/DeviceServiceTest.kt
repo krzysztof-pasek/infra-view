@@ -10,11 +10,13 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import org.junit.jupiter.api.Test
+import java.time.Duration
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -156,5 +158,73 @@ class DeviceServiceTest {
         assertFalse(service.ingestFrame("unknown", byteArrayOf(0xFF.toByte(), 0xD8.toByte())))
         verify(exactly = 0) { thermalFrameRepository.save(any()) }
         verify(exactly = 0) { incidentUseCase.getOrStartDeviceSession(any()) }
+    }
+
+    @Test
+    fun `should publish stored frame as live frame of the session`() {
+        val jpeg = byteArrayOf(0xFF.toByte(), 0xD8.toByte())
+        every { deviceRepository.getByUuid(uuid) } returns device
+        every { incidentUseCase.getOrStartDeviceSession(1L) } returns session
+        every { thermalFrameRepository.save(any()) } answers { firstArg() }
+
+        service.ingestFrame(uuid, jpeg)
+
+        val frame = assertNotNull(service.awaitLiveFrame(1L, 0L, Duration.ZERO))
+        assertEquals(7L, frame.incidentId)
+        assertTrue(jpeg.contentEquals(frame.image))
+    }
+
+    @Test
+    fun `should return only frames newer than given sequence`() {
+        val first = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 1)
+        val second = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 2)
+        every { deviceRepository.getByUuid(uuid) } returns device
+        every { incidentUseCase.getOrStartDeviceSession(1L) } returns session
+        every { thermalFrameRepository.save(any()) } answers { firstArg() }
+
+        service.ingestFrame(uuid, first)
+        val firstFrame = assertNotNull(service.awaitLiveFrame(1L, 0L, Duration.ZERO))
+        assertNull(service.awaitLiveFrame(1L, firstFrame.sequence, Duration.ZERO))
+
+        service.ingestFrame(uuid, second)
+        val secondFrame = assertNotNull(service.awaitLiveFrame(1L, firstFrame.sequence, Duration.ZERO))
+        assertTrue(second.contentEquals(secondFrame.image))
+    }
+
+    @Test
+    fun `should wake up waiting viewer when new frame arrives`() {
+        val jpeg = byteArrayOf(0xFF.toByte(), 0xD8.toByte())
+        every { deviceRepository.getByUuid(uuid) } returns device
+        every { incidentUseCase.getOrStartDeviceSession(1L) } returns session
+        every { thermalFrameRepository.save(any()) } answers { firstArg() }
+
+        val publisher = Thread.ofVirtual().start {
+            Thread.sleep(100)
+            service.ingestFrame(uuid, jpeg)
+        }
+
+        assertNotNull(service.awaitLiveFrame(1L, 0L, Duration.ofSeconds(5)))
+        publisher.join()
+    }
+
+    @Test
+    fun `should time out when device sends no frames`() {
+        assertNull(service.awaitLiveFrame(1L, 0L, Duration.ofMillis(50)))
+    }
+
+    @Test
+    fun `should return device of in-progress incident for live view`() {
+        every { incidentUseCase.getById(7L) } returns session
+
+        assertEquals(1L, service.getLiveDeviceId(7L))
+    }
+
+    @Test
+    fun `should not return live device for resolved or unknown incident`() {
+        every { incidentUseCase.getById(7L) } returns session.copy(status = IncidentStatus.RESOLVED)
+        every { incidentUseCase.getById(8L) } returns null
+
+        assertNull(service.getLiveDeviceId(7L))
+        assertNull(service.getLiveDeviceId(8L))
     }
 }
