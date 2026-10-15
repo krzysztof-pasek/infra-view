@@ -227,4 +227,23 @@ class DeviceServiceTest {
         assertNull(service.getLiveDeviceId(7L))
         assertNull(service.getLiveDeviceId(8L))
     }
+
+    @Test
+    fun `should return capture time of last stored frame of incident`() {
+        val last = ThermalFrame(id = 30L, deviceId = 1L, incidentId = 7L, capturedAt = OffsetDateTime.parse("2026-09-26T10:05:00Z"), image = byteArrayOf(3))
+        every { thermalFrameRepository.getLastByIncidentId(7L) } returns last
+        every { thermalFrameRepository.getLastByIncidentId(8L) } returns null
+
+        assertEquals(OffsetDateTime.parse("2026-09-26T10:05:00Z"), service.getLastFrameTime(7L))
+        assertNull(service.getLastFrameTime(8L))
+    }
+
+    @Test
+    fun `should return stored frames captured after given time`() {
+        val after = OffsetDateTime.parse("2026-09-26T10:04:50Z")
+        val frame = ThermalFrame(id = 29L, deviceId = 1L, incidentId = 7L, capturedAt = OffsetDateTime.parse("2026-09-26T10:04:55Z"), image = byteArrayOf(2))
+        every { thermalFrameRepository.getByIncidentIdAfter(7L, after, 50) } returns listOf(frame)
+
+        assertEquals(listOf(frame), service.getFramesAfter(7L, after, 50))
+    }
 }

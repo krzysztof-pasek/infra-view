@@ -113,6 +113,14 @@ class DeviceService(
         }
     }
 
+    override fun getLastFrameTime(incidentId: Long): OffsetDateTime? {
+        return thermalFrameRepository.getLastByIncidentId(incidentId)?.capturedAt
+    }
+
+    override fun getFramesAfter(incidentId: Long, after: OffsetDateTime, limit: Int): List<ThermalFrame> {
+        return thermalFrameRepository.getByIncidentIdAfter(incidentId, after, limit)
+    }
+
     private fun publishLiveFrame(deviceId: Long, incidentId: Long, jpeg: ByteArray) {
         liveLock.withLock {
             liveFrames[deviceId] = LiveFrame(sequence = ++liveSequence, incidentId = incidentId, image = jpeg)
