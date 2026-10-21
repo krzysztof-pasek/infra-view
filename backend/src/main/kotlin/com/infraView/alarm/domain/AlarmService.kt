@@ -17,6 +17,10 @@ class AlarmService(
         return alarmRepository.getAll()
     }
 
+    override fun getUnresolvedByIncidentId(incidentId: Long): List<Alarm> {
+        return alarmRepository.getUnresolvedByIncidentId(incidentId)
+    }
+
     override fun triggerAlarm(alarm: Alarm): Alarm {
         return alarmRepository.save(alarm)
     }

@@ -21,6 +21,10 @@ class AlarmRepositoryAdapter(
         return jpaRepository.findAll().map { it.toDomain() }
     }
 
+    override fun getUnresolvedByIncidentId(incidentId: Long): List<Alarm> {
+        return jpaRepository.findAllByIncidentIdAndResolvedAtIsNull(incidentId).map { it.toDomain() }
+    }
+
     override fun save(alarm: Alarm): Alarm {
         val incidentRef = entityManager.getReference(IncidentJpaEntity::class.java, alarm.incidentId)
         val entityToSave = alarm.toJpaEntity(incidentRef)

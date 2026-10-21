@@ -103,7 +103,6 @@ class DeviceServiceTest {
             ),
             telemetry
         )
-        assertNull(telemetry.gasPpm)
         assertEquals(ZoneOffset.UTC, telemetry.recordedAt.offset)
     }
 

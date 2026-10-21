@@ -56,7 +56,6 @@ CREATE TABLE telemetry (
     gyro_raw_y DOUBLE PRECISION,
     gyro_raw_z DOUBLE PRECISION,
     temperature DOUBLE PRECISION,
-    gas_ppm DOUBLE PRECISION,
     gas_voltage DOUBLE PRECISION,
     co2_ppm DOUBLE PRECISION,
     tvoc_ppb DOUBLE PRECISION,
@@ -77,3 +76,16 @@ CREATE TABLE alarms (
     resolved_at TIMESTAMPTZ,
     CONSTRAINT fk_alarms_incident FOREIGN KEY (incident_id) REFERENCES incidents(id)
 );
+
+CREATE TABLE alarm_thresholds (
+    metric VARCHAR(30) PRIMARY KEY,
+    threshold DOUBLE PRECISION NOT NULL,
+    reset_margin DOUBLE PRECISION NOT NULL,
+    enabled BOOLEAN NOT NULL,
+    CONSTRAINT chk_alarm_thresholds_reset_margin CHECK (reset_margin >= 0)
+);
+
+INSERT INTO alarm_thresholds (metric, threshold, reset_margin, enabled) VALUES
+    ('TEMPERATURE', 80.0, 5.0, TRUE),
+    ('CO2_PPM', 5000.0, 500.0, TRUE),
+    ('TVOC_PPB', 5500.0, 500.0, TRUE);
