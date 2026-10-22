@@ -67,14 +67,33 @@ class TelemetryControllerTest {
     }
 
     @Test
-    fun `should return telemetry by incident id`() {
-        every { useCase.getByIncidentId(100L) } returns listOf(telemetry, telemetry.copy(id = 2L))
+    fun `should return telemetry by incident id with default limit`() {
+        every { useCase.getByIncidentId(100L, 600) } returns listOf(telemetry, telemetry.copy(id = 2L))
 
         mockMvc.perform(get("/telemetry/incident/100"))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.length()").value(2))
             .andExpect(jsonPath("$[0].id").value(1))
             .andExpect(jsonPath("$[1].id").value(2))
+    }
+
+    @Test
+    fun `should pass custom limit when fetching telemetry by incident id`() {
+        every { useCase.getByIncidentId(100L, 50) } returns listOf(telemetry)
+
+        mockMvc.perform(get("/telemetry/incident/100").param("limit", "50"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.length()").value(1))
+    }
+
+    @Test
+    fun `should return 400 when telemetry limit is out of range`() {
+        mockMvc.perform(get("/telemetry/incident/100").param("limit", "0"))
+            .andExpect(status().isBadRequest)
+        mockMvc.perform(get("/telemetry/incident/100").param("limit", "3601"))
+            .andExpect(status().isBadRequest)
+
+        verify(exactly = 0) { useCase.getByIncidentId(any(), any()) }
     }
 
     @Test

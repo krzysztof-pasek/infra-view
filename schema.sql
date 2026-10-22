@@ -66,7 +66,7 @@ CREATE TABLE telemetry (
     CONSTRAINT chk_telemetry_source CHECK (incident_id IS NOT NULL OR device_id IS NOT NULL)
 );
 
-CREATE INDEX idx_telemetry_incident_id ON telemetry (incident_id);
+CREATE INDEX idx_telemetry_incident_id_recorded_at ON telemetry (incident_id, recorded_at);
 CREATE INDEX idx_telemetry_device_id_recorded_at ON telemetry (device_id, recorded_at);
 
 CREATE TABLE alarms (

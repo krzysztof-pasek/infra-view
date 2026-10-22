@@ -32,10 +32,16 @@ class TelemetryController (
         return saved.toDto()
     }
 
-    @Operation(summary = "Get telemetry by incident ID", description = "Returns all telemetry measurements assigned to a specific incident.")
+    @Operation(summary = "Get telemetry by incident ID", description = "Returns the latest telemetry measurements of a specific incident, ordered from oldest to newest. Helmets send one measurement per second, so the default limit covers the last 10 minutes.")
     @GetMapping("/incident/{incidentId}")
-    fun getByIncidentId(@PathVariable incidentId: Long): List<TelemetryDto> {
-        return useCase.getByIncidentId(incidentId).map { it.toDto() }
+    fun getByIncidentId(
+        @PathVariable incidentId: Long,
+        @RequestParam(defaultValue = "600") limit: Int
+    ): List<TelemetryDto> {
+        if (limit !in 1..MAX_LIMIT) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "limit must be between 1 and $MAX_LIMIT")
+        }
+        return useCase.getByIncidentId(incidentId, limit).map { it.toDto() }
     }
 
     @Operation(summary = "Delete telemetry measurement", description = "Removes a single telemetry entry from the database.")
@@ -43,5 +49,9 @@ class TelemetryController (
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deleteTelemetry(@PathVariable id: Long) {
         useCase.delete(id)
+    }
+
+    companion object {
+        private const val MAX_LIMIT = 3600
     }
 }
