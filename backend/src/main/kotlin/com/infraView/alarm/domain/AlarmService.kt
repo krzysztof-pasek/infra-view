@@ -35,6 +35,13 @@ class AlarmService(
         return alarmRepository.save(alarm.copy(resolvedAt = OffsetDateTime.now(ZoneOffset.UTC)))
     }
 
+    override fun resolveByIncidentId(incidentId: Long): List<Alarm> {
+        val resolvedAt = OffsetDateTime.now(ZoneOffset.UTC)
+        return alarmRepository.getByIncidentId(incidentId)
+            .filter { it.resolvedAt == null }
+            .map { alarmRepository.save(it.copy(resolvedAt = resolvedAt)) }
+    }
+
     override fun delete(id: Long) {
         alarmRepository.delete(id)
     }

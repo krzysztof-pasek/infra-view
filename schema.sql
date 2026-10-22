@@ -20,17 +20,6 @@ CREATE TABLE incidents (
 
 CREATE UNIQUE INDEX uq_incidents_active_device ON incidents (device_id) WHERE status = 'IN_PROGRESS';
 
-CREATE TABLE video_recordings (
-    id BIGSERIAL PRIMARY KEY,
-    incident_id BIGINT NOT NULL,
-    started_at TIMESTAMPTZ NOT NULL,
-    ended_at TIMESTAMPTZ,
-    file_path TEXT,
-    file_size_bytes BIGINT,
-    duration_sec INT,
-    CONSTRAINT fk_video_recordings_incident FOREIGN KEY (incident_id) REFERENCES incidents(id)
-);
-
 CREATE TABLE video_frames (
     id BIGSERIAL PRIMARY KEY,
     device_id BIGINT NOT NULL,

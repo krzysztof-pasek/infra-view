@@ -1,9 +1,6 @@
 package com.infraView.incident.database
 
-import com.infraView.alarm.database.AlarmJpaEntity
 import com.infraView.incident.domain.IncidentStatus
-import com.infraView.telemetry.database.TelemetryJpaEntity
-import com.infraView.video.database.VideoRecordingJpaEntity
 import jakarta.persistence.*
 import java.time.OffsetDateTime
 
@@ -38,13 +35,4 @@ class IncidentJpaEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null
-
-    @OneToMany(mappedBy = "incident", fetch = FetchType.LAZY)
-    var videoRecordings: MutableList<VideoRecordingJpaEntity> = mutableListOf()
-
-    @OneToMany(mappedBy = "incident", fetch = FetchType.LAZY)
-    var telemetryEntries: MutableList<TelemetryJpaEntity> = mutableListOf()
-
-    @OneToMany(mappedBy = "incident", fetch = FetchType.LAZY)
-    var alarms: MutableList<AlarmJpaEntity> = mutableListOf()
 }

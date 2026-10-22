@@ -7,5 +7,6 @@ interface AlarmUseCase {
     fun getByIncidentId(incidentId: Long): List<Alarm>
     fun triggerAlarm(alarm: Alarm): Alarm
     fun resolveAlarm(id: Long): Alarm?
+    fun resolveByIncidentId(incidentId: Long): List<Alarm>
     fun delete(id: Long)
 }
