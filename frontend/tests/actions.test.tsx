@@ -11,7 +11,7 @@ const session = {
   description: null,
   location: null,
   startedAt: "2026-09-21T10:00:00Z",
-  endedAt: null,
+  endedAt: null as string | null,
   status: "IN_PROGRESS",
 };
 
@@ -20,7 +20,7 @@ const alarm = {
   incidentId: 1,
   alarmType: "FALL",
   triggeredAt: session.startedAt,
-  resolvedAt: null,
+  resolvedAt: null as string | null,
 };
 
 function mockApi({ failCreate = false } = {}) {
