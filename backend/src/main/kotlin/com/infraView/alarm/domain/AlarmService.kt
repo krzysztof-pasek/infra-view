@@ -17,6 +17,8 @@ class AlarmService(
         return alarmRepository.getAll()
     }
 
+    override fun getUnresolvedByIncidentId(incidentId: Long): List<Alarm> {
+        return alarmRepository.getUnresolvedByIncidentId(incidentId)
     override fun getActive(): List<Alarm> {
         return alarmRepository.getActive()
     }

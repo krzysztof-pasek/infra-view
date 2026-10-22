@@ -5,6 +5,7 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface AlarmJpaRepository : JpaRepository<AlarmJpaEntity, Long> {
+    fun findAllByIncidentIdAndResolvedAtIsNull(incidentId: Long): List<AlarmJpaEntity>
     fun findAllByResolvedAtIsNullOrderByTriggeredAtDescIdDesc(): List<AlarmJpaEntity>
     fun findAllByIncidentIdOrderByTriggeredAtDescIdDesc(incidentId: Long): List<AlarmJpaEntity>
 }

@@ -48,9 +48,6 @@ class TelemetryJpaEntity(
     @Column(name = "temperature")
     var temperature: Double? = null,
 
-    @Column(name = "gas_ppm")
-    var gasPpm: Double? = null,
-
     @Column(name = "gas_voltage")
     var gasVoltage: Double? = null,
 

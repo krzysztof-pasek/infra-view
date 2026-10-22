@@ -37,7 +37,7 @@ class AlarmControllerTest {
 
     @Test
     fun `should return all alarms`() {
-        every { useCase.getAll() } returns listOf(alarm, alarm.copy(id = 2L, alarmType = AlarmType.HIGH_GAS))
+        every { useCase.getAll() } returns listOf(alarm, alarm.copy(id = 2L, alarmType = AlarmType.HIGH_CO2))
 
         mockMvc.perform(get("/alarms"))
             .andExpect(status().isOk)
@@ -45,7 +45,7 @@ class AlarmControllerTest {
             .andExpect(jsonPath("$[0].id").value(1))
             .andExpect(jsonPath("$[0].alarmType").value("FALL"))
             .andExpect(jsonPath("$[1].id").value(2))
-            .andExpect(jsonPath("$[1].alarmType").value("HIGH_GAS"))
+            .andExpect(jsonPath("$[1].alarmType").value("HIGH_CO2"))
     }
 
     @Test

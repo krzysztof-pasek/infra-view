@@ -14,7 +14,6 @@ data class Telemetry(
     val gyroRawY: Double? = null,
     val gyroRawZ: Double? = null,
     val temperature: Double? = null,
-    val gasPpm: Double? = null,
     val gasVoltage: Double? = null,
     val co2Ppm: Double? = null,
     val tvocPpb: Double? = null,
