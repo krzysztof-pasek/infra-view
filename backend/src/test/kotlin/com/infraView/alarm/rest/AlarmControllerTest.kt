@@ -49,6 +49,30 @@ class AlarmControllerTest {
     }
 
     @Test
+    fun `should return active alarms`() {
+        every { useCase.getActive() } returns listOf(alarm)
+
+        mockMvc.perform(get("/alarms/active"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].id").value(1))
+            .andExpect(jsonPath("$[0].resolvedAt").isEmpty)
+    }
+
+    @Test
+    fun `should return alarms by incident id`() {
+        val resolved = alarm.copy(id = 2L, resolvedAt = triggeredAt.plusMinutes(1))
+        every { useCase.getByIncidentId(100L) } returns listOf(resolved, alarm)
+
+        mockMvc.perform(get("/alarms/incident/100"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.length()").value(2))
+            .andExpect(jsonPath("$[0].id").value(2))
+            .andExpect(jsonPath("$[0].incidentId").value(100))
+            .andExpect(jsonPath("$[1].id").value(1))
+    }
+
+    @Test
     fun `should return empty list when there are no alarms`() {
         every { useCase.getAll() } returns emptyList()
 

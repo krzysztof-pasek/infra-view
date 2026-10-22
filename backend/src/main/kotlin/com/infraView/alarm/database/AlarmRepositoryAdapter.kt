@@ -21,6 +21,14 @@ class AlarmRepositoryAdapter(
         return jpaRepository.findAll().map { it.toDomain() }
     }
 
+    override fun getActive(): List<Alarm> {
+        return jpaRepository.findAllByResolvedAtIsNullOrderByTriggeredAtDescIdDesc().map { it.toDomain() }
+    }
+
+    override fun getByIncidentId(incidentId: Long): List<Alarm> {
+        return jpaRepository.findAllByIncidentIdOrderByTriggeredAtDescIdDesc(incidentId).map { it.toDomain() }
+    }
+
     override fun save(alarm: Alarm): Alarm {
         val incidentRef = entityManager.getReference(IncidentJpaEntity::class.java, alarm.incidentId)
         val entityToSave = alarm.toJpaEntity(incidentRef)
