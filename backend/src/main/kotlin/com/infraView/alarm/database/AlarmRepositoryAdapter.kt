@@ -23,6 +23,8 @@ class AlarmRepositoryAdapter(
 
     override fun getUnresolvedByIncidentId(incidentId: Long): List<Alarm> {
         return jpaRepository.findAllByIncidentIdAndResolvedAtIsNull(incidentId).map { it.toDomain() }
+    }
+
     override fun getActive(): List<Alarm> {
         return jpaRepository.findAllByResolvedAtIsNullOrderByTriggeredAtDescIdDesc().map { it.toDomain() }
     }

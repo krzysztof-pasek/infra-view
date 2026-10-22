@@ -19,6 +19,8 @@ class AlarmService(
 
     override fun getUnresolvedByIncidentId(incidentId: Long): List<Alarm> {
         return alarmRepository.getUnresolvedByIncidentId(incidentId)
+    }
+
     override fun getActive(): List<Alarm> {
         return alarmRepository.getActive()
     }
@@ -39,8 +41,7 @@ class AlarmService(
 
     override fun resolveByIncidentId(incidentId: Long): List<Alarm> {
         val resolvedAt = OffsetDateTime.now(ZoneOffset.UTC)
-        return alarmRepository.getByIncidentId(incidentId)
-            .filter { it.resolvedAt == null }
+        return alarmRepository.getUnresolvedByIncidentId(incidentId)
             .map { alarmRepository.save(it.copy(resolvedAt = resolvedAt)) }
     }
 

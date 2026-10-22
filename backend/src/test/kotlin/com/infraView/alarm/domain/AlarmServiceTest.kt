@@ -54,12 +54,10 @@ class AlarmServiceTest {
     }
 
     @Test
-    fun `should resolve only active alarms of incident`() {
-        val earlier = triggeredAt.plusMinutes(5)
-        val alreadyResolved = alarm.copy(id = 2L, resolvedAt = earlier)
+    fun `should resolve all unresolved alarms of incident`() {
         val active = alarm.copy(id = 3L, alarmType = AlarmType.NO_MOTION)
         val saved = mutableListOf<Alarm>()
-        every { alarmRepository.getByIncidentId(100L) } returns listOf(alarm, alreadyResolved, active)
+        every { alarmRepository.getUnresolvedByIncidentId(100L) } returns listOf(alarm, active)
         every { alarmRepository.save(capture(saved)) } answers { saved.last() }
         val before = OffsetDateTime.now()
 
@@ -73,7 +71,7 @@ class AlarmServiceTest {
 
     @Test
     fun `should not save anything when incident has no active alarms`() {
-        every { alarmRepository.getByIncidentId(100L) } returns listOf(alarm.copy(resolvedAt = triggeredAt.plusMinutes(5)))
+        every { alarmRepository.getUnresolvedByIncidentId(100L) } returns emptyList()
 
         assertEquals(emptyList(), service.resolveByIncidentId(100L))
         verify(exactly = 0) { alarmRepository.save(any()) }
