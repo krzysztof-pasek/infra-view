@@ -27,7 +27,7 @@ CREATE TABLE video_frames (
     captured_at TIMESTAMPTZ NOT NULL,
     image BYTEA NOT NULL,
     CONSTRAINT fk_video_frames_device FOREIGN KEY (device_id) REFERENCES devices(id),
-    CONSTRAINT fk_video_frames_incident FOREIGN KEY (incident_id) REFERENCES incidents(id)
+    CONSTRAINT fk_video_frames_incident FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_video_frames_incident_id_captured_at ON video_frames (incident_id, captured_at);
@@ -49,7 +49,7 @@ CREATE TABLE telemetry (
     co2_ppm DOUBLE PRECISION,
     tvoc_ppb DOUBLE PRECISION,
     motion_state VARCHAR(20),
-    CONSTRAINT fk_telemetry_incident FOREIGN KEY (incident_id) REFERENCES incidents(id),
+    CONSTRAINT fk_telemetry_incident FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE,
     CONSTRAINT fk_telemetry_device FOREIGN KEY (device_id) REFERENCES devices(id),
     CONSTRAINT chk_telemetry_source CHECK (incident_id IS NOT NULL OR device_id IS NOT NULL)
 );
@@ -63,8 +63,10 @@ CREATE TABLE alarms (
     alarm_type VARCHAR(30) NOT NULL,
     triggered_at TIMESTAMPTZ NOT NULL,
     resolved_at TIMESTAMPTZ,
-    CONSTRAINT fk_alarms_incident FOREIGN KEY (incident_id) REFERENCES incidents(id)
+    CONSTRAINT fk_alarms_incident FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE
 );
+
+CREATE INDEX idx_alarms_incident_id ON alarms (incident_id);
 
 CREATE TABLE alarm_thresholds (
     metric VARCHAR(30) PRIMARY KEY,

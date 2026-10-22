@@ -11,7 +11,6 @@ import io.mockk.verify
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
-import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
@@ -138,13 +137,5 @@ class IncidentControllerTest {
             .andExpect(status().isNoContent)
 
         verify(exactly = 1) { useCase.delete(1L) }
-    }
-
-    @Test
-    fun `should return 409 when deleting incident with related records`() {
-        every { useCase.delete(1L) } throws DataIntegrityViolationException("fk_alarms_incident")
-
-        mockMvc.perform(delete("/incidents/1"))
-            .andExpect(status().isConflict)
     }
 }

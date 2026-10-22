@@ -41,7 +41,7 @@ class IncidentController(
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Incident with ID $id not found")
     }
 
-    @Operation(summary = "Delete an incident", description = "Removes an incident from the database.")
+    @Operation(summary = "Delete an incident", description = "Removes an incident together with all its telemetry, alarms and thermal camera frames.")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deleteIncident(@PathVariable id: Long) {
