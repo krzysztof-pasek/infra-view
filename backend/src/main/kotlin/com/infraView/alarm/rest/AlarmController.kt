@@ -19,6 +19,18 @@ class AlarmController(
         return useCase.getAll().map { it.toDto() }
     }
 
+    @Operation(summary = "Get active alarms", description = "Returns unresolved alarms across all incidents.")
+    @GetMapping("/active")
+    fun active(): List<AlarmDto> {
+        return useCase.getActive().map { it.toDto() }
+    }
+
+    @Operation(summary = "Get alarms by incident ID", description = "Returns all alarms of a specific incident.")
+    @GetMapping("/incident/{incidentId}")
+    fun byIncident(@PathVariable incidentId: Long): List<AlarmDto> {
+        return useCase.getByIncidentId(incidentId).map { it.toDto() }
+    }
+
     @Operation(summary = "Get alarm by ID", description = "Retrieves detailed information about a specific alarm based on its unique identifier.")
     @GetMapping("/{id}")
     fun get(@PathVariable id: Long): AlarmDto {

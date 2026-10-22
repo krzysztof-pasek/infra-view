@@ -15,8 +15,10 @@ class TelemetryRepositoryAdapter(
     private val entityManager: EntityManager
 ) : TelemetryRepository {
 
-    override fun getByIncidentId(incidentId: Long): List<Telemetry> {
-        return jpaRepository.findAllByIncidentId(incidentId).map { it.toDomain() }
+    override fun getRecentByIncidentId(incidentId: Long, limit: Int): List<Telemetry> {
+        return jpaRepository.findByIncidentIdOrderByRecordedAtDescIdDesc(incidentId, Limit.of(limit))
+            .map { it.toDomain() }
+            .asReversed()
     }
 
     override fun getRecentByDeviceId(deviceId: Long, limit: Int): List<Telemetry> {

@@ -1,5 +1,6 @@
 package com.infraView.incident.domain
 
+import com.infraView.alarm.domain.AlarmUseCase
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.OffsetDateTime
@@ -8,7 +9,8 @@ import java.time.format.DateTimeFormatter
 
 @Service
 class IncidentService(
-    private val incidentRepository: IncidentRepository
+    private val incidentRepository: IncidentRepository,
+    private val alarmUseCase: AlarmUseCase
 ) : IncidentUseCase {
 
     private val log = LoggerFactory.getLogger(IncidentService::class.java)
@@ -27,8 +29,13 @@ class IncidentService(
 
     override fun endIncident(id: Long): Incident? {
         val incident = incidentRepository.getById(id) ?: return null
-        if (incident.status == IncidentStatus.RESOLVED) return incident
-        return incidentRepository.save(incident.copy(endedAt = OffsetDateTime.now(ZoneOffset.UTC), status = IncidentStatus.RESOLVED))
+        val ended = if (incident.status == IncidentStatus.RESOLVED) incident
+            else incidentRepository.save(incident.copy(endedAt = OffsetDateTime.now(ZoneOffset.UTC), status = IncidentStatus.RESOLVED))
+        val resolvedAlarms = alarmUseCase.resolveByIncidentId(id)
+        if (resolvedAlarms.isNotEmpty()) {
+            log.info("Alarms resolved on session end: incidentId={}, alarmIds={}", id, resolvedAlarms.map { it.id })
+        }
+        return ended
     }
 
     override fun getOrStartDeviceSession(deviceId: Long): Incident {

@@ -1,5 +1,6 @@
 package com.infraView.incident.domain
 
+import com.infraView.alarm.domain.AlarmUseCase
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -15,7 +16,8 @@ import kotlin.test.assertTrue
 class IncidentServiceTest {
 
     private val incidentRepository = mockk<IncidentRepository>()
-    private val service = IncidentService(incidentRepository)
+    private val alarmUseCase = mockk<AlarmUseCase>()
+    private val service = IncidentService(incidentRepository, alarmUseCase)
 
     private val incident = Incident(
         id = 1L,
@@ -29,6 +31,7 @@ class IncidentServiceTest {
         val saved = slot<Incident>()
         every { incidentRepository.getById(1L) } returns incident
         every { incidentRepository.save(capture(saved)) } answers { saved.captured }
+        every { alarmUseCase.resolveByIncidentId(1L) } returns emptyList()
         val before = OffsetDateTime.now()
 
         val result = service.endIncident(1L)
@@ -44,9 +47,22 @@ class IncidentServiceTest {
     fun `should not overwrite endedAt when incident is already resolved`() {
         val resolved = incident.copy(status = IncidentStatus.RESOLVED, endedAt = incident.startedAt.plusHours(2))
         every { incidentRepository.getById(1L) } returns resolved
+        every { alarmUseCase.resolveByIncidentId(1L) } returns emptyList()
 
         assertEquals(resolved, service.endIncident(1L))
         verify(exactly = 0) { incidentRepository.save(any()) }
+    }
+
+    @Test
+    fun `should resolve active alarms of incident when ending it`() {
+        val saved = slot<Incident>()
+        every { incidentRepository.getById(1L) } returns incident
+        every { incidentRepository.save(capture(saved)) } answers { saved.captured }
+        every { alarmUseCase.resolveByIncidentId(1L) } returns emptyList()
+
+        service.endIncident(1L)
+
+        verify(exactly = 1) { alarmUseCase.resolveByIncidentId(1L) }
     }
 
     @Test
@@ -79,6 +95,7 @@ class IncidentServiceTest {
         val saved = slot<Incident>()
         every { incidentRepository.getById(1L) } returns incident.copy(deviceId = 5L)
         every { incidentRepository.save(capture(saved)) } answers { saved.captured }
+        every { alarmUseCase.resolveByIncidentId(1L) } returns emptyList()
 
         service.endIncident(1L)
 
@@ -92,5 +109,6 @@ class IncidentServiceTest {
 
         assertNull(service.endIncident(99L))
         verify(exactly = 0) { incidentRepository.save(any()) }
+        verify(exactly = 0) { alarmUseCase.resolveByIncidentId(any()) }
     }
 }

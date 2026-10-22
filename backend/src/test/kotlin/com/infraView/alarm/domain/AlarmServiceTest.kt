@@ -52,4 +52,30 @@ class AlarmServiceTest {
         assertNull(service.resolveAlarm(99L))
         verify(exactly = 0) { alarmRepository.save(any()) }
     }
+
+    @Test
+    fun `should resolve only active alarms of incident`() {
+        val earlier = triggeredAt.plusMinutes(5)
+        val alreadyResolved = alarm.copy(id = 2L, resolvedAt = earlier)
+        val active = alarm.copy(id = 3L, alarmType = AlarmType.NO_MOTION)
+        val saved = mutableListOf<Alarm>()
+        every { alarmRepository.getByIncidentId(100L) } returns listOf(alarm, alreadyResolved, active)
+        every { alarmRepository.save(capture(saved)) } answers { saved.last() }
+        val before = OffsetDateTime.now()
+
+        val result = service.resolveByIncidentId(100L)
+
+        assertEquals(listOf(1L, 3L), saved.map { it.id })
+        val resolvedAt = assertNotNull(saved.first().resolvedAt)
+        assertTrue(!resolvedAt.isBefore(before))
+        assertEquals(listOf(alarm.copy(resolvedAt = resolvedAt), active.copy(resolvedAt = resolvedAt)), result)
+    }
+
+    @Test
+    fun `should not save anything when incident has no active alarms`() {
+        every { alarmRepository.getByIncidentId(100L) } returns listOf(alarm.copy(resolvedAt = triggeredAt.plusMinutes(5)))
+
+        assertEquals(emptyList(), service.resolveByIncidentId(100L))
+        verify(exactly = 0) { alarmRepository.save(any()) }
+    }
 }

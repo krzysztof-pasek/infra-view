@@ -23,8 +23,8 @@ class TelemetryService(
         return telemetryRepository.getById(id)
     }
 
-    override fun getByIncidentId(incidentId: Long): List<Telemetry> {
-        return telemetryRepository.getByIncidentId(incidentId)
+    override fun getByIncidentId(incidentId: Long, limit: Int): List<Telemetry> {
+        return telemetryRepository.getRecentByIncidentId(incidentId, limit)
     }
 
     override fun add(telemetry: Telemetry): Telemetry {
