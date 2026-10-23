@@ -8,6 +8,7 @@ import { useTheme } from "./useTheme";
 import { SessionBar } from "./SessionBar";
 import { SessionList } from "./SessionList";
 import { AlarmList } from "./AlarmList";
+import { CameraPanel } from "./CameraPanel";
 import { RecordingList } from "./RecordingList";
 
 const SESSIONS_INTERVAL = 5000;
@@ -163,8 +164,13 @@ export default function App() {
   );
 
   if (selected !== undefined) {
+    let camera = <p className="card muted empty">Sesja zakończona, obraz na żywo jest niedostępny</p>;
     let recordingList = null;
     let telemetryError = null;
+
+    if (selected.status === "IN_PROGRESS") {
+      camera = <CameraPanel key={selected.id} incidentId={selected.id} />;
+    }
 
     if (recordings.data !== null) {
       recordingList = <RecordingList recordings={recordings.data} />;
@@ -175,8 +181,9 @@ export default function App() {
     }
 
     sessionView = (
-      <section className="content" aria-label="Sesja">
+      <section className="content" aria-label="Kamera">
         {telemetryError}
+        {camera}
         {recordingList}
       </section>
     );
