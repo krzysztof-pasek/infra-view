@@ -1,76 +1,24 @@
-import { request } from "./http";
-import {
-  parseAlarm,
-  parseIncident,
-  parseList,
-  parseRecording,
-  parseTelemetry,
-} from "./parsers";
+const TIMEOUT = 5000;
 
-import type { NewIncident } from "./types";
+export async function api<T>(path: string, method = "GET", body?: unknown): Promise<T> {
+  const options: RequestInit = { method, signal: AbortSignal.timeout(TIMEOUT) };
 
-export async function getIncidents(signal: AbortSignal) {
-  return parseList(
-    await request("/incidents", { signal }),
-    parseIncident
-  );
-}
+  if (body !== undefined) {
+    options.headers = { "Content-Type": "application/json" };
+    options.body = JSON.stringify(body);
+  }
 
-export async function getAlarms(signal: AbortSignal) {
-  return parseList(
-    await request("/alarms", { signal }),
-    parseAlarm
-  );
-}
+  let response: Response;
 
-export async function getTelemetry(
-  incidentId: number,
-  signal: AbortSignal
-) {
-  return parseList(
-    await request(`/telemetry/incident/${incidentId}`, { signal }),
-    parseTelemetry
-  );
-}
+  try {
+    response = await fetch("/api" + path, options);
+  } catch {
+    throw new Error("Brak połączenia z serwerem");
+  }
 
-export async function getRecordings(
-  incidentId: number,
-  signal: AbortSignal
-) {
-  const recordings = parseList(
-    await request(`/videos/incident/${incidentId}`, { signal }),
-    parseRecording
-  );
+  if (!response.ok) {
+    throw new Error(`Serwer odrzucił żądanie (błąd ${response.status})`);
+  }
 
-  return recordings.filter(
-    recording => recording.incidentId === incidentId
-  );
-}
-
-export async function createIncident(input: NewIncident) {
-  return parseIncident(
-    await request("/incidents", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(input),
-    })
-  );
-}
-
-export async function endIncident(id: number) {
-  return parseIncident(
-    await request(`/incidents/${id}/end`, {
-      method: "PUT",
-    })
-  );
-}
-
-export async function resolveAlarm(id: number) {
-  return parseAlarm(
-    await request(`/alarms/${id}/resolve`, {
-      method: "PUT",
-    })
-  );
+  return response.json();
 }

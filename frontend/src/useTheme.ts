@@ -1,48 +1,24 @@
-import { useEffect, useState } from "react";
-
-type Theme = "light" | "dark";
-
-function readSavedTheme() {
-  try {
-    return localStorage.getItem("infra-view-theme");
-  } catch {
-    return null;
-  }
-}
-
-function saveTheme(theme: Theme) {
-  try {
-    localStorage.setItem("infra-view-theme", theme);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function getInitialTheme(): Theme {
-  const savedTheme = readSavedTheme();
-
-  if (savedTheme === "light" || savedTheme === "dark") {
-    return savedTheme;
-  }
-
-  if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-    return "dark";
-  }
-
-  return "light";
-}
+import { useState } from "react";
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    saveTheme(theme);
-  }, [theme]);
+  const [theme, setTheme] = useState(document.documentElement.dataset.theme);
 
   function toggleTheme() {
-    setTheme(current => current === "light" ? "dark" : "light");
+    let next = "dark";
+
+    if (theme === "dark") {
+      next = "light";
+    }
+
+    document.documentElement.dataset.theme = next;
+
+    try {
+      localStorage.setItem("theme", next);
+    } catch {
+      console.warn("Nie udało się zapisać motywu");
+    }
+
+    setTheme(next);
   }
 
   return { theme, toggleTheme };

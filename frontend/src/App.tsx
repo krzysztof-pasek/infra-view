@@ -1,226 +1,233 @@
-import { useRef, useState } from "react";
-
-import {
-  createIncident,
-  endIncident,
-  getAlarms,
-  getIncidents,
-  resolveAlarm,
-} from "./api";
-
-import type { NewIncident } from "./types";
-
+import { useEffect, useState } from "react";
+import type { Alarm, AlarmGroup, Incident, Recording, Telemetry } from "./types";
+import { api } from "./api";
+import { findIncident, groupAlarms, incidentName, nameOf, sortByTime } from "./data";
+import { alarmNames, formatTime, ONLINE_TIMEOUT } from "./format";
 import { usePolling } from "./usePolling";
 import { useTheme } from "./useTheme";
-
+import { SessionBar } from "./SessionBar";
 import { SessionList } from "./SessionList";
-import { SessionDetails } from "./SessionDetails";
-import { AlarmPanel } from "./AlarmPanel";
-import { LoadStatus } from "./LoadStatus";
-import { NewSessionForm } from "./NewSessionForm";
+import { AlarmList } from "./AlarmList";
+import { RecordingList } from "./RecordingList";
+
+const SESSIONS_INTERVAL = 5000;
+const ALARMS_INTERVAL = 2000;
+const LIVE_INTERVAL = 1000;
+const ENDED_INTERVAL = 30000;
+const RECORDINGS_INTERVAL = 10000;
+
+function errorText(error: string, updatedAt: number) {
+  if (updatedAt === 0) {
+    return error;
+  }
+
+  return `${error} · ostatnio ${formatTime(updatedAt)}`;
+}
 
 export default function App() {
   const { theme, toggleTheme } = useTheme();
-
-  const sessions = usePolling(getIncidents, 5000);
-  const alarms = usePolling(getAlarms, 1000);
-
-  const [selectedId, setSelectedId] =
-    useState<number | null>(null);
-
-  const [showEnded, setShowEnded] = useState(false);
+  const sessions = usePolling<Incident[]>("/incidents", SESSIONS_INTERVAL);
+  const alarms = usePolling<Alarm[]>("/alarms", ALARMS_INTERVAL);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  const [actionError, setActionError] = useState("");
+  const [error, setError] = useState("");
+  const [now, setNow] = useState(Date.now);
 
-  const actionLock = useRef(false);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
-  const incidents = sessions.data ?? [];
+  let incidents: Incident[] = [];
 
-  const visible = incidents.filter(
-    incident =>
-      showEnded || incident.status === "IN_PROGRESS"
-  );
+  if (sessions.data !== null) {
+    incidents = sessions.data;
+  }
 
-  const selected = visible.find(
-    incident => incident.id === selectedId
-  );
+  let active: Incident[] | null = null;
 
-  async function perform(
-    action: () => Promise<unknown>,
-    successMessage: string
-  ) {
-    if (actionLock.current) {
-      return false;
+  if (sessions.data !== null) {
+    active = [];
+
+    for (const incident of incidents) {
+      if (incident.status === "IN_PROGRESS") {
+        active.push(incident);
+      }
     }
+  }
 
-    actionLock.current = true;
+  const selected = findIncident(incidents, selectedId);
+  let telemetryPath = null;
+  let recordingsPath = null;
+  let telemetryInterval = LIVE_INTERVAL;
+
+  if (selected !== undefined) {
+    telemetryPath = `/telemetry/incident/${selected.id}`;
+    recordingsPath = `/videos/incident/${selected.id}`;
+  }
+
+  if (selected !== undefined && selected.status !== "IN_PROGRESS") {
+    telemetryInterval = ENDED_INTERVAL;
+  }
+
+  const telemetry = usePolling<Telemetry[]>(telemetryPath, telemetryInterval);
+  const recordings = usePolling<Recording[]>(recordingsPath, RECORDINGS_INTERVAL);
+
+  let rows: Telemetry[] = [];
+
+  if (telemetry.data !== null) {
+    rows = sortByTime(telemetry.data);
+  }
+
+  const latest = rows.at(-1);
+  let online = false;
+
+  if (selected !== undefined && selected.status === "IN_PROGRESS" && latest !== undefined) {
+    online = now - telemetry.changedAt < ONLINE_TIMEOUT;
+  }
+
+  let groups: AlarmGroup[] | null = null;
+  const alarmIds: number[] = [];
+
+  if (alarms.data !== null) {
+    groups = groupAlarms(alarms.data);
+
+    for (const group of groups) {
+      alarmIds.push(group.incidentId);
+    }
+  }
+
+  async function run(action: () => Promise<unknown>) {
     setBusy(true);
-    setMessage("");
-    setActionError("");
+    setError("");
 
     try {
       await action();
-      setMessage(successMessage);
+    } catch (failure) {
+      let message = "Operacja nie powiodła się";
 
-      return true;
-    } catch (error) {
-      setActionError(
-        error instanceof Error
-          ? error.message
-          : "Błąd operacji"
-      );
+      if (failure instanceof Error) {
+        message = failure.message;
+      }
 
-      return false;
-    } finally {
-      sessions.refresh();
-      alarms.refresh();
-
-      actionLock.current = false;
-      setBusy(false);
+      setError(message);
     }
+
+    setBusy(false);
+    sessions.refresh();
+    alarms.refresh();
   }
 
-  async function handleCreate(input: NewIncident) {
-    return perform(async () => {
-      const incident = await createIncident(input);
-
-      sessions.update(previous => [
-        ...(previous ?? []).filter(
-          item => item.id !== incident.id
-        ),
-        incident,
-      ]);
-
-      setSelectedId(incident.id);
-    }, "Sesja została utworzona.");
-  }
-
-  function handleEnd() {
-    if (!selected) {
+  function endSession() {
+    if (selected === undefined) {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Zakończyć sesję ${selected.code}?`
+    if (window.confirm(`Czy na pewno chcesz zakończyć sesję ${incidentName(selected)}?`)) {
+      run(() => api(`/incidents/${selected.id}/end`, "PUT"));
+    }
+  }
+
+  function resolveAlarm(group: AlarmGroup) {
+    const question = `Oznaczyć alarm „${alarmNames[group.alarmType]}” (${nameOf(incidents, group.incidentId)}) jako rozwiązany?`;
+
+    if (!window.confirm(question)) {
+      return;
+    }
+
+    run(async () => {
+      for (const id of group.ids) {
+        await api(`/alarms/${id}/resolve`, "PUT");
+      }
+    });
+  }
+
+  function showAlarm(group: AlarmGroup) {
+    setSelectedId(group.incidentId);
+  }
+
+  let themeLabel = "Ciemny motyw";
+
+  if (theme === "dark") {
+    themeLabel = "Jasny motyw";
+  }
+
+  let sessionsError = null;
+
+  if (sessions.error !== "") {
+    sessionsError = <p className="orange">{errorText(sessions.error, sessions.updatedAt)}</p>;
+  }
+
+  let sessionView = (
+    <p className="card muted empty wide">Wybierz sesję z listy, aby zobaczyć obraz z kamery i pomiary</p>
+  );
+
+  if (selected !== undefined) {
+    let recordingList = null;
+    let telemetryError = null;
+
+    if (recordings.data !== null) {
+      recordingList = <RecordingList recordings={recordings.data} />;
+    }
+
+    if (telemetry.error !== "") {
+      telemetryError = <p className="orange">{errorText(telemetry.error, telemetry.updatedAt)}</p>;
+    }
+
+    sessionView = (
+      <section className="content" aria-label="Sesja">
+        {telemetryError}
+        {recordingList}
+      </section>
     );
-
-    if (!confirmed) {
-      return;
-    }
-
-    void perform(async () => {
-      const ended = await endIncident(selected.id);
-
-      sessions.update(previous =>
-        (previous ?? []).map(incident =>
-          incident.id === ended.id
-            ? ended
-            : incident
-        )
-      );
-    }, "Sesja została zakończona.");
   }
 
-  function handleResolve(id: number) {
-    const confirmed = window.confirm(
-      "Oznaczyć alarm jako rozwiązany?"
+  let toast = null;
+
+  if (error !== "") {
+    toast = (
+      <div className="toast glass" role="alert">
+        <span className="orange">{error}</span>
+        <button onClick={() => setError("")}>Zamknij</button>
+      </div>
     );
-
-    if (!confirmed) {
-      return;
-    }
-
-    void perform(async () => {
-      const resolved = await resolveAlarm(id);
-
-      alarms.update(previous =>
-        (previous ?? []).map(alarm =>
-          alarm.id === resolved.id
-            ? resolved
-            : alarm
-        )
-      );
-    }, "Alarm został rozwiązany.");
   }
 
   return (
-    <div className="app">
-      <header className="topbar">
-        <div>
-          <h1>INFRA VIEW</h1>
-          <p className="muted">Panel monitoringu</p>
-        </div>
-
-        <button onClick={toggleTheme}>
-          {theme === "dark"
-            ? "Jasny motyw"
-            : "Ciemny motyw"}
-        </button>
+    <>
+      <header className="topbar glass">
+        <h1>INFRA VIEW</h1>
+        <SessionBar
+          incident={selected}
+          latest={latest}
+          online={online}
+          busy={busy}
+          onEnd={endSession}
+          onClose={() => setSelectedId(null)}
+        />
+        <nav className="toolbar">
+          <button onClick={toggleTheme}>{themeLabel}</button>
+        </nav>
       </header>
 
-      {message && (
-        <p role="status">{message}</p>
-      )}
-
-      {actionError && (
-        <p className="error" role="alert">
-          {actionError}
-        </p>
-      )}
-
-      <LoadStatus
-        label="Sesje"
-        error={sessions.error}
-        updatedAt={sessions.updatedAt}
-      />
-
-      <label>
-        <span>
-          <input
-            type="checkbox"
-            checked={showEnded}
-            onChange={event =>
-              setShowEnded(event.target.checked)
-            }
-          />
-          {" "}Pokaż również zakończone
-        </span>
-      </label>
-
       <main className="layout">
-        <aside className="content" aria-label="Sesje strażaków">
-          <SessionList
-            incidents={visible}
-            selectedId={selected?.id ?? null}
-            onSelect={setSelectedId}
+        <aside className="pane glass">
+          {sessionsError}
+          <SessionList incidents={active} selectedId={selectedId} alarmIds={alarmIds} onSelect={setSelectedId} />
+          <AlarmList
+            groups={groups}
+            incidents={incidents}
+            error={alarms.error}
+            busy={busy}
+            onSelect={showAlarm}
+            onResolve={resolveAlarm}
           />
-          <NewSessionForm busy={busy} onCreate={handleCreate} />
         </aside>
 
-        <SessionDetails
-          incident={selected}
-          busy={busy || Boolean(sessions.error)}
-          onEnd={handleEnd}
-          alarms={
-            <>
-              <LoadStatus
-                label="Alarmy"
-                error={alarms.error}
-                updatedAt={alarms.updatedAt}
-              />
-              {alarms.data !== null && (
-                <AlarmPanel
-                  alarms={alarms.data}
-                  incidents={incidents}
-                  onResolve={handleResolve}
-                  busy={busy || Boolean(alarms.error)}
-                />
-              )}
-            </>
-          }
-        />
+        {sessionView}
       </main>
-    </div>
+
+      {toast}
+    </>
   );
 }
