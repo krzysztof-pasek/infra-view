@@ -9,6 +9,7 @@ import { SessionBar } from "./SessionBar";
 import { SessionList } from "./SessionList";
 import { AlarmList } from "./AlarmList";
 import { CameraPanel } from "./CameraPanel";
+import { Charts } from "./Charts";
 import { RecordingList } from "./RecordingList";
 
 const SESSIONS_INTERVAL = 5000;
@@ -181,11 +182,17 @@ export default function App() {
     }
 
     sessionView = (
-      <section className="content" aria-label="Kamera">
-        {telemetryError}
-        {camera}
-        {recordingList}
-      </section>
+      <>
+        <section className="content" aria-label="Kamera">
+          {camera}
+          {recordingList}
+        </section>
+
+        <section className="content charts-column" aria-label="Wykresy">
+          {telemetryError}
+          <Charts key={selected.id} rows={rows} />
+        </section>
+      </>
     );
   }
 

@@ -478,6 +478,30 @@ details[open] > summary::before {
   font-variant-numeric: tabular-nums;
 }
 
+.chart-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.value {
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.value small {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.chart {
+  height: 140px;
+  margin-top: 6px;
+}
+
 .wide {
   grid-column: 2 / -1;
 }
@@ -533,6 +557,10 @@ tr:last-child td {
   .layout {
     grid-template-columns: 280px minmax(0, 1fr);
   }
+
+  .charts-column {
+    grid-column: 2;
+  }
 }
 
 @media (max-width: 800px) {
@@ -540,7 +568,7 @@ tr:last-child td {
     grid-template-columns: 1fr;
   }
 
-  .wide {
+  .charts-column, .wide {
     grid-column: auto;
   }
 

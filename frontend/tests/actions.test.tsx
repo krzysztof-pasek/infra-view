@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, expect, it, vi } from "vitest";
 import App from "../src/App";
 
+vi.mock("../src/Charts", () => ({ Charts: () => null }));
+
 const jan = {
   id: 1,
   code: "HELMET-1",
