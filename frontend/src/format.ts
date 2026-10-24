@@ -1,6 +1,7 @@
 import type { AlarmType, MotionState } from "./types";
 
 export const ONLINE_TIMEOUT = 5000;
+export const MAX_REPLAY = 300;
 
 export const motionStates: Record<MotionState, { label: string; color: string }> = {
   MOVING: { label: "W ruchu", color: "" },
@@ -31,4 +32,10 @@ export function formatDate(value: string | number) {
 
 export function formatTime(value: string | number) {
   return new Date(value).toLocaleTimeString("pl-PL");
+}
+
+export function formatDelay(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return `−${minutes}:${String(rest).padStart(2, "0")}`;
 }

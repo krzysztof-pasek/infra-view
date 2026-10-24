@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 import type { Alarm } from "../src/types";
 import { groupAlarms } from "../src/data";
+import { formatDelay } from "../src/format";
 import { RecordingList } from "../src/RecordingList";
 
 function alarm(id: number, incidentId: number, resolvedAt: string | null): Alarm {
@@ -14,6 +15,11 @@ it("łączy alarmy tego samego typu i strażaka, pomija rozwiązane", () => {
   expect(groups).toHaveLength(2);
   expect(groups[0].incidentId).toBe(2);
   expect(groups[1].ids).toEqual([1, 2]);
+});
+
+it("pokazuje opóźnienie powtórki w minutach", () => {
+  expect(formatDelay(150)).toBe("−2:30");
+  expect(formatDelay(5)).toBe("−0:05");
 });
 
 it("trwające nagranie nie ma końca ani jednostek bez danych", () => {

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { formatDelay, MAX_REPLAY } from "./format";
 
 const RECONNECT_DELAY = 2000;
+const REPLAY_STEP = 5;
 
 function join(first: Uint8Array, second: Uint8Array) {
   const result = new Uint8Array(first.length + second.length);
@@ -20,6 +22,7 @@ function findMarker(buffer: Uint8Array, marker: number, from: number) {
 }
 
 export function CameraPanel({ incidentId }: { incidentId: number }) {
+  const [delay, setDelay] = useState(0);
   const [frame, setFrame] = useState("");
   const [attempt, setAttempt] = useState(0);
 
@@ -28,7 +31,11 @@ export function CameraPanel({ incidentId }: { incidentId: number }) {
     let url = "";
     let timer = 0;
 
-    const path = `/api/incidents/${incidentId}/live`;
+    let path = `/api/incidents/${incidentId}/live`;
+
+    if (delay > 0) {
+      path = `/api/incidents/${incidentId}/replay?delaySeconds=${delay}`;
+    }
 
     async function read() {
       try {
@@ -78,7 +85,7 @@ export function CameraPanel({ incidentId }: { incidentId: number }) {
       clearTimeout(timer);
       URL.revokeObjectURL(url);
     };
-  }, [incidentId, attempt]);
+  }, [incidentId, delay, attempt]);
 
   let image = <p className="camera-status">Brak obrazu z kamery</p>;
 
@@ -86,9 +93,31 @@ export function CameraPanel({ incidentId }: { incidentId: number }) {
     image = <img src={frame} alt="Obraz z kamery termowizyjnej" />;
   }
 
+  let position = "0:00";
+
+  if (delay > 0) {
+    position = formatDelay(delay);
+  }
+
   return (
     <div className="camera">
       {image}
+
+      <div className="camera-controls glass">
+        <button aria-pressed={delay === 0} onClick={() => setDelay(0)}>
+          Na żywo
+        </button>
+        <input
+          type="range"
+          min={0}
+          max={MAX_REPLAY}
+          step={REPLAY_STEP}
+          value={MAX_REPLAY - delay}
+          aria-label="Przewijanie obrazu"
+          onChange={event => setDelay(MAX_REPLAY - Number(event.target.value))}
+        />
+        <span>{position}</span>
+      </div>
     </div>
   );
 }

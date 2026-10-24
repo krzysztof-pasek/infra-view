@@ -136,6 +136,13 @@ input, select {
   background: var(--card);
 }
 
+input[type="range"] {
+  padding: 0;
+  border: 0;
+  background: none;
+  accent-color: var(--accent);
+}
+
 input[type="checkbox"] {
   appearance: none;
   display: inline-grid;
@@ -448,6 +455,27 @@ details[open] > summary::before {
   place-items: center;
   height: 100%;
   color: rgb(255 255 255 / 0.7);
+}
+
+.camera-controls {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 16px 4px 4px;
+  border-radius: 999px;
+  transform: translateX(-50%);
+}
+
+.camera-controls input {
+  width: 220px;
+}
+
+.camera-controls span {
+  min-width: 56px;
+  font-variant-numeric: tabular-nums;
 }
 
 .wide {
