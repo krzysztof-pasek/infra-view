@@ -162,6 +162,20 @@ it("błąd operacji zostaje na ekranie do zamknięcia", async () => {
   expect(screen.queryByText("Serwer odrzucił żądanie (błąd 500)")).toBeNull();
 });
 
+it("zapisuje nowy próg alarmu", async () => {
+  const fetchMock = mockApi();
+  render(<App />);
+
+  fireEvent.click(screen.getByRole("button", { name: "Progi alarmów" }));
+  const dialog = screen.getByRole("dialog", { name: "Progi alarmów" });
+  fireEvent.change(await within(dialog).findByLabelText("Próg"), { target: { value: "60" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Zapisz" }));
+
+  await waitFor(() => expect(calls(fetchMock, "PUT", "/alarm-thresholds/TEMPERATURE")).toHaveLength(1));
+  const body = JSON.parse(String(calls(fetchMock, "PUT", "/alarm-thresholds/TEMPERATURE")[0][1]?.body));
+  expect(body).toEqual({ threshold: 60, resetMargin: 5, enabled: true });
+});
+
 it("gdy serwer nie odpowiada, nie twierdzi że alarmów nie ma", async () => {
   mockApi({ alarmsDown: true });
   render(<App />);

@@ -38,6 +38,16 @@ export type AlarmGroup = {
   triggeredAt: string;
 };
 
+export type Metric = "TEMPERATURE" | "CO2_PPM" | "TVOC_PPB";
+
+export type Threshold = {
+  metric: Metric;
+  alarmType: AlarmType;
+  threshold: number;
+  resetMargin: number;
+  enabled: boolean;
+};
+
 export type Recording = {
   id: number;
   startedAt: string;

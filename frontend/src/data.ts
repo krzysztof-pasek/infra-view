@@ -1,4 +1,4 @@
-import type { Alarm, AlarmGroup, Incident, Telemetry } from "./types";
+import type { Alarm, AlarmGroup, Incident, Metric, Telemetry, Threshold } from "./types";
 
 export function incidentName(incident: Incident) {
   if (incident.firefighterName === null || incident.firefighterName === "") {
@@ -26,6 +26,20 @@ export function nameOf(incidents: Incident[], id: number) {
   }
 
   return incidentName(incident);
+}
+
+export function findThreshold(thresholds: Threshold[] | null, metric: Metric | null) {
+  if (thresholds === null) {
+    return null;
+  }
+
+  for (const threshold of thresholds) {
+    if (threshold.metric === metric) {
+      return threshold;
+    }
+  }
+
+  return null;
 }
 
 export function sortByTime(rows: Telemetry[]) {

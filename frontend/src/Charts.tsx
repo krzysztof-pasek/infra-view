@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import type { Telemetry } from "./types";
+import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import type { Telemetry, Threshold } from "./types";
 import type { Sensor } from "./format";
 import { CHART_WINDOW, formatDate, formatNumber, formatTime, GAP_TIMEOUT, sensors, sensorValue } from "./format";
+import { findThreshold } from "./data";
 
 type Point = {
   time: number;
@@ -37,9 +38,10 @@ function toPoints(rows: Telemetry[]) {
 
 type Props = {
   rows: Telemetry[];
+  thresholds: Threshold[] | null;
 };
 
-export function Charts({ rows }: Props) {
+export function Charts({ rows, thresholds }: Props) {
   const [end, setEnd] = useState<number | null>(null);
 
   if (rows.length === 0) {
@@ -101,6 +103,7 @@ export function Charts({ rows }: Props) {
           sensor={sensor}
           points={visible}
           value={sensorValue(latest, sensor)}
+          threshold={findThreshold(thresholds, sensor.metric)}
         />
       ))}
       {scroll}
@@ -112,21 +115,32 @@ type ChartProps = {
   sensor: Sensor;
   points: Point[];
   value: number | null;
+  threshold: Threshold | null;
 };
 
-function SensorChart({ sensor, points, value }: ChartProps) {
+function SensorChart({ sensor, points, value, threshold }: ChartProps) {
   const axis = { fill: "var(--muted)", fontSize: 11 };
+  let valueClass = "value";
+  let line = null;
   let unit = null;
 
   if (value !== null) {
     unit = <small>{sensor.unit}</small>;
   }
 
+  if (threshold !== null && threshold.enabled) {
+    line = <ReferenceLine y={threshold.threshold} stroke="var(--red)" strokeDasharray="4 4" />;
+  }
+
+  if (threshold !== null && threshold.enabled && value !== null && value >= threshold.threshold) {
+    valueClass = "value red";
+  }
+
   return (
     <section className="card">
       <div className="chart-header">
         <h3>{sensor.label}</h3>
-        <strong className="value">
+        <strong className={valueClass}>
           {formatNumber(value, sensor.digits)} {unit}
         </strong>
       </div>
@@ -156,6 +170,7 @@ function SensorChart({ sensor, points, value }: ChartProps) {
               labelFormatter={time => formatDate(Number(time))}
               contentStyle={{ background: "var(--solid)", border: "none", borderRadius: 12 }}
             />
+            {line}
             <Line
               dataKey={sensor.key}
               name={sensor.label}

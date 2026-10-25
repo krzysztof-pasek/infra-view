@@ -1,4 +1,4 @@
-import type { AlarmType, MotionState, Telemetry } from "./types";
+import type { AlarmType, Metric, MotionState, Telemetry } from "./types";
 
 export const ONLINE_TIMEOUT = 5000;
 export const GAP_TIMEOUT = 5000;
@@ -7,16 +7,17 @@ export const MAX_REPLAY = 300;
 
 export type Sensor = {
   key: "temperature" | "co2Ppm" | "tvocPpb" | "gasVoltage";
+  metric: Metric | null;
   label: string;
   unit: string;
   digits: number;
 };
 
 export const sensors: Sensor[] = [
-  { key: "temperature", label: "Temperatura", unit: "°C", digits: 1 },
-  { key: "co2Ppm", label: "CO₂", unit: "ppm", digits: 0 },
-  { key: "tvocPpb", label: "Związki organiczne (TVOC)", unit: "ppb", digits: 0 },
-  { key: "gasVoltage", label: "CO i gazy palne (intensywność)", unit: "V", digits: 2 },
+  { key: "temperature", metric: "TEMPERATURE", label: "Temperatura", unit: "°C", digits: 1 },
+  { key: "co2Ppm", metric: "CO2_PPM", label: "CO₂", unit: "ppm", digits: 0 },
+  { key: "tvocPpb", metric: "TVOC_PPB", label: "Związki organiczne (TVOC)", unit: "ppb", digits: 0 },
+  { key: "gasVoltage", metric: null, label: "CO i gazy palne (intensywność)", unit: "V", digits: 2 },
 ];
 
 export const motionStates: Record<MotionState, { label: string; color: string }> = {

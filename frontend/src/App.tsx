@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Alarm, AlarmGroup, Incident, Recording, Telemetry } from "./types";
+import type { Alarm, AlarmGroup, Incident, Metric, Recording, Telemetry, Threshold } from "./types";
 import { api } from "./api";
 import { findIncident, groupAlarms, incidentName, nameOf, sortByTime } from "./data";
 import { alarmNames, formatTime, ONLINE_TIMEOUT } from "./format";
@@ -11,9 +11,12 @@ import { AlarmList } from "./AlarmList";
 import { CameraPanel } from "./CameraPanel";
 import { Charts } from "./Charts";
 import { RecordingList } from "./RecordingList";
+import { ThresholdsDialog } from "./ThresholdsDialog";
+import type { ThresholdValues } from "./ThresholdsDialog";
 
 const SESSIONS_INTERVAL = 5000;
 const ALARMS_INTERVAL = 2000;
+const THRESHOLDS_INTERVAL = 30000;
 const LIVE_INTERVAL = 1000;
 const ENDED_INTERVAL = 30000;
 const RECORDINGS_INTERVAL = 10000;
@@ -30,7 +33,9 @@ export default function App() {
   const { theme, toggleTheme } = useTheme();
   const sessions = usePolling<Incident[]>("/incidents", SESSIONS_INTERVAL);
   const alarms = usePolling<Alarm[]>("/alarms", ALARMS_INTERVAL);
+  const thresholds = usePolling<Threshold[]>("/alarm-thresholds", THRESHOLDS_INTERVAL);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [dialog, setDialog] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [now, setNow] = useState(Date.now);
@@ -118,6 +123,7 @@ export default function App() {
     setBusy(false);
     sessions.refresh();
     alarms.refresh();
+    thresholds.refresh();
   }
 
   function endSession() {
@@ -142,6 +148,10 @@ export default function App() {
         await api(`/alarms/${id}/resolve`, "PUT");
       }
     });
+  }
+
+  function saveThreshold(metric: Metric, values: ThresholdValues) {
+    run(() => api(`/alarm-thresholds/${metric}`, "PUT", values));
   }
 
   function showAlarm(group: AlarmGroup) {
@@ -190,9 +200,23 @@ export default function App() {
 
         <section className="content charts-column" aria-label="Wykresy">
           {telemetryError}
-          <Charts key={selected.id} rows={rows} />
+          <Charts key={selected.id} rows={rows} thresholds={thresholds.data} />
         </section>
       </>
+    );
+  }
+
+  let dialogWindow = null;
+
+  if (dialog === "thresholds") {
+    dialogWindow = (
+      <ThresholdsDialog
+        thresholds={thresholds.data}
+        error={thresholds.error}
+        busy={busy}
+        onSave={saveThreshold}
+        onClose={() => setDialog("")}
+      />
     );
   }
 
@@ -220,6 +244,7 @@ export default function App() {
           onClose={() => setSelectedId(null)}
         />
         <nav className="toolbar">
+          <button onClick={() => setDialog("thresholds")}>Progi alarmów</button>
           <button onClick={toggleTheme}>{themeLabel}</button>
         </nav>
       </header>
@@ -241,6 +266,7 @@ export default function App() {
         {sessionView}
       </main>
 
+      {dialogWindow}
       {toast}
     </>
   );
