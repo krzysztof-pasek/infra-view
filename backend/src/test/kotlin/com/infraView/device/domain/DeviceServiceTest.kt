@@ -39,17 +39,17 @@ class DeviceServiceTest {
         deviceId = 1L
     )
 
-    private val fullPacket = listOf(
-        SensorReading("bmi160", "ax", -0.037),
-        SensorReading("bmi160", "ay", 0.509),
-        SensorReading("bmi160", "az", 0.904),
-        SensorReading("bmi160", "gx", -0.899),
-        SensorReading("bmi160", "gy", 0.655),
-        SensorReading("bmi160", "gz", -0.107),
-        SensorReading("sgp30", "eco2", 400.0),
-        SensorReading("sgp30", "tvoc", 0.0),
-        SensorReading("mics5524", "voltage", 0.267),
-        SensorReading("max6675", "temperature", 23.75)
+    private val fullPacket = mapOf(
+        "ax" to -0.037,
+        "ay" to 0.509,
+        "az" to 0.904,
+        "eco2" to 400.0,
+        "gx" to -0.899,
+        "gy" to 0.655,
+        "gz" to -0.107,
+        "temperature" to 23.75,
+        "tvoc" to 0.0,
+        "voltage" to 0.267
     )
 
     @Test
@@ -115,10 +115,10 @@ class DeviceServiceTest {
 
         service.ingestReadings(
             uuid,
-            listOf(
-                SensorReading("bmi160", "ax", 0.1),
-                SensorReading("max6675", "temperature", null),
-                SensorReading("unknown", "metric", 42.0)
+            mapOf(
+                "ax" to 0.1,
+                "temperature" to null,
+                "unknown" to 42.0
             )
         )
 

@@ -46,7 +46,7 @@ class DeviceService(
         return device
     }
 
-    override fun ingestReadings(uuid: String, readings: List<SensorReading>): Telemetry? {
+    override fun ingestReadings(uuid: String, readings: Map<String, Double?>): Telemetry? {
         val device = deviceRepository.getByUuid(uuid)
         if (device == null) {
             log.warn("Rejected {} readings from unknown device", readings.size)
@@ -60,11 +60,11 @@ class DeviceService(
             deviceId, saved.incidentId, saved.id, readings.size, saved.temperature, saved.co2Ppm, saved.tvocPpb, saved.gasVoltage,
             saved.accelRawX, saved.accelRawY, saved.accelRawZ, saved.gyroRawX, saved.gyroRawY, saved.gyroRawZ
         )
-        val failed = readings.filter { it.value == null }.map { "${it.sensor}.${it.metric}" }
+        val failed = readings.filterValues { it == null }.keys
         if (failed.isNotEmpty()) {
             log.warn("Failed sensor readings: deviceId={}, metrics={}", device.id, failed)
         }
-        val unknown = readings.filter { (it.sensor to it.metric) !in KNOWN_METRICS }.map { "${it.sensor}.${it.metric}" }
+        val unknown = readings.keys - KNOWN_METRICS
         if (unknown.isNotEmpty()) {
             log.warn("Ignored unknown sensor metrics: deviceId={}, metrics={}", device.id, unknown)
         }
@@ -132,32 +132,31 @@ class DeviceService(
 
     private fun Incident.requireId(): Long = id ?: throw IllegalStateException("Incident must have an ID")
 
-    private fun List<SensorReading>.toTelemetry(deviceId: Long, incidentId: Long?): Telemetry {
-        val values = associate { (it.sensor to it.metric) to it.value }
+    private fun Map<String, Double?>.toTelemetry(deviceId: Long, incidentId: Long?): Telemetry {
         return Telemetry(
             incidentId = incidentId,
             deviceId = deviceId,
             recordedAt = OffsetDateTime.now(ZoneOffset.UTC),
-            accelRawX = values["bmi160" to "ax"],
-            accelRawY = values["bmi160" to "ay"],
-            accelRawZ = values["bmi160" to "az"],
-            gyroRawX = values["bmi160" to "gx"],
-            gyroRawY = values["bmi160" to "gy"],
-            gyroRawZ = values["bmi160" to "gz"],
-            co2Ppm = values["sgp30" to "eco2"],
-            tvocPpb = values["sgp30" to "tvoc"],
-            gasVoltage = values["mics5524" to "voltage"],
-            temperature = values["max6675" to "temperature"]
+            accelRawX = this["ax"],
+            accelRawY = this["ay"],
+            accelRawZ = this["az"],
+            gyroRawX = this["gx"],
+            gyroRawY = this["gy"],
+            gyroRawZ = this["gz"],
+            co2Ppm = this["eco2"],
+            tvocPpb = this["tvoc"],
+            gasVoltage = this["voltage"],
+            temperature = this["temperature"]
         )
     }
 
     companion object {
         private val KNOWN_METRICS = setOf(
-            "bmi160" to "ax", "bmi160" to "ay", "bmi160" to "az",
-            "bmi160" to "gx", "bmi160" to "gy", "bmi160" to "gz",
-            "sgp30" to "eco2", "sgp30" to "tvoc",
-            "mics5524" to "voltage",
-            "max6675" to "temperature"
+            "ax", "ay", "az",
+            "gx", "gy", "gz",
+            "eco2", "tvoc",
+            "voltage",
+            "temperature"
         )
     }
 }

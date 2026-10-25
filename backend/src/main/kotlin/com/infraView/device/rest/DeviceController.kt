@@ -23,11 +23,11 @@ class DeviceController(
         return AuthResponseDto(uuid = useCase.register(mac).uuid)
     }
 
-    @Operation(summary = "Receive sensor readings", description = "Receives one packet of sensor readings sent once per second and stores it as telemetry of the helmet.")
+    @Operation(summary = "Receive sensor readings", description = "Receives one packet of sensor readings sent once per second as a flat JSON object (metric name to value, null for a failed reading) and stores it as telemetry of the helmet.")
     @PostMapping("/{uuid}/data", consumes = [MediaType.APPLICATION_JSON_VALUE])
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    fun data(@PathVariable uuid: String, @RequestBody packet: DataPacketDto) {
-        useCase.ingestReadings(uuid, packet.readings.map { it.toDomain() })
+    fun data(@PathVariable uuid: String, @RequestBody readings: Map<String, Double?>) {
+        useCase.ingestReadings(uuid, readings)
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown device")
     }
 
