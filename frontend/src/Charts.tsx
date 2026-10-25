@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { Telemetry } from "./types";
 import type { Sensor } from "./format";
-import { formatDate, formatNumber, formatTime, GAP_TIMEOUT, sensors, sensorValue } from "./format";
+import { CHART_WINDOW, formatDate, formatNumber, formatTime, GAP_TIMEOUT, sensors, sensorValue } from "./format";
 
 type Point = {
   time: number;
@@ -39,12 +40,58 @@ type Props = {
 };
 
 export function Charts({ rows }: Props) {
+  const [end, setEnd] = useState<number | null>(null);
+
   if (rows.length === 0) {
     return <p className="card muted">Brak pomiarów</p>;
   }
 
   const points = toPoints(rows);
+  let last = points.length;
+
+  if (end !== null && end < points.length) {
+    last = end;
+  }
+
+  let first = last - CHART_WINDOW;
+
+  if (first < 0) {
+    first = 0;
+  }
+
+  const visible = points.slice(first, last);
   const latest = rows[rows.length - 1];
+
+  function move(value: number) {
+    if (value >= points.length) {
+      setEnd(null);
+    } else {
+      setEnd(value);
+    }
+  }
+
+  let scroll = null;
+
+  if (points.length > CHART_WINDOW) {
+    scroll = (
+      <div className="card chart-scroll">
+        <input
+          type="range"
+          min={CHART_WINDOW}
+          max={points.length}
+          value={last}
+          aria-label="Przesuwanie wykresów"
+          onChange={event => move(Number(event.target.value))}
+        />
+        <small>
+          {formatTime(visible[0].time)} – {formatTime(visible[visible.length - 1].time)}
+        </small>
+        <button aria-pressed={end === null} onClick={() => setEnd(null)}>
+          Na żywo
+        </button>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -52,10 +99,11 @@ export function Charts({ rows }: Props) {
         <SensorChart
           key={sensor.key}
           sensor={sensor}
-          points={points}
+          points={visible}
           value={sensorValue(latest, sensor)}
         />
       ))}
+      {scroll}
     </>
   );
 }

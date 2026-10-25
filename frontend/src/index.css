@@ -502,6 +502,16 @@ details[open] > summary::before {
   margin-top: 6px;
 }
 
+.chart-scroll {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chart-scroll input {
+  flex: 1;
+}
+
 .wide {
   grid-column: 2 / -1;
 }

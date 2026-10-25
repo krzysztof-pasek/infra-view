@@ -2,6 +2,7 @@ import type { AlarmType, MotionState, Telemetry } from "./types";
 
 export const ONLINE_TIMEOUT = 5000;
 export const GAP_TIMEOUT = 5000;
+export const CHART_WINDOW = 120;
 export const MAX_REPLAY = 300;
 
 export type Sensor = {
