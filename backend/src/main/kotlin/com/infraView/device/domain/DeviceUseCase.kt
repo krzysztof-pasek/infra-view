@@ -6,7 +6,7 @@ import java.time.OffsetDateTime
 
 interface DeviceUseCase {
     fun register(mac: String): Device
-    fun ingestReadings(uuid: String, readings: List<SensorReading>): Telemetry?
+    fun ingestReadings(uuid: String, readings: Map<String, Double?>): Telemetry?
     fun ingestFrame(uuid: String, jpeg: ByteArray): Boolean
     fun getLiveDeviceId(incidentId: Long): Long?
     fun awaitLiveFrame(deviceId: Long, afterSequence: Long, timeout: Duration): LiveFrame?

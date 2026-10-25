@@ -2,7 +2,6 @@ package com.infraView.device.rest
 
 import com.infraView.device.domain.Device
 import com.infraView.device.domain.DeviceUseCase
-import com.infraView.device.domain.SensorReading
 import com.infraView.telemetry.domain.Telemetry
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
@@ -85,17 +84,14 @@ class DeviceControllerTest {
 
     @Test
     fun `should pass readings to use case`() {
-        val expectedReadings = listOf(
-            SensorReading("bmi160", "ax", -0.037),
-            SensorReading("max6675", "temperature", null)
-        )
+        val expectedReadings = mapOf("ax" to -0.037, "eco2" to 400.0, "temperature" to null)
         every { useCase.ingestReadings(uuid, expectedReadings) } returns
             Telemetry(id = 1L, deviceId = 1L, recordedAt = OffsetDateTime.parse("2026-09-26T10:00:01Z"))
 
         mockMvc.perform(
             post("/$uuid/data")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"readings":[{"metric":"ax","sensor":"bmi160","unit":"g","value":-0.037},{"metric":"temperature","sensor":"max6675","unit":"C","value":null}]}""")
+                .content("""{"ax":-0.037,"eco2":400,"temperature":null}""")
         )
             .andExpect(status().isNoContent)
 
@@ -109,18 +105,18 @@ class DeviceControllerTest {
         mockMvc.perform(
             post("/unknown/data")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"readings":[]}""")
+                .content("""{"ax":0.1}""")
         )
             .andExpect(status().isNotFound)
             .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("unknown"))))
     }
 
     @Test
-    fun `should return 400 when readings are missing`() {
+    fun `should return 400 when readings are not a flat object`() {
         mockMvc.perform(
             post("/$uuid/data")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{}")
+                .content("""{"readings":[{"metric":"ax","sensor":"bmi160","unit":"g","value":-0.037}]}""")
         )
             .andExpect(status().isBadRequest)
     }
