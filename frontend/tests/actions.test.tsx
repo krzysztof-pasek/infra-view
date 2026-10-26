@@ -162,6 +162,22 @@ it("błąd operacji zostaje na ekranie do zamknięcia", async () => {
   expect(screen.queryByText("Serwer odrzucił żądanie (błąd 500)")).toBeNull();
 });
 
+it("archiwum filtruje sesje i otwiera zakończoną", async () => {
+  mockApi();
+  render(<App />);
+  await screen.findByRole("button", { name: /^Jan Kowalski/ });
+
+  fireEvent.click(screen.getByRole("button", { name: "Archiwum" }));
+  const archive = screen.getByRole("dialog", { name: "Archiwum sesji" });
+  fireEvent.change(within(archive).getByLabelText("Szukaj"), { target: { value: "anna" } });
+
+  expect(within(archive).queryByText("Jan Kowalski")).toBeNull();
+  fireEvent.click(within(archive).getByRole("button", { name: "Otwórz" }));
+
+  expect(await screen.findByRole("heading", { name: "Anna Nowak" })).toBeTruthy();
+  expect(screen.getByText("Sesja zakończona, obraz na żywo jest niedostępny")).toBeTruthy();
+});
+
 it("zapisuje nowy próg alarmu", async () => {
   const fetchMock = mockApi();
   render(<App />);

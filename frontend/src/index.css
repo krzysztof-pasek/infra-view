@@ -577,7 +577,13 @@ tr:last-child td {
   justify-content: space-between;
 }
 
-.threshold label {
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filters label, .threshold label {
   display: grid;
   gap: 4px;
   font-size: 12px;

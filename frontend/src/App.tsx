@@ -11,6 +11,7 @@ import { AlarmList } from "./AlarmList";
 import { CameraPanel } from "./CameraPanel";
 import { Charts } from "./Charts";
 import { RecordingList } from "./RecordingList";
+import { ArchiveDialog } from "./ArchiveDialog";
 import { ThresholdsDialog } from "./ThresholdsDialog";
 import type { ThresholdValues } from "./ThresholdsDialog";
 
@@ -158,6 +159,11 @@ export default function App() {
     setSelectedId(group.incidentId);
   }
 
+  function openSession(id: number) {
+    setSelectedId(id);
+    setDialog("");
+  }
+
   let themeLabel = "Ciemny motyw";
 
   if (theme === "dark") {
@@ -208,6 +214,10 @@ export default function App() {
 
   let dialogWindow = null;
 
+  if (dialog === "archive") {
+    dialogWindow = <ArchiveDialog incidents={incidents} onOpen={openSession} onClose={() => setDialog("")} />;
+  }
+
   if (dialog === "thresholds") {
     dialogWindow = (
       <ThresholdsDialog
@@ -244,6 +254,7 @@ export default function App() {
           onClose={() => setSelectedId(null)}
         />
         <nav className="toolbar">
+          <button onClick={() => setDialog("archive")}>Archiwum</button>
           <button onClick={() => setDialog("thresholds")}>Progi alarmów</button>
           <button onClick={toggleTheme}>{themeLabel}</button>
         </nav>

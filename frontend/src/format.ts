@@ -59,6 +59,10 @@ export function formatTime(value: string | number) {
   return new Date(value).toLocaleTimeString("pl-PL");
 }
 
+export function formatDay(value: string) {
+  return new Date(value).toLocaleDateString("sv-SE");
+}
+
 export function formatDelay(seconds: number) {
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
