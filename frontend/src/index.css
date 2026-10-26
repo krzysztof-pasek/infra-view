@@ -430,7 +430,7 @@ details[open] > summary::before {
   transform: none;
 }
 
-.alarm-info strong {
+.alarm-info strong, .popup strong {
   color: var(--red);
 }
 
@@ -548,6 +548,30 @@ th {
 
 tr:last-child td {
   border-bottom: 0;
+}
+
+.popups {
+  position: fixed;
+  top: var(--top);
+  right: var(--gap);
+  z-index: 30;
+  display: grid;
+  gap: var(--gap);
+  width: min(400px, calc(100% - 2 * var(--gap)));
+}
+
+.popup {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  animation: slideIn 0.3s ease-out both;
+}
+
+.popup div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 .overlay {

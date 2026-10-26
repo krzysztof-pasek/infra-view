@@ -133,6 +133,23 @@ it("grupuje powtórzone alarmy i rozwiązuje je jednym kliknięciem", async () =
   expect(await within(list).findByText("Brak aktywnych alarmów")).toBeTruthy();
 });
 
+it("nowy alarm pojawia się jako popup, który otwiera sesję strażaka", async () => {
+  const alarms = [fall(1)];
+  mockApi({ alarms });
+  render(<App />);
+  const list = await screen.findByRole("region", { name: "Aktywne alarmy" });
+  await within(list).findByText("Upadek");
+  expect(screen.queryByRole("alert")).toBeNull();
+
+  alarms.push({ ...fall(2), alarmType: "NO_MOTION" });
+  const popup = await screen.findByRole("alert", {}, { timeout: 4000 });
+
+  fireEvent.click(within(popup).getByRole("button", { name: "Pokaż" }));
+
+  expect(await screen.findByRole("heading", { name: "Jan Kowalski" })).toBeTruthy();
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
 it("kończy sesję dopiero po potwierdzeniu", async () => {
   const fetchMock = mockApi();
   vi.mocked(window.confirm).mockReturnValue(false);

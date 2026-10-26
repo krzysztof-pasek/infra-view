@@ -8,6 +8,7 @@ import { useTheme } from "./useTheme";
 import { SessionBar } from "./SessionBar";
 import { SessionList } from "./SessionList";
 import { AlarmList } from "./AlarmList";
+import { AlarmPopups } from "./AlarmPopups";
 import { CameraPanel } from "./CameraPanel";
 import { Charts } from "./Charts";
 import { RecordingList } from "./RecordingList";
@@ -37,6 +38,7 @@ export default function App() {
   const thresholds = usePolling<Threshold[]>("/alarm-thresholds", THRESHOLDS_INTERVAL);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [dialog, setDialog] = useState("");
+  const [dismissed, setDismissed] = useState<number[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [now, setNow] = useState(Date.now);
@@ -105,6 +107,16 @@ export default function App() {
     }
   }
 
+  if (groups !== null && dismissed === null) {
+    const seen: number[] = [];
+
+    for (const group of groups) {
+      seen.push(group.latestId);
+    }
+
+    setDismissed(seen);
+  }
+
   async function run(action: () => Promise<unknown>) {
     setBusy(true);
     setError("");
@@ -155,8 +167,19 @@ export default function App() {
     run(() => api(`/alarm-thresholds/${metric}`, "PUT", values));
   }
 
+  function dismissAlarm(group: AlarmGroup) {
+    let list: number[] = [];
+
+    if (dismissed !== null) {
+      list = dismissed;
+    }
+
+    setDismissed([...list, group.latestId]);
+  }
+
   function showAlarm(group: AlarmGroup) {
     setSelectedId(group.incidentId);
+    dismissAlarm(group);
   }
 
   function openSession(id: number) {
@@ -209,6 +232,20 @@ export default function App() {
           <Charts key={selected.id} rows={rows} thresholds={thresholds.data} />
         </section>
       </>
+    );
+  }
+
+  let popups = null;
+
+  if (groups !== null && dismissed !== null) {
+    popups = (
+      <AlarmPopups
+        groups={groups}
+        dismissed={dismissed}
+        incidents={incidents}
+        onShow={showAlarm}
+        onDismiss={dismissAlarm}
+      />
     );
   }
 
@@ -277,6 +314,7 @@ export default function App() {
         {sessionView}
       </main>
 
+      {popups}
       {dialogWindow}
       {toast}
     </>
