@@ -1,5 +1,8 @@
 package com.infraView.device.domain
 
+import com.infraView.alarm.domain.Alarm
+import com.infraView.alarm.domain.AlarmType
+import com.infraView.alarm.domain.AlarmUseCase
 import com.infraView.incident.domain.Incident
 import com.infraView.incident.domain.IncidentStatus
 import com.infraView.incident.domain.IncidentUseCase
@@ -20,7 +23,8 @@ class DeviceService(
     private val deviceRepository: DeviceRepository,
     private val thermalFrameRepository: ThermalFrameRepository,
     private val telemetryUseCase: TelemetryUseCase,
-    private val incidentUseCase: IncidentUseCase
+    private val incidentUseCase: IncidentUseCase,
+    private val alarmUseCase: AlarmUseCase
 ) : DeviceUseCase {
 
     private val log = LoggerFactory.getLogger(DeviceService::class.java)
@@ -93,6 +97,25 @@ class DeviceService(
         }
         log.debug("Thermal frame received: deviceId={}, frameId={}, bytes={}", deviceId, saved.id, jpeg.size)
         return true
+    }
+
+    override fun triggerSos(uuid: String): Alarm? {
+        val device = deviceRepository.getByUuid(uuid)
+        if (device == null) {
+            log.warn("Rejected SOS from unknown device")
+            return null
+        }
+        val deviceId = device.requireId()
+        val session = incidentUseCase.getOrStartDeviceSession(deviceId)
+        val alarm = alarmUseCase.triggerAlarm(
+            Alarm(
+                alarmType = AlarmType.SOS,
+                triggeredAt = OffsetDateTime.now(ZoneOffset.UTC),
+                incidentId = session.requireId()
+            )
+        )
+        log.warn("SOS triggered: deviceId={}, incidentId={}, alarmId={}", deviceId, alarm.incidentId, alarm.id)
+        return alarm
     }
 
     override fun getLiveDeviceId(incidentId: Long): Long? {

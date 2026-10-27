@@ -1,5 +1,8 @@
 package com.infraView.device.domain
 
+import com.infraView.alarm.domain.Alarm
+import com.infraView.alarm.domain.AlarmType
+import com.infraView.alarm.domain.AlarmUseCase
 import com.infraView.incident.domain.Incident
 import com.infraView.incident.domain.IncidentUseCase
 import com.infraView.incident.domain.IncidentStatus
@@ -26,7 +29,8 @@ class DeviceServiceTest {
     private val thermalFrameRepository = mockk<ThermalFrameRepository>()
     private val telemetryUseCase = mockk<TelemetryUseCase>()
     private val incidentUseCase = mockk<IncidentUseCase>()
-    private val service = DeviceService(deviceRepository, thermalFrameRepository, telemetryUseCase, incidentUseCase)
+    private val alarmUseCase = mockk<AlarmUseCase>()
+    private val service = DeviceService(deviceRepository, thermalFrameRepository, telemetryUseCase, incidentUseCase, alarmUseCase)
 
     private val mac = "d8:3a:dd:ed:3f:42"
     private val uuid = "689d8e89-2503-4739-9dd8-c93bc9d7c14d"
@@ -244,5 +248,30 @@ class DeviceServiceTest {
         every { thermalFrameRepository.getByIncidentIdAfter(7L, after, 50) } returns listOf(frame)
 
         assertEquals(listOf(frame), service.getFramesAfter(7L, after, 50))
+    }
+
+    @Test
+    fun `should trigger sos alarm in current session`() {
+        val saved = slot<Alarm>()
+        every { deviceRepository.getByUuid(uuid) } returns device
+        every { incidentUseCase.getOrStartDeviceSession(1L) } returns session
+        every { alarmUseCase.triggerAlarm(capture(saved)) } answers { saved.captured.copy(id = 3L) }
+
+        val result = service.triggerSos(uuid)
+
+        assertEquals(3L, result?.id)
+        assertEquals(AlarmType.SOS, saved.captured.alarmType)
+        assertEquals(7L, saved.captured.incidentId)
+        assertNull(saved.captured.resolvedAt)
+        assertEquals(ZoneOffset.UTC, saved.captured.triggeredAt.offset)
+    }
+
+    @Test
+    fun `should not trigger sos for unknown device`() {
+        every { deviceRepository.getByUuid("unknown") } returns null
+
+        assertNull(service.triggerSos("unknown"))
+        verify(exactly = 0) { incidentUseCase.getOrStartDeviceSession(any()) }
+        verify(exactly = 0) { alarmUseCase.triggerAlarm(any()) }
     }
 }

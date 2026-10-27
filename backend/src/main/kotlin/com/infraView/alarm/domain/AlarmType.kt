@@ -5,5 +5,6 @@ enum class AlarmType {
     NO_MOTION,
     HIGH_CO2,
     HIGH_TVOC,
-    FALL
+    FALL,
+    SOS
 }
