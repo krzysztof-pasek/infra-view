@@ -222,9 +222,9 @@ it("przełącza motyw i zapamiętuje wybór", () => {
   mockApi();
   render(<App />);
 
-  fireEvent.click(screen.getByRole("button", { name: "Ciemny motyw" }));
+  fireEvent.click(screen.getByRole("button", { name: "Włącz ciemny motyw" }));
 
   expect(document.documentElement.dataset.theme).toBe("dark");
   expect(localStorage.getItem("theme")).toBe("dark");
-  expect(screen.getByRole("button", { name: "Jasny motyw" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Włącz jasny motyw" })).toBeTruthy();
 });

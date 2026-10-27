@@ -263,6 +263,47 @@ body, .glass, .card, input, select, small, strong, span, p, h1, h2, h3, th, td, 
   gap: 8px;
 }
 
+.theme-toggle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+}
+
+.theme-toggle svg {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.45s ease, opacity 0.3s ease;
+}
+
+.theme-toggle .sun {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.4);
+}
+
+.theme-toggle .moon {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+:root[data-theme="dark"] .theme-toggle .sun {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+:root[data-theme="dark"] .theme-toggle .moon {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.4);
+}
+
 .layout {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr) 400px;

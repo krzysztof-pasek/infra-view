@@ -15,6 +15,7 @@ import { RecordingList } from "./RecordingList";
 import { ArchiveDialog } from "./ArchiveDialog";
 import { ThresholdsDialog } from "./ThresholdsDialog";
 import type { ThresholdValues } from "./ThresholdsDialog";
+import { ThemeToggle } from "./ThemeToggle";
 
 const SESSIONS_INTERVAL = 5000;
 const ALARMS_INTERVAL = 2000;
@@ -187,12 +188,6 @@ export default function App() {
     setDialog("");
   }
 
-  let themeLabel = "Ciemny motyw";
-
-  if (theme === "dark") {
-    themeLabel = "Jasny motyw";
-  }
-
   let sessionsError = null;
 
   if (sessions.error !== "") {
@@ -293,7 +288,7 @@ export default function App() {
         <nav className="toolbar">
           <button onClick={() => setDialog("archive")}>Archiwum</button>
           <button onClick={() => setDialog("thresholds")}>Progi alarmów</button>
-          <button onClick={toggleTheme}>{themeLabel}</button>
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
         </nav>
       </header>
 
