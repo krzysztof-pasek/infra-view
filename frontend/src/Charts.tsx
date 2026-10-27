@@ -13,6 +13,18 @@ type Point = {
   gasVoltage: number | null;
 };
 
+function makePoint(time: number, row: Telemetry | null) {
+  const point: Point = { time, temperature: null, co2Ppm: null, tvocPpb: null, gasVoltage: null };
+
+  if (row !== null) {
+    for (const sensor of sensors) {
+      point[sensor.key] = row[sensor.key];
+    }
+  }
+
+  return point;
+}
+
 function toPoints(rows: Telemetry[]) {
   const points: Point[] = [];
 
@@ -21,16 +33,10 @@ function toPoints(rows: Telemetry[]) {
     const last = points.at(-1);
 
     if (last !== undefined && time - last.time > GAP_TIMEOUT) {
-      points.push({ time: last.time + 1, temperature: null, co2Ppm: null, tvocPpb: null, gasVoltage: null });
+      points.push(makePoint(last.time + 1, null));
     }
 
-    points.push({
-      time,
-      temperature: row.temperature,
-      co2Ppm: row.co2Ppm,
-      tvocPpb: row.tvocPpb,
-      gasVoltage: row.gasVoltage,
-    });
+    points.push(makePoint(time, row));
   }
 
   return points;

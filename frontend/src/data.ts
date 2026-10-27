@@ -1,4 +1,4 @@
-import type { Alarm, AlarmGroup, Incident, Metric, Telemetry, Threshold } from "./types";
+import type { Alarm, AlarmGroup, Incident, Metric, Threshold } from "./types";
 
 export function incidentName(incident: Incident) {
   if (incident.firefighterName === null || incident.firefighterName === "") {
@@ -6,6 +6,10 @@ export function incidentName(incident: Incident) {
   }
 
   return incident.firefighterName;
+}
+
+export function hasName(incident: Incident) {
+  return incidentName(incident) !== incident.code;
 }
 
 export function findIncident(incidents: Incident[], id: number | null) {
@@ -42,20 +46,10 @@ export function findThreshold(thresholds: Threshold[] | null, metric: Metric | n
   return null;
 }
 
-export function sortByTime(rows: Telemetry[]) {
-  const sorted = [...rows];
-  sorted.sort((a, b) => Date.parse(a.recordedAt) - Date.parse(b.recordedAt));
-  return sorted;
-}
-
 export function groupAlarms(alarms: Alarm[]) {
   const groups: AlarmGroup[] = [];
 
   for (const alarm of alarms) {
-    if (alarm.resolvedAt !== null) {
-      continue;
-    }
-
     const key = alarm.incidentId + "-" + alarm.alarmType;
     let group: AlarmGroup | null = null;
 

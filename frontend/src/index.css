@@ -48,6 +48,7 @@
 
 * {
   box-sizing: border-box;
+  transition: var(--theme-transition);
 }
 
 body {
@@ -185,10 +186,6 @@ input[type="checkbox"]:active {
   outline-offset: 2px;
 }
 
-body, .glass, .card, input, select, small, strong, span, p, h1, h2, h3, th, td, label, summary {
-  transition: var(--theme-transition);
-}
-
 .glass {
   background: var(--glass);
   border: 1px solid var(--edge);
@@ -205,6 +202,10 @@ body, .glass, .card, input, select, small, strong, span, p, h1, h2, h3, th, td, 
 
 .topbar, .pane, .card, .camera {
   animation: slideIn 0.45s ease-out both;
+}
+
+.popup, .modal {
+  animation: slideIn 0.3s ease-out both;
 }
 
 .list > li {
@@ -337,7 +338,7 @@ body, .glass, .card, input, select, small, strong, span, p, h1, h2, h3, th, td, 
   padding: 4px 10px;
 }
 
-.pane-title {
+.pane-title, summary {
   margin-bottom: 4px;
   font-size: 15px;
 }
@@ -346,8 +347,6 @@ summary {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  margin-bottom: 4px;
-  font-size: 15px;
   font-weight: 600;
   list-style: none;
   cursor: pointer;
@@ -606,7 +605,6 @@ tr:last-child td {
   gap: 6px;
   padding: 14px 16px;
   border-radius: 18px;
-  animation: slideIn 0.3s ease-out both;
 }
 
 .popup div {
@@ -633,7 +631,6 @@ tr:last-child td {
   overflow: auto;
   padding: 20px;
   border-radius: var(--radius);
-  animation: slideIn 0.3s ease-out both;
 }
 
 .modal-header {

@@ -19,7 +19,7 @@ export type Telemetry = {
   motionState: MotionState | null;
 };
 
-export type AlarmType = "HIGH_TEMPERATURE" | "HIGH_CO2" | "HIGH_TVOC" | "NO_MOTION" | "FALL";
+export type AlarmType = "HIGH_TEMPERATURE" | "HIGH_CO2" | "HIGH_TVOC" | "NO_MOTION" | "FALL" | "SOS";
 
 export type Alarm = {
   id: number;
@@ -46,12 +46,4 @@ export type Threshold = {
   threshold: number;
   resetMargin: number;
   enabled: boolean;
-};
-
-export type Recording = {
-  id: number;
-  startedAt: string;
-  endedAt: string | null;
-  fileSizeBytes: number | null;
-  durationSec: number | null;
 };

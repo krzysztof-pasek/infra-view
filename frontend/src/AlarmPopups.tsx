@@ -1,7 +1,6 @@
 import type { AlarmGroup, Incident } from "./types";
 import { nameOf } from "./data";
-import { formatTime } from "./format";
-import { alarmTitle } from "./AlarmList";
+import { alarmTitle, formatTime } from "./format";
 
 type Props = {
   groups: AlarmGroup[];

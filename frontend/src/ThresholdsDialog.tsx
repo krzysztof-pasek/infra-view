@@ -1,7 +1,8 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import type { Metric, Threshold } from "./types";
-import { sensors } from "./format";
+import { findSensor } from "./format";
+import { Modal } from "./Modal";
 
 export type ThresholdValues = {
   threshold: number;
@@ -40,21 +41,14 @@ export function ThresholdsDialog({ thresholds, error, busy, onSave, onClose }: P
   }
 
   return (
-    <div className="overlay" onClick={onClose}>
-      <div className="modal glass" role="dialog" aria-label="Progi alarmów" onClick={event => event.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Progi alarmów</h2>
-          <button onClick={onClose}>Zamknij</button>
-        </div>
+    <Modal title="Progi alarmów" onClose={onClose}>
+      <p className="muted">
+        Alarm włącza się, gdy pomiar przekroczy próg. Kolejny alarm tego typu pojawi się dopiero, gdy wartość spadnie
+        poniżej progu o margines.
+      </p>
 
-        <p className="muted">
-          Alarm włącza się, gdy pomiar przekroczy próg. Kolejny alarm tego typu pojawi się dopiero, gdy wartość spadnie
-          poniżej progu o margines.
-        </p>
-
-        {content}
-      </div>
-    </div>
+      {content}
+    </Modal>
   );
 }
 
@@ -65,13 +59,13 @@ type RowProps = {
 };
 
 function labelOf(metric: Metric) {
-  for (const sensor of sensors) {
-    if (sensor.metric === metric) {
-      return `${sensor.label} (${sensor.unit})`;
-    }
+  const sensor = findSensor(metric);
+
+  if (sensor === null) {
+    return metric;
   }
 
-  return metric;
+  return `${sensor.label} (${sensor.unit})`;
 }
 
 function ThresholdRow({ threshold, busy, onSave }: RowProps) {
