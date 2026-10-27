@@ -1,5 +1,7 @@
 package com.infraView.device.rest
 
+import com.infraView.alarm.domain.Alarm
+import com.infraView.alarm.domain.AlarmType
 import com.infraView.device.domain.Device
 import com.infraView.device.domain.DeviceUseCase
 import com.infraView.telemetry.domain.Telemetry
@@ -11,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import java.time.OffsetDateTime
@@ -167,5 +170,25 @@ class DeviceControllerTest {
                 .content(jpeg)
         )
             .andExpect(status().isUnsupportedMediaType)
+    }
+
+    @Test
+    fun `should accept sos call`() {
+        every { useCase.triggerSos(uuid) } returns
+            Alarm(id = 3L, alarmType = AlarmType.SOS, triggeredAt = OffsetDateTime.parse("2026-09-26T10:00:05Z"), incidentId = 7L)
+
+        mockMvc.perform(get("/sos/$uuid"))
+            .andExpect(status().isNoContent)
+
+        verify(exactly = 1) { useCase.triggerSos(uuid) }
+    }
+
+    @Test
+    fun `should return 404 for sos from unknown device`() {
+        every { useCase.triggerSos("unknown") } returns null
+
+        mockMvc.perform(get("/sos/unknown"))
+            .andExpect(status().isNotFound)
+            .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("unknown"))))
     }
 }

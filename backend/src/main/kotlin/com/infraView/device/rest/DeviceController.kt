@@ -43,6 +43,14 @@ class DeviceController(
         }
     }
 
+    @Operation(summary = "Receive SOS call", description = "Called on every press of the helmet SOS button. Triggers an SOS alarm in the current session of the helmet, starting one if needed.")
+    @GetMapping("/sos/{uuid}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun sos(@PathVariable uuid: String) {
+        useCase.triggerSos(uuid)
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown device")
+    }
+
     companion object {
         private val MAC_PATTERN = Regex("^([0-9a-f]{2}:){5}[0-9a-f]{2}$")
     }
