@@ -18,7 +18,27 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/incidents"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
   frontend:
+    build: ./frontend
     image: ${FRONTEND_IMAGE:-infra-view-frontend:local}
     container_name: INFRA_VIEW_FRONTEND
     restart: unless-stopped
@@ -26,8 +46,9 @@ services:
       - "127.0.0.1:8081:8080"
     env_file:
       - ./frontend/frontend.env
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    depends_on:
+      backend:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/"]
       interval: 5s
