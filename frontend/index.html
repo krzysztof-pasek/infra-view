@@ -3,8 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="light dark" />
-    <title>Infra View</title>
+    <title>INFRA VIEW</title>
+    <script>
+      let theme = "light";
+
+      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        theme = "dark";
+      }
+
+      try {
+        if (localStorage.getItem("theme") !== null) {
+          theme = localStorage.getItem("theme");
+        }
+      } catch {
+        console.warn("Nie udało się odczytać motywu");
+      }
+
+      document.documentElement.dataset.theme = theme;
+    </script>
   </head>
   <body>
     <div id="root"></div>

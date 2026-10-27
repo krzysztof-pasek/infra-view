@@ -1,43 +1,31 @@
 import { render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
-import { Metrics } from "../src/Metrics";
+import type { Alarm } from "../src/types";
+import { groupAlarms } from "../src/data";
+import { formatDelay } from "../src/format";
 import { RecordingList } from "../src/RecordingList";
 
-it("zakończona sesja bez pomiarów pokazuje brak pomiarów", () => {
-  render(<Metrics latest={undefined} now={0} ended />);
+function alarm(id: number, incidentId: number, resolvedAt: string | null): Alarm {
+  return { id, incidentId, alarmType: "FALL", triggeredAt: "2026-09-21T10:00:00Z", resolvedAt };
+}
 
-  expect(screen.getByText("Brak pomiarów")).toBeTruthy();
-  expect(screen.queryByText("Dane historyczne")).toBeNull();
+it("łączy alarmy tego samego typu i strażaka, pomija rozwiązane", () => {
+  const groups = groupAlarms([alarm(1, 1, null), alarm(2, 1, null), alarm(3, 2, null), alarm(4, 1, "2026-09-21T10:05:00Z")]);
+
+  expect(groups).toHaveLength(2);
+  expect(groups[0].incidentId).toBe(2);
+  expect(groups[1].ids).toEqual([1, 2]);
 });
 
-it("zakończona sesja z pomiarem pokazuje dane historyczne", () => {
-  const measurement = {
-    id: 1,
-    incidentId: 1,
-    recordedAt: "2026-09-21T10:00:00Z",
-    temperature: 0,
-    gasPpm: null,
-    co2Ppm: null,
-    motionState: null,
-  };
-  render(<Metrics latest={measurement} now={0} ended />);
-
-  expect(screen.getByText("Dane historyczne")).toBeTruthy();
-  expect(screen.getByText("0")).toBeTruthy();
+it("pokazuje opóźnienie powtórki w minutach", () => {
+  expect(formatDelay(150)).toBe("−2:30");
+  expect(formatDelay(5)).toBe("−0:05");
 });
 
-it("nie dopisuje jednostek, gdy brakuje danych nagrania", () => {
-  const recording = {
-    id: 1,
-    incidentId: 1,
-    startedAt: "2026-09-21T10:00:00Z",
-    endedAt: null,
-    filePath: null,
-    durationSec: null,
-    fileSizeBytes: null,
-  };
+it("trwające nagranie nie ma końca ani jednostek bez danych", () => {
+  const recording = { id: 1, startedAt: "2026-09-21T10:00:00Z", endedAt: null, durationSec: null, fileSizeBytes: null };
   render(<RecordingList recordings={[recording]} />);
 
-  expect(screen.queryByText("Brak danych s")).toBeNull();
-  expect(screen.queryByText("Brak danych MiB")).toBeNull();
+  expect(screen.getByText("trwa")).toBeTruthy();
+  expect(screen.queryByText("— s")).toBeNull();
 });

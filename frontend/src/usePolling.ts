@@ -1,88 +1,79 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "./api";
 
 type Snapshot<T> = {
+  path: string;
   data: T | null;
-  error: string | null;
-  updatedAt: number | null;
+  error: string;
+  updatedAt: number;
+  changedAt: number;
 };
 
-export function usePolling<T>(
-  load: (signal: AbortSignal) => Promise<T>,
-  interval: number
-) {
-  const [snapshot, setSnapshot] = useState<Snapshot<T>>({
-    data: null,
-    error: null,
-    updatedAt: null,
-  });
-
-  const [revision, setRevision] = useState(0);
-  const activeController = useRef<AbortController | null>(null);
+export function usePolling<T>(path: string | null, interval: number) {
+  const [snapshot, setSnapshot] = useState<Snapshot<T> | null>(null);
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
-    const controller = new AbortController();
-    activeController.current = controller;
+    if (path === null) {
+      return;
+    }
 
-    let timer: ReturnType<typeof setTimeout>;
+    let active = true;
+    let timer = 0;
+    let lastText = "";
+    let changedAt = 0;
 
-    async function poll() {
+    async function load(currentPath: string) {
       try {
-        const data = await load(controller.signal);
+        const data = await api<T>(currentPath);
+        const text = JSON.stringify(data);
 
-        if (!controller.signal.aborted) {
-          setSnapshot({
-            data,
-            error: null,
-            updatedAt: Date.now(),
-          });
+        if (text !== lastText) {
+          lastText = text;
+          changedAt = Date.now();
+        }
+
+        if (active) {
+          setSnapshot({ path: currentPath, data, error: "", updatedAt: Date.now(), changedAt });
         }
       } catch (error) {
-        if (!controller.signal.aborted) {
-          setSnapshot(previous => ({
-            ...previous,
-            error:
-              error instanceof Error
-                ? error.message
-                : "Nie udało się pobrać danych",
-          }));
+        let message = "Nie udało się pobrać danych";
+
+        if (error instanceof Error) {
+          message = error.message;
         }
-      } finally {
-        if (!controller.signal.aborted) {
-          timer = setTimeout(poll, interval);
+
+        if (active) {
+          setSnapshot(previous => {
+            if (previous !== null && previous.path === currentPath) {
+              return { ...previous, error: message };
+            }
+
+            return { path: currentPath, data: null, error: message, updatedAt: 0, changedAt: 0 };
+          });
         }
+      }
+
+      if (active) {
+        timer = window.setTimeout(() => load(currentPath), interval);
       }
     }
 
-    void poll();
+    load(path);
 
     return () => {
-      controller.abort();
+      active = false;
       clearTimeout(timer);
-
-      if (activeController.current === controller) {
-        activeController.current = null;
-      }
     };
-  }, [load, interval, revision]);
+  }, [path, interval, version]);
 
   function refresh() {
-    activeController.current?.abort();
-    setRevision(value => value + 1);
+    setVersion(value => value + 1);
   }
 
-  function update(change: (previous: T | null) => T) {
-    refresh();
-
-    setSnapshot(previous => ({
-      ...previous,
-      data: change(previous.data),
-      error: null,
-    }));
+  if (snapshot === null || snapshot.path !== path) {
+    return { data: null, error: "", updatedAt: 0, changedAt: 0, refresh };
   }
 
-  return {
-    ...snapshot,
-    refresh,
-    update,
-  };
+  return { data: snapshot.data, error: snapshot.error, updatedAt: snapshot.updatedAt, changedAt: snapshot.changedAt, refresh };
 }

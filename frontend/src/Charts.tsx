@@ -1,163 +1,188 @@
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { useState } from "react";
+import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import type { Telemetry, Threshold } from "./types";
+import type { Sensor } from "./format";
+import { CHART_WINDOW, formatDate, formatNumber, formatTime, GAP_TIMEOUT, sensors, sensorValue } from "./format";
+import { findThreshold } from "./data";
 
-import type { Telemetry } from "./types";
-
-type Field = "temperature" | "gasPpm" | "co2Ppm";
-
-type ChartRow = {
+type Point = {
   time: number;
   temperature: number | null;
-  gasPpm: number | null;
   co2Ppm: number | null;
+  tvocPpb: number | null;
+  gasVoltage: number | null;
 };
 
-type ChartProps = {
-  rows: Telemetry[];
-  field: Field;
-  label: string;
-  unit: string;
-};
+function toPoints(rows: Telemetry[]) {
+  const points: Point[] = [];
 
-type ChartsProps = {
-  rows: Telemetry[];
-};
-
-function chartRows(rows: Telemetry[]) {
-  const result: ChartRow[] = [];
-
-  rows.forEach((row, index) => {
+  for (const row of rows) {
     const time = Date.parse(row.recordedAt);
-    const previous = rows[index - 1];
+    const last = points.at(-1);
 
-    if (previous) {
-      const previousTime = Date.parse(previous.recordedAt);
-
-      if (time - previousTime > 5000) {
-        result.push({
-          time: previousTime + 1,
-          temperature: null,
-          gasPpm: null,
-          co2Ppm: null,
-        });
-      }
+    if (last !== undefined && time - last.time > GAP_TIMEOUT) {
+      points.push({ time: last.time + 1, temperature: null, co2Ppm: null, tvocPpb: null, gasVoltage: null });
     }
 
-    result.push({
+    points.push({
       time,
       temperature: row.temperature,
-      gasPpm: row.gasPpm,
       co2Ppm: row.co2Ppm,
+      tvocPpb: row.tvocPpb,
+      gasVoltage: row.gasVoltage,
     });
-  });
+  }
 
-  return result;
+  return points;
 }
 
-function MeasurementChart({ rows, field, label, unit }: ChartProps) {
-  const data = chartRows(rows);
-  const hasData = rows.some(row => row[field] !== null);
+type Props = {
+  rows: Telemetry[];
+  thresholds: Threshold[] | null;
+};
+
+export function Charts({ rows, thresholds }: Props) {
+  const [end, setEnd] = useState<number | null>(null);
+
+  if (rows.length === 0) {
+    return <p className="card muted">Brak pomiarów</p>;
+  }
+
+  const points = toPoints(rows);
+  let last = points.length;
+
+  if (end !== null && end < points.length) {
+    last = end;
+  }
+
+  let first = last - CHART_WINDOW;
+
+  if (first < 0) {
+    first = 0;
+  }
+
+  const visible = points.slice(first, last);
+  const latest = rows[rows.length - 1];
+
+  function move(value: number) {
+    if (value >= points.length) {
+      setEnd(null);
+    } else {
+      setEnd(value);
+    }
+  }
+
+  let scroll = null;
+
+  if (points.length > CHART_WINDOW) {
+    scroll = (
+      <div className="card chart-scroll">
+        <input
+          type="range"
+          min={CHART_WINDOW}
+          max={points.length}
+          value={last}
+          aria-label="Przesuwanie wykresów"
+          onChange={event => move(Number(event.target.value))}
+        />
+        <small>
+          {formatTime(visible[0].time)} – {formatTime(visible[visible.length - 1].time)}
+        </small>
+        <button aria-pressed={end === null} onClick={() => setEnd(null)}>
+          Na żywo
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <section className="panel">
-      <h3>
-        {label} ({unit})
-      </h3>
-
-      {!hasData ? (
-        <p className="muted">Brak danych do wykresu</p>
-      ) : (
-        <div
-          className="chart"
-          role="img"
-          aria-label={`Historia: ${label}`}
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={data}
-              margin={{ top: 8, right: 12, bottom: 4, left: 0 }}
-            >
-              <CartesianGrid
-                stroke="var(--border)"
-                strokeDasharray="3 3"
-              />
-
-              <XAxis
-                dataKey="time"
-                type="number"
-                domain={["dataMin", "dataMax"]}
-                tickFormatter={value =>
-                  new Date(value).toLocaleTimeString("pl-PL")
-                }
-                tick={{ fill: "var(--muted)", fontSize: 11 }}
-                minTickGap={30}
-              />
-
-              <YAxis
-                width={45}
-                tick={{ fill: "var(--muted)", fontSize: 11 }}
-              />
-
-              <Tooltip
-                labelFormatter={value =>
-                  new Date(Number(value)).toLocaleString("pl-PL")
-                }
-                contentStyle={{
-                  background: "var(--solid)",
-                  borderColor: "var(--border)",
-                  color: "var(--text)",
-                }}
-              />
-
-              <Line
-                dataKey={field}
-                name={label}
-                unit={` ${unit}`}
-                type="linear"
-                stroke="var(--accent)"
-                strokeWidth={2}
-                dot={rows.length === 1}
-                connectNulls={false}
-                isAnimationActive={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-    </section>
+    <>
+      {sensors.map(sensor => (
+        <SensorChart
+          key={sensor.key}
+          sensor={sensor}
+          points={visible}
+          value={sensorValue(latest, sensor)}
+          threshold={findThreshold(thresholds, sensor.metric)}
+        />
+      ))}
+      {scroll}
+    </>
   );
 }
 
-export function Charts({ rows }: ChartsProps) {
+type ChartProps = {
+  sensor: Sensor;
+  points: Point[];
+  value: number | null;
+  threshold: Threshold | null;
+};
+
+function SensorChart({ sensor, points, value, threshold }: ChartProps) {
+  const axis = { fill: "var(--muted)", fontSize: 11 };
+  let valueClass = "value";
+  let line = null;
+  let unit = null;
+
+  if (value !== null) {
+    unit = <small>{sensor.unit}</small>;
+  }
+
+  if (threshold !== null && threshold.enabled) {
+    line = <ReferenceLine y={threshold.threshold} stroke="var(--red)" strokeDasharray="4 4" />;
+  }
+
+  if (threshold !== null && threshold.enabled && value !== null && value >= threshold.threshold) {
+    valueClass = "value red";
+  }
+
   return (
-    <div className="charts">
-      <MeasurementChart
-        rows={rows}
-        field="temperature"
-        label="Temperatura"
-        unit="°C"
-      />
+    <section className="card">
+      <div className="chart-header">
+        <h3>{sensor.label}</h3>
+        <strong className={valueClass}>
+          {formatNumber(value, sensor.digits)} {unit}
+        </strong>
+      </div>
 
-      <MeasurementChart
-        rows={rows}
-        field="gasPpm"
-        label="Gaz"
-        unit="ppm"
-      />
-
-      <MeasurementChart
-        rows={rows}
-        field="co2Ppm"
-        label="CO₂ / eCO₂"
-        unit="ppm"
-      />
-    </div>
+      <div className="chart">
+        <ResponsiveContainer>
+          <LineChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+            <CartesianGrid stroke="var(--line)" vertical={false} />
+            <XAxis
+              dataKey="time"
+              type="number"
+              domain={["dataMin", "dataMax"]}
+              tickFormatter={formatTime}
+              tick={axis}
+              stroke="var(--line)"
+              minTickGap={40}
+            />
+            <YAxis
+              width={44}
+              domain={["auto", "auto"]}
+              tick={axis}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={value => formatNumber(value, sensor.digits)}
+            />
+            <Tooltip
+              labelFormatter={time => formatDate(Number(time))}
+              contentStyle={{ background: "var(--solid)", border: "none", borderRadius: 12 }}
+            />
+            {line}
+            <Line
+              dataKey={sensor.key}
+              name={sensor.label}
+              unit={" " + sensor.unit}
+              stroke="var(--accent)"
+              strokeWidth={2}
+              dot={false}
+              isAnimationActive={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </section>
   );
 }
