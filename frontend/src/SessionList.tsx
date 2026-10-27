@@ -1,5 +1,5 @@
 import type { Incident } from "./types";
-import { incidentName } from "./data";
+import { hasName, incidentName } from "./data";
 import { formatTime } from "./format";
 
 type Props = {
@@ -58,7 +58,7 @@ function SessionItem({ incident, selected, alarm, onSelect }: ItemProps) {
     dotColor = "red";
   }
 
-  if (incidentName(incident) === incident.code) {
+  if (!hasName(incident)) {
     detail = "start " + formatTime(incident.startedAt);
   }
 

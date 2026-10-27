@@ -1,4 +1,4 @@
-import type { AlarmType, Metric, MotionState, Telemetry } from "./types";
+import type { AlarmGroup, AlarmType, Metric, MotionState, Telemetry } from "./types";
 
 export const ONLINE_TIMEOUT = 5000;
 export const GAP_TIMEOUT = 5000;
@@ -33,7 +33,26 @@ export const alarmNames: Record<AlarmType, string> = {
   HIGH_TVOC: "Wysokie TVOC",
   NO_MOTION: "Brak ruchu",
   FALL: "Upadek",
+  SOS: "SOS",
 };
+
+export function alarmTitle(group: AlarmGroup) {
+  if (group.ids.length > 1) {
+    return `${alarmNames[group.alarmType]} ×${group.ids.length}`;
+  }
+
+  return alarmNames[group.alarmType];
+}
+
+export function findSensor(metric: Metric) {
+  for (const sensor of sensors) {
+    if (sensor.metric === metric) {
+      return sensor;
+    }
+  }
+
+  return null;
+}
 
 export function sensorValue(row: Telemetry | undefined, sensor: Sensor) {
   if (row === undefined) {
@@ -57,6 +76,14 @@ export function formatDate(value: string | number) {
 
 export function formatTime(value: string | number) {
   return new Date(value).toLocaleTimeString("pl-PL");
+}
+
+export function errorText(error: string, updatedAt: number) {
+  if (updatedAt === 0) {
+    return error;
+  }
+
+  return `${error} · ostatnio ${formatTime(updatedAt)}`;
 }
 
 export function formatDay(value: string) {

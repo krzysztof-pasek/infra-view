@@ -1,6 +1,6 @@
 import type { AlarmGroup, Incident } from "./types";
 import { nameOf } from "./data";
-import { alarmNames, formatTime } from "./format";
+import { alarmTitle, formatTime } from "./format";
 
 type Props = {
   groups: AlarmGroup[] | null;
@@ -54,12 +54,4 @@ export function AlarmList({ groups, incidents, error, busy, onSelect, onResolve 
       {content}
     </section>
   );
-}
-
-export function alarmTitle(group: AlarmGroup) {
-  if (group.ids.length > 1) {
-    return `${alarmNames[group.alarmType]} ×${group.ids.length}`;
-  }
-
-  return alarmNames[group.alarmType];
 }

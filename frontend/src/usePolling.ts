@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "./api";
+import { api, errorMessage } from "./api";
 
 type Snapshot<T> = {
   path: string;
@@ -37,11 +37,7 @@ export function usePolling<T>(path: string | null, interval: number) {
           setSnapshot({ path: currentPath, data, error: "", updatedAt: Date.now(), changedAt });
         }
       } catch (error) {
-        let message = "Nie udało się pobrać danych";
-
-        if (error instanceof Error) {
-          message = error.message;
-        }
+        const message = errorMessage(error, "Nie udało się pobrać danych");
 
         if (active) {
           setSnapshot(previous => {
@@ -75,5 +71,5 @@ export function usePolling<T>(path: string | null, interval: number) {
     return { data: null, error: "", updatedAt: 0, changedAt: 0, refresh };
   }
 
-  return { data: snapshot.data, error: snapshot.error, updatedAt: snapshot.updatedAt, changedAt: snapshot.changedAt, refresh };
+  return { ...snapshot, refresh };
 }

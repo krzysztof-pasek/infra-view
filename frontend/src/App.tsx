@@ -1,41 +1,31 @@
 import { useEffect, useState } from "react";
-import type { Alarm, AlarmGroup, Incident, Metric, Recording, Telemetry, Threshold } from "./types";
-import { api } from "./api";
-import { findIncident, groupAlarms, incidentName, nameOf, sortByTime } from "./data";
-import { alarmNames, formatTime, ONLINE_TIMEOUT } from "./format";
+import type { Alarm, AlarmGroup, Incident, Metric, Telemetry, Threshold } from "./types";
+import { api, errorMessage } from "./api";
+import { findIncident, groupAlarms, incidentName, nameOf } from "./data";
+import { alarmNames, errorText, ONLINE_TIMEOUT } from "./format";
 import { usePolling } from "./usePolling";
 import { useTheme } from "./useTheme";
 import { SessionBar } from "./SessionBar";
 import { SessionList } from "./SessionList";
 import { AlarmList } from "./AlarmList";
 import { AlarmPopups } from "./AlarmPopups";
-import { CameraPanel } from "./CameraPanel";
-import { Charts } from "./Charts";
-import { RecordingList } from "./RecordingList";
+import { SessionView } from "./SessionView";
 import { ArchiveDialog } from "./ArchiveDialog";
 import { ThresholdsDialog } from "./ThresholdsDialog";
 import type { ThresholdValues } from "./ThresholdsDialog";
 import { ThemeToggle } from "./ThemeToggle";
+import { Toast } from "./Toast";
 
 const SESSIONS_INTERVAL = 5000;
 const ALARMS_INTERVAL = 2000;
 const THRESHOLDS_INTERVAL = 30000;
 const LIVE_INTERVAL = 1000;
 const ENDED_INTERVAL = 30000;
-const RECORDINGS_INTERVAL = 10000;
-
-function errorText(error: string, updatedAt: number) {
-  if (updatedAt === 0) {
-    return error;
-  }
-
-  return `${error} · ostatnio ${formatTime(updatedAt)}`;
-}
 
 export default function App() {
   const { theme, toggleTheme } = useTheme();
   const sessions = usePolling<Incident[]>("/incidents", SESSIONS_INTERVAL);
-  const alarms = usePolling<Alarm[]>("/alarms", ALARMS_INTERVAL);
+  const alarms = usePolling<Alarm[]>("/alarms/active", ALARMS_INTERVAL);
   const thresholds = usePolling<Threshold[]>("/alarm-thresholds", THRESHOLDS_INTERVAL);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [dialog, setDialog] = useState("");
@@ -50,14 +40,10 @@ export default function App() {
   }, []);
 
   let incidents: Incident[] = [];
-
-  if (sessions.data !== null) {
-    incidents = sessions.data;
-  }
-
   let active: Incident[] | null = null;
 
   if (sessions.data !== null) {
+    incidents = sessions.data;
     active = [];
 
     for (const incident of incidents) {
@@ -69,12 +55,10 @@ export default function App() {
 
   const selected = findIncident(incidents, selectedId);
   let telemetryPath = null;
-  let recordingsPath = null;
   let telemetryInterval = LIVE_INTERVAL;
 
   if (selected !== undefined) {
     telemetryPath = `/telemetry/incident/${selected.id}`;
-    recordingsPath = `/videos/incident/${selected.id}`;
   }
 
   if (selected !== undefined && selected.status !== "IN_PROGRESS") {
@@ -82,12 +66,10 @@ export default function App() {
   }
 
   const telemetry = usePolling<Telemetry[]>(telemetryPath, telemetryInterval);
-  const recordings = usePolling<Recording[]>(recordingsPath, RECORDINGS_INTERVAL);
-
   let rows: Telemetry[] = [];
 
   if (telemetry.data !== null) {
-    rows = sortByTime(telemetry.data);
+    rows = telemetry.data;
   }
 
   const latest = rows.at(-1);
@@ -125,13 +107,7 @@ export default function App() {
     try {
       await action();
     } catch (failure) {
-      let message = "Operacja nie powiodła się";
-
-      if (failure instanceof Error) {
-        message = failure.message;
-      }
-
-      setError(message);
+      setError(errorMessage(failure, "Operacja nie powiodła się"));
     }
 
     setBusy(false);
@@ -194,42 +170,6 @@ export default function App() {
     sessionsError = <p className="orange">{errorText(sessions.error, sessions.updatedAt)}</p>;
   }
 
-  let sessionView = (
-    <p className="card muted empty wide">Wybierz sesję z listy, aby zobaczyć obraz z kamery i pomiary</p>
-  );
-
-  if (selected !== undefined) {
-    let camera = <p className="card muted empty">Sesja zakończona, obraz na żywo jest niedostępny</p>;
-    let recordingList = null;
-    let telemetryError = null;
-
-    if (selected.status === "IN_PROGRESS") {
-      camera = <CameraPanel key={selected.id} incidentId={selected.id} />;
-    }
-
-    if (recordings.data !== null) {
-      recordingList = <RecordingList recordings={recordings.data} />;
-    }
-
-    if (telemetry.error !== "") {
-      telemetryError = <p className="orange">{errorText(telemetry.error, telemetry.updatedAt)}</p>;
-    }
-
-    sessionView = (
-      <>
-        <section className="content" aria-label="Kamera">
-          {camera}
-          {recordingList}
-        </section>
-
-        <section className="content charts-column" aria-label="Wykresy">
-          {telemetryError}
-          <Charts key={selected.id} rows={rows} thresholds={thresholds.data} />
-        </section>
-      </>
-    );
-  }
-
   let popups = null;
 
   if (groups !== null && dismissed !== null) {
@@ -259,17 +199,6 @@ export default function App() {
         onSave={saveThreshold}
         onClose={() => setDialog("")}
       />
-    );
-  }
-
-  let toast = null;
-
-  if (error !== "") {
-    toast = (
-      <div className="toast glass" role="alert">
-        <span className="orange">{error}</span>
-        <button onClick={() => setError("")}>Zamknij</button>
-      </div>
     );
   }
 
@@ -306,12 +235,18 @@ export default function App() {
           />
         </aside>
 
-        {sessionView}
+        <SessionView
+          incident={selected}
+          rows={rows}
+          thresholds={thresholds.data}
+          error={telemetry.error}
+          updatedAt={telemetry.updatedAt}
+        />
       </main>
 
       {popups}
       {dialogWindow}
-      {toast}
+      <Toast message={error} onClose={() => setError("")} />
     </>
   );
 }

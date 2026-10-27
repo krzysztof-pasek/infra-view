@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Incident } from "./types";
 import { incidentName } from "./data";
 import { formatDate, formatDay } from "./format";
+import { Modal } from "./Modal";
 
 type Props = {
   incidents: Incident[];
@@ -91,38 +92,31 @@ export function ArchiveDialog({ incidents, onOpen, onClose }: Props) {
   }
 
   return (
-    <div className="overlay" onClick={onClose}>
-      <div className="modal glass" role="dialog" aria-label="Archiwum sesji" onClick={event => event.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Archiwum sesji</h2>
-          <button onClick={onClose}>Zamknij</button>
-        </div>
-
-        <div className="filters">
-          <label>
-            Szukaj
-            <input value={query} placeholder="Nazwa lub kod" onChange={event => setQuery(event.target.value)} />
-          </label>
-          <label>
-            Od
-            <input type="date" value={from} onChange={event => setFrom(event.target.value)} />
-          </label>
-          <label>
-            Do
-            <input type="date" value={to} onChange={event => setTo(event.target.value)} />
-          </label>
-          <label>
-            Status
-            <select value={status} onChange={event => setStatus(event.target.value)}>
-              <option value="">Wszystkie</option>
-              <option value="IN_PROGRESS">W trakcie</option>
-              <option value="RESOLVED">Zakończone</option>
-            </select>
-          </label>
-        </div>
-
-        {content}
+    <Modal title="Archiwum sesji" onClose={onClose}>
+      <div className="filters">
+        <label>
+          Szukaj
+          <input value={query} placeholder="Nazwa lub kod" onChange={event => setQuery(event.target.value)} />
+        </label>
+        <label>
+          Od
+          <input type="date" value={from} onChange={event => setFrom(event.target.value)} />
+        </label>
+        <label>
+          Do
+          <input type="date" value={to} onChange={event => setTo(event.target.value)} />
+        </label>
+        <label>
+          Status
+          <select value={status} onChange={event => setStatus(event.target.value)}>
+            <option value="">Wszystkie</option>
+            <option value="IN_PROGRESS">W trakcie</option>
+            <option value="RESOLVED">Zakończone</option>
+          </select>
+        </label>
       </div>
-    </div>
+
+      {content}
+    </Modal>
   );
 }

@@ -55,12 +55,20 @@ function mockApi(options: Options = {}) {
       return Response.json(incidents);
     }
 
-    if (request === "GET /api/alarms") {
+    if (request === "GET /api/alarms/active") {
       if (options.alarmsDown) {
         throw new TypeError("Failed to fetch");
       }
 
-      return Response.json(alarms);
+      const unresolved = [];
+
+      for (const alarm of alarms) {
+        if (alarm.resolvedAt === null) {
+          unresolved.push(alarm);
+        }
+      }
+
+      return Response.json(unresolved);
     }
 
     if (request === "GET /api/alarm-thresholds") {

@@ -1,5 +1,5 @@
 import type { Incident, Telemetry } from "./types";
-import { incidentName } from "./data";
+import { hasName, incidentName } from "./data";
 import { formatDate, motionStates } from "./format";
 
 type Props = {
@@ -35,10 +35,10 @@ export function SessionBar({ incident, latest, online, busy, onEnd, onClose }: P
     statusColor = "";
   }
 
-  let detail = incident.code + " · start " + formatDate(incident.startedAt);
+  let detail = "start " + formatDate(incident.startedAt);
 
-  if (incidentName(incident) === incident.code) {
-    detail = "start " + formatDate(incident.startedAt);
+  if (hasName(incident)) {
+    detail = incident.code + " · " + detail;
   }
 
   let motion = "—";
