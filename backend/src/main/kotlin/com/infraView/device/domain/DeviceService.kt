@@ -140,6 +140,11 @@ class DeviceService(
         return thermalFrameRepository.getLastByIncidentId(incidentId)?.capturedAt
     }
 
+    override fun getFrameAt(incidentId: Long, at: OffsetDateTime): ThermalFrame? {
+        return thermalFrameRepository.getLastByIncidentIdAtOrBefore(incidentId, at)
+            ?: thermalFrameRepository.getFirstByIncidentId(incidentId)
+    }
+
     override fun getFramesAfter(incidentId: Long, after: OffsetDateTime, limit: Int): List<ThermalFrame> {
         return thermalFrameRepository.getByIncidentIdAfter(incidentId, after, limit)
     }
