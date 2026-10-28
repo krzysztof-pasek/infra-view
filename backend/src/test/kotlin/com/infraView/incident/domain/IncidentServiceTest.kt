@@ -66,6 +66,26 @@ class IncidentServiceTest {
     }
 
     @Test
+    fun `should save incident with new code when renaming it`() {
+        val saved = slot<Incident>()
+        every { incidentRepository.getById(1L) } returns incident
+        every { incidentRepository.save(capture(saved)) } answers { saved.captured }
+
+        val result = service.rename(1L, "Jan Kowalski")
+
+        assertEquals(incident.copy(code = "Jan Kowalski"), result)
+        assertEquals(incident.copy(code = "Jan Kowalski"), saved.captured)
+    }
+
+    @Test
+    fun `should return null when renaming non-existent incident`() {
+        every { incidentRepository.getById(99L) } returns null
+
+        assertNull(service.rename(99L, "Jan Kowalski"))
+        verify(exactly = 0) { incidentRepository.save(any()) }
+    }
+
+    @Test
     fun `should reuse active session of device`() {
         val session = incident.copy(deviceId = 5L)
         every { incidentRepository.getActiveByDeviceId(5L) } returns session

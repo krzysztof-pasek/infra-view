@@ -38,6 +38,11 @@ class IncidentService(
         return ended
     }
 
+    override fun rename(id: Long, code: String): Incident? {
+        val incident = incidentRepository.getById(id) ?: return null
+        return incidentRepository.save(incident.copy(code = code))
+    }
+
     override fun getOrStartDeviceSession(deviceId: Long): Incident {
         incidentRepository.getActiveByDeviceId(deviceId)?.let { return it }
         val startedAt = OffsetDateTime.now(ZoneOffset.UTC)

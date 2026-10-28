@@ -7,9 +7,6 @@ import java.time.OffsetDateTime
 data class IncidentDto(
     val id: Long?,
     val code: String,
-    val firefighterName: String?,
-    val description: String?,
-    val location: String?,
     val startedAt: OffsetDateTime,
     val endedAt: OffsetDateTime?,
     val status: IncidentStatus,
@@ -18,30 +15,25 @@ data class IncidentDto(
 
 data class IncidentCreateDto(
     val code: String,
-    val firefighterName: String?,
-    val description: String?,
-    val location: String?,
     val startedAt: OffsetDateTime,
     val endedAt: OffsetDateTime?,
     val status: IncidentStatus
 ) {
     fun toDomain() = Incident(
         code = this.code,
-        firefighterName = this.firefighterName,
-        description = this.description,
-        location = this.location,
         startedAt = this.startedAt,
         endedAt = this.endedAt,
         status = this.status
     )
 }
 
+data class IncidentUpdateDto(
+    val code: String
+)
+
 fun Incident.toDto() = IncidentDto(
     id = this.id,
     code = this.code,
-    firefighterName = this.firefighterName,
-    description = this.description,
-    location = this.location,
     startedAt = this.startedAt,
     endedAt = this.endedAt,
     status = this.status,

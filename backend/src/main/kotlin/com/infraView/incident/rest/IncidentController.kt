@@ -41,10 +41,25 @@ class IncidentController(
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Incident with ID $id not found")
     }
 
+    @Operation(summary = "Rename an incident", description = "Overwrites the incident code shown as the session name in the dashboard. Leading and trailing whitespace is trimmed; the code must not be blank and may have at most $MAX_CODE_LENGTH characters.")
+    @PutMapping("/{id}/code")
+    fun renameIncident(@PathVariable id: Long, @RequestBody dto: IncidentUpdateDto): IncidentDto {
+        val code = dto.code.trim()
+        if (code.isEmpty() || code.length > MAX_CODE_LENGTH) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "code must have between 1 and $MAX_CODE_LENGTH characters")
+        }
+        return useCase.rename(id, code)?.toDto()
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Incident with ID $id not found")
+    }
+
     @Operation(summary = "Delete an incident", description = "Removes an incident together with all its telemetry, alarms and thermal camera frames.")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deleteIncident(@PathVariable id: Long) {
         useCase.delete(id)
+    }
+
+    companion object {
+        private const val MAX_CODE_LENGTH = 20
     }
 }

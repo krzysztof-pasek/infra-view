@@ -38,9 +38,6 @@ class IncidentRepositoryAdapter(
 private fun Incident.toJpaEntity(): IncidentJpaEntity {
     return IncidentJpaEntity(
         code = this.code,
-        firefighterName = this.firefighterName,
-        description = this.description,
-        location = this.location,
         startedAt = this.startedAt,
         endedAt = this.endedAt,
         status = this.status,
@@ -54,9 +51,6 @@ private fun IncidentJpaEntity.toDomain(): Incident {
     return Incident(
         id = this.id,
         code = this.code,
-        firefighterName = this.firefighterName,
-        description = this.description,
-        location = this.location,
         startedAt = this.startedAt,
         endedAt = this.endedAt,
         status = this.status,
