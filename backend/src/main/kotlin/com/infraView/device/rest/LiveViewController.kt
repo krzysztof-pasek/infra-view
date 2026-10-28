@@ -3,6 +3,7 @@ package com.infraView.device.rest
 import com.infraView.device.domain.DeviceUseCase
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -17,7 +18,7 @@ import java.time.Duration
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
-@Tag(name = "Live view", description = "Live thermal camera stream for the dashboard")
+@Tag(name = "Live view", description = "Live and recorded thermal camera view for the dashboard")
 @RestController
 class LiveViewController(
     private val useCase: DeviceUseCase
@@ -58,23 +59,63 @@ class LiveViewController(
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "No recorded frames for incident $incidentId")
         val delay = Duration.ofSeconds(delaySeconds)
         val body = StreamingResponseBody { out ->
-            var cursor = delayedNow(delay)
-            while (true) {
-                val frames = useCase.getFramesAfter(incidentId, cursor, REPLAY_BATCH_SIZE)
-                if (frames.isEmpty()) {
-                    if (Duration.between(cursor, delayedNow(delay)) > FRAME_TIMEOUT) break
-                    Thread.sleep(REPLAY_POLL_INTERVAL)
-                    continue
-                }
-                for (frame in frames) {
-                    val wait = Duration.between(delayedNow(delay), frame.capturedAt)
-                    if (wait.isPositive) Thread.sleep(wait)
-                    out.writeFrame(frame.image)
-                    cursor = frame.capturedAt
-                }
-            }
+            out.writeStoredFrames(incidentId, delayedNow(delay), delay)
         }
         return mjpeg(body)
+    }
+
+    @Operation(
+        summary = "Get recorded thermal frame",
+        description = "Returns the JPEG frame of the incident that was on screen at the given time (the last frame captured at or before it, or the first frame when the time is before the recording starts). Use it to preview the recording while scrubbing. The X-Captured-At header holds the frame's capture time."
+    )
+    @GetMapping("/incidents/{incidentId}/frame")
+    fun frame(
+        @PathVariable incidentId: Long,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) at: OffsetDateTime
+    ): ResponseEntity<ByteArray> {
+        val frame = useCase.getFrameAt(incidentId, at)
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "No recorded frames for incident $incidentId")
+        return ResponseEntity.ok()
+            .contentType(MediaType.IMAGE_JPEG)
+            .header(CAPTURED_AT_HEADER, frame.capturedAt.toString())
+            .body(frame.image)
+    }
+
+    @Operation(
+        summary = "Play thermal recording",
+        description = "Streams the recorded thermal frames of the incident as MJPEG, starting from the frame on screen at the given time (the same frame /frame returns) and keeping the original pace between frames. Reconnect with a different from to seek. For an in-progress incident playback continues behind real time. The stream closes 3 seconds after the last recorded frame."
+    )
+    @GetMapping("/incidents/{incidentId}/recording")
+    fun recording(
+        @PathVariable incidentId: Long,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: OffsetDateTime
+    ): ResponseEntity<StreamingResponseBody> {
+        val first = useCase.getFrameAt(incidentId, from)
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "No recorded frames for incident $incidentId")
+        val body = StreamingResponseBody { out ->
+            val delay = Duration.between(first.capturedAt, OffsetDateTime.now(ZoneOffset.UTC))
+            out.writeFrame(first.image)
+            out.writeStoredFrames(incidentId, first.capturedAt, delay)
+        }
+        return mjpeg(body)
+    }
+
+    private fun OutputStream.writeStoredFrames(incidentId: Long, start: OffsetDateTime, delay: Duration) {
+        var cursor = start
+        while (true) {
+            val frames = useCase.getFramesAfter(incidentId, cursor, REPLAY_BATCH_SIZE)
+            if (frames.isEmpty()) {
+                if (Duration.between(cursor, delayedNow(delay)) > FRAME_TIMEOUT) return
+                Thread.sleep(REPLAY_POLL_INTERVAL)
+                continue
+            }
+            for (frame in frames) {
+                val wait = Duration.between(delayedNow(delay), frame.capturedAt)
+                if (wait.isPositive) Thread.sleep(wait)
+                writeFrame(frame.image)
+                cursor = frame.capturedAt
+            }
+        }
     }
 
     private fun delayedNow(delay: Duration): OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC).minus(delay)
@@ -95,6 +136,7 @@ class LiveViewController(
 
     companion object {
         private const val BOUNDARY = "frame"
+        private const val CAPTURED_AT_HEADER = "X-Captured-At"
         private val FRAME_TIMEOUT = Duration.ofSeconds(3)
         private const val MAX_DELAY_SECONDS = 300L
         private const val REPLAY_BATCH_SIZE = 50

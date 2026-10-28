@@ -251,6 +251,35 @@ class DeviceServiceTest {
     }
 
     @Test
+    fun `should return last frame captured at or before given time`() {
+        val at = OffsetDateTime.parse("2026-09-26T10:04:00Z")
+        val frame = ThermalFrame(id = 29L, deviceId = 1L, incidentId = 7L, capturedAt = OffsetDateTime.parse("2026-09-26T10:03:59.900Z"), image = byteArrayOf(2))
+        every { thermalFrameRepository.getLastByIncidentIdAtOrBefore(7L, at) } returns frame
+
+        assertEquals(frame, service.getFrameAt(7L, at))
+        verify(exactly = 0) { thermalFrameRepository.getFirstByIncidentId(any()) }
+    }
+
+    @Test
+    fun `should return first frame when given time is before recording starts`() {
+        val at = OffsetDateTime.parse("2026-09-26T09:00:00Z")
+        val first = ThermalFrame(id = 1L, deviceId = 1L, incidentId = 7L, capturedAt = OffsetDateTime.parse("2026-09-26T10:00:01Z"), image = byteArrayOf(1))
+        every { thermalFrameRepository.getLastByIncidentIdAtOrBefore(7L, at) } returns null
+        every { thermalFrameRepository.getFirstByIncidentId(7L) } returns first
+
+        assertEquals(first, service.getFrameAt(7L, at))
+    }
+
+    @Test
+    fun `should return no frame when incident has no recorded frames`() {
+        val at = OffsetDateTime.parse("2026-09-26T10:04:00Z")
+        every { thermalFrameRepository.getLastByIncidentIdAtOrBefore(8L, at) } returns null
+        every { thermalFrameRepository.getFirstByIncidentId(8L) } returns null
+
+        assertNull(service.getFrameAt(8L, at))
+    }
+
+    @Test
     fun `should trigger sos alarm in current session`() {
         val saved = slot<Alarm>()
         every { deviceRepository.getByUuid(uuid) } returns device

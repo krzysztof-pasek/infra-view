@@ -28,6 +28,14 @@ class ThermalFrameRepositoryAdapter(
         return jpaRepository.findFirstByIncidentIdOrderByCapturedAtDesc(incidentId)?.toDomain()
     }
 
+    override fun getFirstByIncidentId(incidentId: Long): ThermalFrame? {
+        return jpaRepository.findFirstByIncidentIdOrderByCapturedAt(incidentId)?.toDomain()
+    }
+
+    override fun getLastByIncidentIdAtOrBefore(incidentId: Long, at: OffsetDateTime): ThermalFrame? {
+        return jpaRepository.findFirstByIncidentIdAndCapturedAtLessThanEqualOrderByCapturedAtDesc(incidentId, at)?.toDomain()
+    }
+
     override fun getByIncidentIdAfter(incidentId: Long, after: OffsetDateTime, limit: Int): List<ThermalFrame> {
         return jpaRepository.findByIncidentIdAndCapturedAtAfterOrderByCapturedAt(incidentId, after, PageRequest.of(0, limit))
             .map { it.toDomain() }

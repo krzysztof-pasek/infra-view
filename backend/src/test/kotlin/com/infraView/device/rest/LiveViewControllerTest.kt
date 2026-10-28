@@ -121,4 +121,73 @@ class LiveViewControllerTest {
         mockMvc.perform(get("/incidents/7/replay").param("delaySeconds", "301"))
             .andExpect(status().isBadRequest)
     }
+
+    @Test
+    fun `should return recorded frame on screen at given time`() {
+        val at = OffsetDateTime.parse("2026-09-26T10:04:00Z")
+        every { useCase.getFrameAt(7L, at) } returns
+            ThermalFrame(id = 1L, deviceId = 1L, incidentId = 7L, capturedAt = OffsetDateTime.parse("2026-09-26T10:03:59.900Z"), image = jpeg)
+
+        val result = mockMvc.perform(get("/incidents/7/frame").param("at", "2026-09-26T10:04:00Z"))
+            .andExpect(status().isOk)
+            .andExpect(header().string("Content-Type", "image/jpeg"))
+            .andExpect(header().string("X-Captured-At", "2026-09-26T10:03:59.900Z"))
+            .andReturn()
+
+        assertEquals(jpeg.toList(), result.response.contentAsByteArray.toList())
+    }
+
+    @Test
+    fun `should return 404 when incident has no recorded frame`() {
+        every { useCase.getFrameAt(7L, OffsetDateTime.parse("2026-09-26T10:04:00Z")) } returns null
+
+        mockMvc.perform(get("/incidents/7/frame").param("at", "2026-09-26T10:04:00Z"))
+            .andExpect(status().isNotFound)
+    }
+
+    @Test
+    fun `should return 400 when frame time is missing or not iso-8601`() {
+        mockMvc.perform(get("/incidents/7/frame"))
+            .andExpect(status().isBadRequest)
+        mockMvc.perform(get("/incidents/7/frame").param("at", "yesterday"))
+            .andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `should play recording from frame on screen at given time`() {
+        val second = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 2, 0xFF.toByte(), 0xD9.toByte())
+        val firstAt = OffsetDateTime.parse("2026-09-26T10:03:59.900Z")
+        val secondAt = OffsetDateTime.parse("2026-09-26T10:04:00.100Z")
+        val afters = mutableListOf<OffsetDateTime>()
+        every { useCase.getFrameAt(7L, OffsetDateTime.parse("2026-09-26T10:04:00Z")) } returns
+            ThermalFrame(id = 1L, deviceId = 1L, incidentId = 7L, capturedAt = firstAt, image = jpeg)
+        every { useCase.getFramesAfter(7L, capture(afters), 50) } returnsMany listOf(
+            listOf(ThermalFrame(id = 2L, deviceId = 1L, incidentId = 7L, capturedAt = secondAt, image = second)),
+            emptyList()
+        )
+
+        val started = mockMvc.perform(get("/incidents/7/recording").param("from", "2026-09-26T10:04:00Z"))
+            .andExpect(request().asyncStarted())
+            .andReturn()
+
+        val result = mockMvc.perform(asyncDispatch(started))
+            .andExpect(status().isOk)
+            .andExpect(header().string("Content-Type", "multipart/x-mixed-replace;boundary=frame"))
+            .andExpect(header().string("X-Accel-Buffering", "no"))
+            .andReturn()
+
+        val expected = "--frame\r\nContent-Type: image/jpeg\r\nContent-Length: 4\r\n\r\n".toByteArray() + jpeg + "\r\n".toByteArray() +
+            "--frame\r\nContent-Type: image/jpeg\r\nContent-Length: 5\r\n\r\n".toByteArray() + second + "\r\n".toByteArray()
+        assertEquals(expected.toList(), result.response.contentAsByteArray.toList())
+        assertEquals(firstAt, afters[0])
+        assertEquals(secondAt, afters[1])
+    }
+
+    @Test
+    fun `should return 404 when incident has no recording to play`() {
+        every { useCase.getFrameAt(7L, OffsetDateTime.parse("2026-09-26T10:04:00Z")) } returns null
+
+        mockMvc.perform(get("/incidents/7/recording").param("from", "2026-09-26T10:04:00Z"))
+            .andExpect(status().isNotFound)
+    }
 }

@@ -6,6 +6,11 @@ import java.time.OffsetDateTime
 
 interface ThermalFrameJpaRepository : JpaRepository<ThermalFrameJpaEntity, Long> {
     fun findFirstByIncidentIdOrderByCapturedAtDesc(incidentId: Long): ThermalFrameJpaEntity?
+    fun findFirstByIncidentIdOrderByCapturedAt(incidentId: Long): ThermalFrameJpaEntity?
+    fun findFirstByIncidentIdAndCapturedAtLessThanEqualOrderByCapturedAtDesc(
+        incidentId: Long,
+        at: OffsetDateTime
+    ): ThermalFrameJpaEntity?
     fun findByIncidentIdAndCapturedAtAfterOrderByCapturedAt(
         incidentId: Long,
         after: OffsetDateTime,

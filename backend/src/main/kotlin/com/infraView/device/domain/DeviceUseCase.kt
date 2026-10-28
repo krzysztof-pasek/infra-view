@@ -13,5 +13,6 @@ interface DeviceUseCase {
     fun getLiveDeviceId(incidentId: Long): Long?
     fun awaitLiveFrame(deviceId: Long, afterSequence: Long, timeout: Duration): LiveFrame?
     fun getLastFrameTime(incidentId: Long): OffsetDateTime?
+    fun getFrameAt(incidentId: Long, at: OffsetDateTime): ThermalFrame?
     fun getFramesAfter(incidentId: Long, after: OffsetDateTime, limit: Int): List<ThermalFrame>
 }
