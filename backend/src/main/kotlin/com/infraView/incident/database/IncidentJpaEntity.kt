@@ -10,15 +10,6 @@ class IncidentJpaEntity(
     @Column(name = "code", nullable = false, length = 20)
     var code: String,
 
-    @Column(name = "firefighter_name", length = 100)
-    var firefighterName: String? = null,
-
-    @Column(name = "description", columnDefinition = "TEXT")
-    var description: String? = null,
-
-    @Column(name = "location", length = 200)
-    var location: String? = null,
-
     @Column(name = "started_at", nullable = false)
     var startedAt: OffsetDateTime,
 

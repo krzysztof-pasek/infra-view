@@ -8,9 +8,6 @@ CREATE TABLE devices (
 CREATE TABLE incidents (
     id BIGSERIAL PRIMARY KEY,
     code VARCHAR(20) NOT NULL,
-    firefighter_name VARCHAR(100),
-    description TEXT,
-    location VARCHAR(200),
     started_at TIMESTAMPTZ NOT NULL,
     ended_at TIMESTAMPTZ,
     status VARCHAR(20) NOT NULL,

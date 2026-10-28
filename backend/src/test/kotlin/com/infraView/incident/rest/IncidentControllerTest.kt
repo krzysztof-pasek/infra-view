@@ -30,9 +30,6 @@ class IncidentControllerTest {
     private val incident = Incident(
         id = 1L,
         code = "INC-123",
-        firefighterName = "Jan Kowalski",
-        description = "Pożar mieszkania",
-        location = "Warszawa",
         startedAt = startedAt,
         status = IncidentStatus.IN_PROGRESS
     )
@@ -56,9 +53,6 @@ class IncidentControllerTest {
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.code").value("INC-123"))
-            .andExpect(jsonPath("$.firefighterName").value("Jan Kowalski"))
-            .andExpect(jsonPath("$.description").value("Pożar mieszkania"))
-            .andExpect(jsonPath("$.location").value("Warszawa"))
             .andExpect(jsonPath("$.startedAt").value("2026-09-24T10:00:00Z"))
             .andExpect(jsonPath("$.endedAt").doesNotExist())
             .andExpect(jsonPath("$.status").value("IN_PROGRESS"))
@@ -84,9 +78,6 @@ class IncidentControllerTest {
                     """
                     {
                       "code": "INC-123",
-                      "firefighterName": "Jan Kowalski",
-                      "description": "Pożar mieszkania",
-                      "location": "Warszawa",
                       "startedAt": "2026-09-24T10:00:00Z",
                       "status": "IN_PROGRESS"
                     }
@@ -126,6 +117,58 @@ class IncidentControllerTest {
         every { useCase.endIncident(99L) } returns null
 
         mockMvc.perform(put("/incidents/99/end"))
+            .andExpect(status().isNotFound)
+    }
+
+    @Test
+    fun `should rename incident with trimmed code`() {
+        every { useCase.rename(1L, "Jan Kowalski") } returns incident.copy(code = "Jan Kowalski")
+
+        mockMvc.perform(
+            put("/incidents/1/code")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"code": "  Jan Kowalski  "}""")
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.id").value(1))
+            .andExpect(jsonPath("$.code").value("Jan Kowalski"))
+
+        verify(exactly = 1) { useCase.rename(1L, "Jan Kowalski") }
+    }
+
+    @Test
+    fun `should return 400 when new code is blank`() {
+        mockMvc.perform(
+            put("/incidents/1/code")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"code": "   "}""")
+        )
+            .andExpect(status().isBadRequest)
+
+        verify(exactly = 0) { useCase.rename(any(), any()) }
+    }
+
+    @Test
+    fun `should return 400 when new code is too long`() {
+        mockMvc.perform(
+            put("/incidents/1/code")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"code": "${"a".repeat(21)}"}""")
+        )
+            .andExpect(status().isBadRequest)
+
+        verify(exactly = 0) { useCase.rename(any(), any()) }
+    }
+
+    @Test
+    fun `should return 404 when renaming non-existent incident`() {
+        every { useCase.rename(99L, "Jan Kowalski") } returns null
+
+        mockMvc.perform(
+            put("/incidents/99/code")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"code": "Jan Kowalski"}""")
+        )
             .andExpect(status().isNotFound)
     }
 
