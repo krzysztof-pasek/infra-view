@@ -1,4 +1,4 @@
-import type { AlarmGroup, AlarmType, Metric, MotionState, Telemetry } from "./types";
+import type { AlarmGroup, AlarmType, Metric, MotionState } from "./types";
 
 export const ONLINE_TIMEOUT = 5000;
 export const GAP_TIMEOUT = 5000;
@@ -52,14 +52,6 @@ export function findSensor(metric: Metric) {
   }
 
   return null;
-}
-
-export function sensorValue(row: Telemetry | undefined, sensor: Sensor) {
-  if (row === undefined) {
-    return null;
-  }
-
-  return row[sensor.key];
 }
 
 export function formatNumber(value: number | null, digits: number) {

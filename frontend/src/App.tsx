@@ -236,6 +236,7 @@ export default function App() {
         </aside>
 
         <SessionView
+          key={selectedId}
           incident={selected}
           rows={rows}
           thresholds={thresholds.data}

@@ -1,8 +1,7 @@
-import { useState } from "react";
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { Telemetry, Threshold } from "./types";
 import type { Sensor } from "./format";
-import { CHART_WINDOW, formatDate, formatNumber, formatTime, GAP_TIMEOUT, sensors, sensorValue } from "./format";
+import { CHART_WINDOW, formatDate, formatNumber, formatTime, GAP_TIMEOUT, sensors } from "./format";
 import { findThreshold } from "./data";
 
 type Point = {
@@ -25,7 +24,7 @@ function makePoint(time: number, row: Telemetry | null) {
   return point;
 }
 
-function toPoints(rows: Telemetry[]) {
+export function toPoints(rows: Telemetry[]) {
   const points: Point[] = [];
 
   for (const row of rows) {
@@ -42,79 +41,50 @@ function toPoints(rows: Telemetry[]) {
   return points;
 }
 
+export function pointsUntil(points: Point[], delay: number | null) {
+  if (delay === null) {
+    return points;
+  }
+
+  const end = points[points.length - 1].time - delay * 1000;
+  const visible: Point[] = [];
+
+  for (const point of points) {
+    if (point.time <= end) {
+      visible.push(point);
+    }
+  }
+
+  return visible.slice(-CHART_WINDOW);
+}
+
 type Props = {
   rows: Telemetry[];
   thresholds: Threshold[] | null;
+  delay: number | null;
 };
 
-export function Charts({ rows, thresholds }: Props) {
-  const [end, setEnd] = useState<number | null>(null);
-
+export function Charts({ rows, thresholds, delay }: Props) {
   if (rows.length === 0) {
     return <p className="card muted">Brak pomiarów</p>;
   }
 
-  const points = toPoints(rows);
-  let last = points.length;
+  const visible = pointsUntil(toPoints(rows), delay);
+  let current = makePoint(0, null);
 
-  if (end !== null && end < points.length) {
-    last = end;
+  if (visible.length > 0) {
+    current = visible[visible.length - 1];
   }
 
-  let first = last - CHART_WINDOW;
-
-  if (first < 0) {
-    first = 0;
-  }
-
-  const visible = points.slice(first, last);
-  const latest = rows[rows.length - 1];
-
-  function move(value: number) {
-    if (value >= points.length) {
-      setEnd(null);
-    } else {
-      setEnd(value);
-    }
-  }
-
-  let scroll = null;
-
-  if (points.length > CHART_WINDOW) {
-    scroll = (
-      <div className="card chart-scroll">
-        <input
-          type="range"
-          min={CHART_WINDOW}
-          max={points.length}
-          value={last}
-          aria-label="Przesuwanie wykresów"
-          onChange={event => move(Number(event.target.value))}
-        />
-        <small>
-          {formatTime(visible[0].time)} – {formatTime(visible[visible.length - 1].time)}
-        </small>
-        <button aria-pressed={end === null} onClick={() => setEnd(null)}>
-          Na żywo
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      {sensors.map(sensor => (
-        <SensorChart
-          key={sensor.key}
-          sensor={sensor}
-          points={visible}
-          value={sensorValue(latest, sensor)}
-          threshold={findThreshold(thresholds, sensor.metric)}
-        />
-      ))}
-      {scroll}
-    </>
-  );
+  return sensors.map(sensor => (
+    <SensorChart
+      key={sensor.key}
+      sensor={sensor}
+      points={visible}
+      value={current[sensor.key]}
+      threshold={findThreshold(thresholds, sensor.metric)}
+    />
+  ));
 }
 
 type ChartProps = {

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Incident, Telemetry, Threshold } from "./types";
 import { errorText } from "./format";
 import { CameraPanel } from "./CameraPanel";
@@ -12,15 +13,19 @@ type Props = {
 };
 
 export function SessionView({ incident, rows, thresholds, error, updatedAt }: Props) {
+  const [delay, setDelay] = useState(0);
+
   if (incident === undefined) {
     return <p className="card muted empty wide">Wybierz sesję z listy, aby zobaczyć obraz z kamery i pomiary</p>;
   }
 
   let camera = <p className="card muted empty">Sesja zakończona, obraz na żywo jest niedostępny</p>;
+  let chartsDelay = null;
   let telemetryError = null;
 
   if (incident.status === "IN_PROGRESS") {
-    camera = <CameraPanel key={incident.id} incidentId={incident.id} />;
+    camera = <CameraPanel incidentId={incident.id} delay={delay} onDelay={setDelay} />;
+    chartsDelay = delay;
   }
 
   if (error !== "") {
@@ -35,7 +40,7 @@ export function SessionView({ incident, rows, thresholds, error, updatedAt }: Pr
 
       <section className="content charts-column" aria-label="Wykresy">
         {telemetryError}
-        <Charts key={incident.id} rows={rows} thresholds={thresholds} />
+        <Charts rows={rows} thresholds={thresholds} delay={chartsDelay} />
       </section>
     </>
   );

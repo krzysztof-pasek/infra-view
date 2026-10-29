@@ -21,8 +21,13 @@ function findMarker(buffer: Uint8Array, marker: number, from: number) {
   return -1;
 }
 
-export function CameraPanel({ incidentId }: { incidentId: number }) {
-  const [delay, setDelay] = useState(0);
+type Props = {
+  incidentId: number;
+  delay: number;
+  onDelay: (delay: number) => void;
+};
+
+export function CameraPanel({ incidentId, delay, onDelay }: Props) {
   const [frame, setFrame] = useState("");
   const [attempt, setAttempt] = useState(0);
 
@@ -104,7 +109,7 @@ export function CameraPanel({ incidentId }: { incidentId: number }) {
       {image}
 
       <div className="camera-controls glass">
-        <button aria-pressed={delay === 0} onClick={() => setDelay(0)}>
+        <button aria-pressed={delay === 0} onClick={() => onDelay(0)}>
           Na żywo
         </button>
         <input
@@ -114,7 +119,7 @@ export function CameraPanel({ incidentId }: { incidentId: number }) {
           step={REPLAY_STEP}
           value={MAX_REPLAY - delay}
           aria-label="Przewijanie obrazu"
-          onChange={event => setDelay(MAX_REPLAY - Number(event.target.value))}
+          onChange={event => onDelay(MAX_REPLAY - Number(event.target.value))}
         />
         <span>{position}</span>
       </div>
