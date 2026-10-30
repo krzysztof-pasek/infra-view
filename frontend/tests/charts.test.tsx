@@ -8,7 +8,6 @@ const START = Date.parse("2026-09-21T10:00:00Z");
 
 function row(second: number, temperature: number): Telemetry {
   return {
-    id: second,
     recordedAt: new Date(START + second * 1000).toISOString(),
     temperature,
     co2Ppm: null,

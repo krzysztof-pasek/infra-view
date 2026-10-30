@@ -1,7 +1,7 @@
 import { useState } from "react";
-import type { FormEvent } from "react";
+import type { SubmitEvent } from "react";
 import type { Metric, Threshold } from "./types";
-import { findSensor } from "./format";
+import { sensors } from "./format";
 import { Modal } from "./Modal";
 
 export type ThresholdValues = {
@@ -58,29 +58,26 @@ type RowProps = {
   onSave: (metric: Metric, values: ThresholdValues) => void;
 };
 
-function labelOf(metric: Metric) {
-  const sensor = findSensor(metric);
-
-  if (sensor === null) {
-    return metric;
-  }
-
-  return `${sensor.label} (${sensor.unit})`;
-}
-
 function ThresholdRow({ threshold, busy, onSave }: RowProps) {
   const [value, setValue] = useState(String(threshold.threshold));
   const [margin, setMargin] = useState(String(threshold.resetMargin));
   const [enabled, setEnabled] = useState(threshold.enabled);
+  let label: string = threshold.metric;
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  for (const sensor of sensors) {
+    if (sensor.metric === threshold.metric) {
+      label = `${sensor.label} (${sensor.unit})`;
+    }
+  }
+
+  function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     onSave(threshold.metric, { threshold: Number(value), resetMargin: Number(margin), enabled });
   }
 
   return (
     <form className="threshold" onSubmit={submit}>
-      <strong>{labelOf(threshold.metric)}</strong>
+      <strong>{label}</strong>
 
       <label>
         Próg

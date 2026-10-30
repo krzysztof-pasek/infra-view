@@ -4,7 +4,7 @@ import { groupAlarms } from "../src/data";
 import { alarmTitle, formatDelay } from "../src/format";
 
 function alarm(id: number, incidentId: number, alarmType: AlarmType = "FALL"): Alarm {
-  return { id, incidentId, alarmType, triggeredAt: "2026-09-21T10:00:00Z", resolvedAt: null };
+  return { id, incidentId, alarmType, triggeredAt: "2026-09-21T10:00:00Z" };
 }
 
 it("łączy alarmy tego samego typu i strażaka", () => {

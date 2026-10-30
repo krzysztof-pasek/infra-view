@@ -44,16 +44,6 @@ export function alarmTitle(group: AlarmGroup) {
   return alarmNames[group.alarmType];
 }
 
-export function findSensor(metric: Metric) {
-  for (const sensor of sensors) {
-    if (sensor.metric === metric) {
-      return sensor;
-    }
-  }
-
-  return null;
-}
-
 export function formatNumber(value: number | null, digits: number) {
   if (value === null) {
     return "—";

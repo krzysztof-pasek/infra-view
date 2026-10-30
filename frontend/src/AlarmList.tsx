@@ -28,7 +28,7 @@ export function AlarmList({ groups, incidents, error, busy, onSelect, onResolve 
         {groups.map(group => (
           <li className="alarm" key={group.key}>
             <button className="alarm-info" onClick={() => onSelect(group)}>
-              <strong>{alarmTitle(group)}</strong>
+              <strong className="red">{alarmTitle(group)}</strong>
               <span>{nameOf(incidents, group.incidentId)}</span>
               <small>{formatTime(group.triggeredAt)}</small>
             </button>
@@ -49,7 +49,7 @@ export function AlarmList({ groups, incidents, error, busy, onSelect, onResolve 
 
   return (
     <section aria-label="Aktywne alarmy">
-      <h2 className="pane-title">Aktywne alarmy</h2>
+      <h2>Aktywne alarmy</h2>
       {warning}
       {content}
     </section>

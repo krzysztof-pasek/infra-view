@@ -27,7 +27,7 @@ export function AlarmPopups({ groups, dismissed, incidents, onShow, onDismiss }:
     <div className="popups">
       {visible.map(group => (
         <div className="popup glass" role="alert" key={group.key}>
-          <strong>{alarmTitle(group)}</strong>
+          <strong className="red">{alarmTitle(group)}</strong>
           <span>
             {nameOf(incidents, group.incidentId)} · {formatTime(group.triggeredAt)}
           </span>

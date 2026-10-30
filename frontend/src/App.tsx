@@ -4,7 +4,6 @@ import { api, errorMessage } from "./api";
 import { findIncident, groupAlarms, incidentName, nameOf } from "./data";
 import { alarmNames, errorText, ONLINE_TIMEOUT } from "./format";
 import { usePolling } from "./usePolling";
-import { useTheme } from "./useTheme";
 import { SessionBar } from "./SessionBar";
 import { SessionList } from "./SessionList";
 import { AlarmList } from "./AlarmList";
@@ -23,7 +22,6 @@ const LIVE_INTERVAL = 1000;
 const ENDED_INTERVAL = 30000;
 
 export default function App() {
-  const { theme, toggleTheme } = useTheme();
   const sessions = usePolling<Incident[]>("/incidents", SESSIONS_INTERVAL);
   const alarms = usePolling<Alarm[]>("/alarms/active", ALARMS_INTERVAL);
   const thresholds = usePolling<Threshold[]>("/alarm-thresholds", THRESHOLDS_INTERVAL);
@@ -159,9 +157,13 @@ export default function App() {
     dismissAlarm(group);
   }
 
+  function closeDialog() {
+    setDialog("");
+  }
+
   function openSession(id: number) {
     setSelectedId(id);
-    setDialog("");
+    closeDialog();
   }
 
   let sessionsError = null;
@@ -187,7 +189,7 @@ export default function App() {
   let dialogWindow = null;
 
   if (dialog === "archive") {
-    dialogWindow = <ArchiveDialog incidents={incidents} onOpen={openSession} onClose={() => setDialog("")} />;
+    dialogWindow = <ArchiveDialog incidents={incidents} onOpen={openSession} onClose={closeDialog} />;
   }
 
   if (dialog === "thresholds") {
@@ -197,7 +199,7 @@ export default function App() {
         error={thresholds.error}
         busy={busy}
         onSave={saveThreshold}
-        onClose={() => setDialog("")}
+        onClose={closeDialog}
       />
     );
   }
@@ -217,7 +219,7 @@ export default function App() {
         <nav className="toolbar">
           <button onClick={() => setDialog("archive")}>Archiwum</button>
           <button onClick={() => setDialog("thresholds")}>Progi alarmów</button>
-          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+          <ThemeToggle />
         </nav>
       </header>
 

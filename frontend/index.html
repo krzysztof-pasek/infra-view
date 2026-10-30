@@ -11,12 +11,8 @@
         theme = "dark";
       }
 
-      try {
-        if (localStorage.getItem("theme") !== null) {
-          theme = localStorage.getItem("theme");
-        }
-      } catch {
-        console.warn("Nie udało się odczytać motywu");
+      if (localStorage.getItem("theme") !== null) {
+        theme = localStorage.getItem("theme");
       }
 
       document.documentElement.dataset.theme = theme;
