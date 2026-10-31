@@ -27,6 +27,7 @@ function fall(id: number) {
 }
 
 const temperature = { metric: "TEMPERATURE", alarmType: "HIGH_TEMPERATURE", threshold: 80, resetMargin: 5, enabled: true };
+const co2 = { metric: "CO2_PPM", alarmType: "HIGH_CO2", threshold: 5000, resetMargin: 500, enabled: false };
 
 type Options = {
   failEnd?: boolean;
@@ -72,7 +73,7 @@ function mockApi(options: Options = {}) {
     }
 
     if (request === "GET /api/alarm-thresholds") {
-      return Response.json([temperature]);
+      return Response.json([temperature, co2]);
     }
 
     if (request === "PUT /api/incidents/1/end") {
@@ -94,8 +95,8 @@ function mockApi(options: Options = {}) {
       return Response.json({});
     }
 
-    if (request === "PUT /api/alarm-thresholds/TEMPERATURE") {
-      return Response.json({ ...temperature, ...JSON.parse(String(init.body)) });
+    if (request.startsWith("PUT /api/alarm-thresholds/")) {
+      return Response.json(JSON.parse(String(init.body)));
     }
 
     if (url.includes("/live")) {
@@ -203,18 +204,38 @@ it("archiwum filtruje sesje i otwiera zakończoną", async () => {
   expect(screen.getByText("Sesja zakończona, obraz na żywo jest niedostępny")).toBeTruthy();
 });
 
-it("zapisuje nowy próg alarmu", async () => {
+it("jednym przyciskiem zapisuje wszystkie progi alarmów", async () => {
   const fetchMock = mockApi();
   render(<App />);
 
   fireEvent.click(screen.getByRole("button", { name: "Progi alarmów" }));
   const dialog = screen.getByRole("dialog", { name: "Progi alarmów" });
-  fireEvent.change(await within(dialog).findByLabelText("Próg"), { target: { value: "60" } });
+  const limits = await within(dialog).findAllByLabelText("Próg");
+  fireEvent.change(limits[0], { target: { value: "60" } });
+  fireEvent.click(within(dialog).getAllByLabelText("Włączony")[1]);
+
+  expect(within(dialog).getAllByRole("button", { name: "Zapisz" })).toHaveLength(1);
+  fireEvent.click(within(dialog).getByRole("button", { name: "Zapisz" }));
+
+  await waitFor(() => expect(calls(fetchMock, "PUT", "/alarm-thresholds/CO2_PPM")).toHaveLength(1));
+  const first = JSON.parse(String(calls(fetchMock, "PUT", "/alarm-thresholds/TEMPERATURE")[0][1]?.body));
+  const second = JSON.parse(String(calls(fetchMock, "PUT", "/alarm-thresholds/CO2_PPM")[0][1]?.body));
+  expect(first).toEqual({ threshold: 60, resetMargin: 5, enabled: true });
+  expect(second).toEqual({ threshold: 5000, resetMargin: 500, enabled: true });
+});
+
+it("nie wysyła progów, których nikt nie zmienił", async () => {
+  const fetchMock = mockApi();
+  render(<App />);
+
+  fireEvent.click(screen.getByRole("button", { name: "Progi alarmów" }));
+  const dialog = screen.getByRole("dialog", { name: "Progi alarmów" });
+  const limits = await within(dialog).findAllByLabelText("Próg");
+  fireEvent.change(limits[0], { target: { value: "60" } });
   fireEvent.click(within(dialog).getByRole("button", { name: "Zapisz" }));
 
   await waitFor(() => expect(calls(fetchMock, "PUT", "/alarm-thresholds/TEMPERATURE")).toHaveLength(1));
-  const body = JSON.parse(String(calls(fetchMock, "PUT", "/alarm-thresholds/TEMPERATURE")[0][1]?.body));
-  expect(body).toEqual({ threshold: 60, resetMargin: 5, enabled: true });
+  expect(calls(fetchMock, "PUT", "/alarm-thresholds/CO2_PPM")).toHaveLength(0);
 });
 
 it("gdy serwer nie odpowiada, nie twierdzi że alarmów nie ma", async () => {

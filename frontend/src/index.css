@@ -245,7 +245,7 @@ input[type="range"], input[type="checkbox"], .icon, .list, .alarm-info {
   overflow: hidden;
 }
 
-.session, .camera img, table {
+.session, .camera img, table, .threshold input[type="number"] {
   width: 100%;
 }
 
@@ -572,7 +572,7 @@ tr:last-child td {
 }
 
 .threshold {
-  grid-template-columns: 1.4fr 1fr 1fr auto auto;
+  grid-template-columns: 1.4fr 1fr 1fr auto;
   align-items: end;
   padding: 12px 0;
   border-bottom: 1px solid var(--line);

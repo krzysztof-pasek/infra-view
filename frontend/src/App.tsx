@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Alarm, AlarmGroup, Incident, Metric, Telemetry, Threshold } from "./types";
+import type { Alarm, AlarmGroup, Incident, Telemetry, Threshold } from "./types";
 import { api, errorMessage } from "./api";
 import { findIncident, groupAlarms, incidentName, nameOf } from "./data";
 import { alarmNames, errorText, ONLINE_TIMEOUT } from "./format";
@@ -11,7 +11,6 @@ import { AlarmPopups } from "./AlarmPopups";
 import { SessionView } from "./SessionView";
 import { ArchiveDialog } from "./ArchiveDialog";
 import { ThresholdsDialog } from "./ThresholdsDialog";
-import type { ThresholdValues } from "./ThresholdsDialog";
 import { ThemeToggle } from "./ThemeToggle";
 import { Toast } from "./Toast";
 
@@ -138,8 +137,18 @@ export default function App() {
     });
   }
 
-  function saveThreshold(metric: Metric, values: ThresholdValues) {
-    run(() => api(`/alarm-thresholds/${metric}`, "PUT", values));
+  function saveThresholds(list: Threshold[]) {
+    run(async () => {
+      for (const item of list) {
+        await api(`/alarm-thresholds/${item.metric}`, "PUT", {
+          threshold: item.threshold,
+          resetMargin: item.resetMargin,
+          enabled: item.enabled,
+        });
+      }
+
+      setDialog("");
+    });
   }
 
   function dismissAlarm(group: AlarmGroup) {
@@ -198,7 +207,7 @@ export default function App() {
         thresholds={thresholds.data}
         error={thresholds.error}
         busy={busy}
-        onSave={saveThreshold}
+        onSave={saveThresholds}
         onClose={closeDialog}
       />
     );
