@@ -1,7 +1,6 @@
 export type Incident = {
   id: number;
   code: string;
-  firefighterName: string | null;
   startedAt: string;
   endedAt: string | null;
   status: "IN_PROGRESS" | "RESOLVED";
@@ -30,6 +29,7 @@ export type Alarm = {
 export type AlarmGroup = {
   key: string;
   incidentId: number;
+  name: string;
   alarmType: AlarmType;
   ids: number[];
   latestId: number;

@@ -6,8 +6,7 @@ vi.mock("../src/Charts", () => ({ Charts: () => null }));
 
 const jan = {
   id: 1,
-  code: "HELMET-1",
-  firefighterName: "Jan Kowalski",
+  code: "Jan Kowalski",
   startedAt: "2026-09-21T10:00:00Z",
   endedAt: null,
   status: "IN_PROGRESS",
@@ -15,8 +14,7 @@ const jan = {
 
 const anna = {
   id: 3,
-  code: "HELMET-3",
-  firefighterName: "Anna Nowak",
+  code: "Anna Nowak",
   startedAt: "2026-09-20T10:00:00Z",
   endedAt: "2026-09-20T12:00:00Z",
   status: "RESOLVED",

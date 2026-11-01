@@ -1,5 +1,4 @@
 import type { Incident } from "./types";
-import { hasName, incidentName } from "./data";
 import { formatTime } from "./format";
 
 type Props = {
@@ -52,22 +51,17 @@ type ItemProps = {
 
 function SessionItem({ incident, selected, alarm, onSelect }: ItemProps) {
   let dotColor = "muted";
-  let detail = incident.code;
 
   if (alarm) {
     dotColor = "red";
-  }
-
-  if (!hasName(incident)) {
-    detail = "start " + formatTime(incident.startedAt);
   }
 
   return (
     <button className="session" aria-pressed={selected} onClick={() => onSelect(incident.id)}>
       <span className={"dot " + dotColor} />
       <span>
-        <strong>{incidentName(incident)}</strong>
-        <small>{detail}</small>
+        <strong>{incident.code}</strong>
+        <small>start {formatTime(incident.startedAt)}</small>
       </span>
     </button>
   );

@@ -1,17 +1,5 @@
 import type { Alarm, AlarmGroup, Incident, Metric, Threshold } from "./types";
 
-export function incidentName(incident: Incident) {
-  if (incident.firefighterName === null || incident.firefighterName === "") {
-    return incident.code;
-  }
-
-  return incident.firefighterName;
-}
-
-export function hasName(incident: Incident) {
-  return incidentName(incident) !== incident.code;
-}
-
 export function findIncident(incidents: Incident[], id: number | null) {
   for (const incident of incidents) {
     if (incident.id === id) {
@@ -20,16 +8,6 @@ export function findIncident(incidents: Incident[], id: number | null) {
   }
 
   return undefined;
-}
-
-export function nameOf(incidents: Incident[], id: number) {
-  const incident = findIncident(incidents, id);
-
-  if (incident === undefined) {
-    return `Sesja ${id}`;
-  }
-
-  return incidentName(incident);
 }
 
 export function findThreshold(thresholds: Threshold[] | null, metric: Metric | null) {
@@ -46,7 +24,7 @@ export function findThreshold(thresholds: Threshold[] | null, metric: Metric | n
   return null;
 }
 
-export function groupAlarms(alarms: Alarm[]) {
+export function groupAlarms(alarms: Alarm[], incidents: Incident[]) {
   const groups: AlarmGroup[] = [];
 
   for (const alarm of alarms) {
@@ -60,9 +38,17 @@ export function groupAlarms(alarms: Alarm[]) {
     }
 
     if (group === null) {
+      const incident = findIncident(incidents, alarm.incidentId);
+      let name = `Sesja ${alarm.incidentId}`;
+
+      if (incident !== undefined) {
+        name = incident.code;
+      }
+
       group = {
         key,
         incidentId: alarm.incidentId,
+        name,
         alarmType: alarm.alarmType,
         ids: [],
         latestId: alarm.id,

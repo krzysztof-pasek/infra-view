@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Alarm, AlarmGroup, Incident, Telemetry, Threshold } from "./types";
 import { api, errorMessage } from "./api";
-import { findIncident, groupAlarms, incidentName, nameOf } from "./data";
+import { findIncident, groupAlarms } from "./data";
 import { alarmNames, errorText, ONLINE_TIMEOUT } from "./format";
 import { usePolling } from "./usePolling";
 import { SessionBar } from "./SessionBar";
@@ -80,7 +80,7 @@ export default function App() {
   const alarmIds: number[] = [];
 
   if (alarms.data !== null) {
-    groups = groupAlarms(alarms.data);
+    groups = groupAlarms(alarms.data, incidents);
 
     for (const group of groups) {
       alarmIds.push(group.incidentId);
@@ -118,13 +118,13 @@ export default function App() {
       return;
     }
 
-    if (window.confirm(`Czy na pewno chcesz zakończyć sesję ${incidentName(selected)}?`)) {
+    if (window.confirm(`Czy na pewno chcesz zakończyć sesję ${selected.code}?`)) {
       run(() => api(`/incidents/${selected.id}/end`, "PUT"));
     }
   }
 
   function resolveAlarm(group: AlarmGroup) {
-    const question = `Oznaczyć alarm „${alarmNames[group.alarmType]}” (${nameOf(incidents, group.incidentId)}) jako rozwiązany?`;
+    const question = `Oznaczyć alarm „${alarmNames[group.alarmType]}” (${group.name}) jako rozwiązany?`;
 
     if (!window.confirm(question)) {
       return;
@@ -188,7 +188,6 @@ export default function App() {
       <AlarmPopups
         groups={groups}
         dismissed={dismissed}
-        incidents={incidents}
         onShow={showAlarm}
         onDismiss={dismissAlarm}
       />
@@ -238,7 +237,6 @@ export default function App() {
           <SessionList incidents={active} selectedId={selectedId} alarmIds={alarmIds} onSelect={setSelectedId} />
           <AlarmList
             groups={groups}
-            incidents={incidents}
             error={alarms.error}
             busy={busy}
             onSelect={showAlarm}

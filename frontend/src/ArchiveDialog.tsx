@@ -1,6 +1,5 @@
 import { useState } from "react";
 import type { Incident } from "./types";
-import { incidentName } from "./data";
 import { formatDate, formatDay } from "./format";
 import { Modal } from "./Modal";
 
@@ -9,29 +8,6 @@ type Props = {
   onOpen: (id: number) => void;
   onClose: () => void;
 };
-
-function matches(incident: Incident, query: string, from: string, to: string, status: string) {
-  const text = (incidentName(incident) + " " + incident.code).toLowerCase();
-  const day = formatDay(incident.startedAt);
-
-  if (query !== "" && !text.includes(query)) {
-    return false;
-  }
-
-  if (from !== "" && day < from) {
-    return false;
-  }
-
-  if (to !== "" && day > to) {
-    return false;
-  }
-
-  if (status !== "" && incident.status !== status) {
-    return false;
-  }
-
-  return true;
-}
 
 function endOf(incident: Incident) {
   if (incident.endedAt === null) {
@@ -47,10 +23,32 @@ export function ArchiveDialog({ incidents, onOpen, onClose }: Props) {
   const [to, setTo] = useState("");
   const [status, setStatus] = useState("");
 
+  function matches(incident: Incident) {
+    const day = formatDay(incident.startedAt);
+
+    if (!incident.code.toLowerCase().includes(query.trim().toLowerCase())) {
+      return false;
+    }
+
+    if (from !== "" && day < from) {
+      return false;
+    }
+
+    if (to !== "" && day > to) {
+      return false;
+    }
+
+    if (status !== "" && incident.status !== status) {
+      return false;
+    }
+
+    return true;
+  }
+
   const found: Incident[] = [];
 
   for (const incident of incidents) {
-    if (matches(incident, query.trim().toLowerCase(), from, to, status)) {
+    if (matches(incident)) {
       found.push(incident);
     }
   }
@@ -65,8 +63,7 @@ export function ArchiveDialog({ incidents, onOpen, onClose }: Props) {
         <table>
           <thead>
             <tr>
-              <th>Strażak</th>
-              <th>Kod</th>
+              <th>Sesja</th>
               <th>Początek</th>
               <th>Koniec</th>
               <th />
@@ -76,7 +73,6 @@ export function ArchiveDialog({ incidents, onOpen, onClose }: Props) {
           <tbody>
             {found.map(incident => (
               <tr key={incident.id}>
-                <td>{incidentName(incident)}</td>
                 <td>{incident.code}</td>
                 <td>{formatDate(incident.startedAt)}</td>
                 <td>{endOf(incident)}</td>
@@ -96,7 +92,7 @@ export function ArchiveDialog({ incidents, onOpen, onClose }: Props) {
       <div className="filters">
         <label>
           Szukaj
-          <input value={query} placeholder="Nazwa lub kod" onChange={event => setQuery(event.target.value)} />
+          <input value={query} placeholder="Nazwa sesji" onChange={event => setQuery(event.target.value)} />
         </label>
         <label>
           Od

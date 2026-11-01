@@ -1,5 +1,4 @@
 import type { Incident, Telemetry } from "./types";
-import { hasName, incidentName } from "./data";
 import { formatDate, motionStates } from "./format";
 
 type Props = {
@@ -35,12 +34,6 @@ export function SessionBar({ incident, latest, online, busy, onEnd, onClose }: P
     statusColor = "";
   }
 
-  let detail = "start " + formatDate(incident.startedAt);
-
-  if (hasName(incident)) {
-    detail = incident.code + " · " + detail;
-  }
-
   let motion = "—";
   let motionColor = "";
 
@@ -52,8 +45,8 @@ export function SessionBar({ incident, latest, online, busy, onEnd, onClose }: P
   return (
     <div className="session-bar">
       <div>
-        <h2>{incidentName(incident)}</h2>
-        <small>{detail}</small>
+        <h2>{incident.code}</h2>
+        <small>start {formatDate(incident.startedAt)}</small>
       </div>
 
       <span className={"status " + statusColor}>

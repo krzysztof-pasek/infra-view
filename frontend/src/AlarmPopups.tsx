@@ -1,16 +1,14 @@
-import type { AlarmGroup, Incident } from "./types";
-import { nameOf } from "./data";
-import { alarmTitle, formatTime } from "./format";
+import type { AlarmGroup } from "./types";
+import { AlarmInfo } from "./AlarmInfo";
 
 type Props = {
   groups: AlarmGroup[];
   dismissed: number[];
-  incidents: Incident[];
   onShow: (group: AlarmGroup) => void;
   onDismiss: (group: AlarmGroup) => void;
 };
 
-export function AlarmPopups({ groups, dismissed, incidents, onShow, onDismiss }: Props) {
+export function AlarmPopups({ groups, dismissed, onShow, onDismiss }: Props) {
   const visible: AlarmGroup[] = [];
 
   for (const group of groups) {
@@ -27,10 +25,7 @@ export function AlarmPopups({ groups, dismissed, incidents, onShow, onDismiss }:
     <div className="popups">
       {visible.map(group => (
         <div className="popup glass" role="alert" key={group.key}>
-          <strong className="red">{alarmTitle(group)}</strong>
-          <span>
-            {nameOf(incidents, group.incidentId)} · {formatTime(group.triggeredAt)}
-          </span>
+          <AlarmInfo group={group} />
           <div>
             <button className="primary" onClick={() => onShow(group)}>
               Pokaż
