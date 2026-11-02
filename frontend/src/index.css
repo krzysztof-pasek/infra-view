@@ -619,6 +619,14 @@ tr:last-child td {
     grid-template-columns: 1fr 1fr;
   }
 
+  th, td {
+    white-space: normal;
+  }
+
+  th:nth-child(3), td:nth-child(3) {
+    display: none;
+  }
+
   .camera {
     height: auto;
     min-height: 0;

@@ -10,10 +10,15 @@ type Props = {
 };
 
 export function AlarmList({ groups, error, busy, onSelect, onResolve }: Props) {
-  let content = <p className="muted">Ładowanie…</p>;
+  let warning = null;
+  let content = null;
 
-  if (error !== "" && groups === null) {
-    content = <p className="orange">{error}</p>;
+  if (error !== "") {
+    warning = <p className="orange">{error}</p>;
+  }
+
+  if (groups === null && error === "") {
+    content = <p className="muted">Ładowanie…</p>;
   }
 
   if (groups !== null && groups.length === 0) {
@@ -35,12 +40,6 @@ export function AlarmList({ groups, error, busy, onSelect, onResolve }: Props) {
         ))}
       </ul>
     );
-  }
-
-  let warning = null;
-
-  if (error !== "" && groups !== null) {
-    warning = <p className="orange">{error}</p>;
   }
 
   return (

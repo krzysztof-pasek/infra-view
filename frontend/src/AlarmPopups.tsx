@@ -26,7 +26,7 @@ export function AlarmPopups({ groups, dismissed, onShow, onDismiss }: Props) {
       {visible.map(group => (
         <div className="popup glass" role="alert" key={group.key}>
           <AlarmInfo group={group} />
-          <div>
+          <div className="toolbar">
             <button className="primary" onClick={() => onShow(group)}>
               Pokaż
             </button>

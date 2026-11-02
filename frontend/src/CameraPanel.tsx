@@ -58,16 +58,19 @@ export function CameraPanel({ incidentId, delay, onDelay }: Props) {
             }
 
             buffer = join(buffer, chunk.value);
-            let start = findMarker(buffer, 0xd8, 0);
-            let end = findMarker(buffer, 0xd9, start + 2);
 
-            while (start !== -1 && end !== -1) {
+            while (true) {
+              const start = findMarker(buffer, 0xd8, 0);
+              const end = findMarker(buffer, 0xd9, start + 2);
+
+              if (start === -1 || end === -1) {
+                break;
+              }
+
               URL.revokeObjectURL(url);
               url = URL.createObjectURL(new Blob([buffer.slice(start, end + 2)], { type: "image/jpeg" }));
               setFrame(url);
               buffer = buffer.slice(end + 2);
-              start = findMarker(buffer, 0xd8, 0);
-              end = findMarker(buffer, 0xd9, start + 2);
             }
           }
         }
