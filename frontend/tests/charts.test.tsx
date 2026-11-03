@@ -1,8 +1,9 @@
-import { render, screen } from "@testing-library/react";
-import { expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { expect, it, vi } from "vitest";
 import { Charts, pointsUntil, toPoints } from "../src/Charts";
+import { SessionView } from "../src/SessionView";
 import { CHART_WINDOW } from "../src/format";
-import type { Telemetry } from "../src/types";
+import type { Incident, Telemetry } from "../src/types";
 
 const START = Date.parse("2026-09-21T10:00:00Z");
 
@@ -89,4 +90,16 @@ it("okno wykresu nigdy nie wychodzi poza czas wideo", () => {
       expect(earlier[earlier.length - 1].time).toBeLessThanOrEqual(visible[visible.length - 1].time);
     }
   }
+});
+
+it("po zakończeniu sesji wykres nie zostaje zamrożony na pauzie", () => {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 404 })));
+  const session: Incident = { id: 1, code: "Jan Kowalski", startedAt: rows[0].recordedAt, endedAt: null, status: "IN_PROGRESS" };
+  const view = render(<SessionView incident={session} rows={rows} thresholds={null} error="" updatedAt={0} />);
+
+  fireEvent.click(screen.getByRole("button", { name: "Wstrzymaj" }));
+  const ended: Incident = { ...session, endedAt: rows[2].recordedAt, status: "RESOLVED" };
+  view.rerender(<SessionView incident={ended} rows={[...rows, row(30, 50)]} thresholds={null} error="" updatedAt={0} />);
+
+  expect(temperature()).toBe("50 °C");
 });

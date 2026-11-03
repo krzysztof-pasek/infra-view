@@ -245,7 +245,7 @@ input[type="range"], input[type="checkbox"], .icon, .list, .alarm-info {
   overflow: hidden;
 }
 
-.session, .camera img, table, .threshold input[type="number"] {
+.session, .camera img, table, .threshold input[type="number"], .alert input {
   width: 100%;
 }
 
@@ -274,7 +274,7 @@ button, .topbar, .camera-controls, .toast {
   position: fixed;
 }
 
-.camera-controls, .toast {
+.popups, .camera-controls, .toast {
   bottom: var(--gap);
 }
 
@@ -482,7 +482,7 @@ details[open] > summary::before {
   position: absolute;
   left: 50%;
   max-width: calc(100% - 28px);
-  padding: 6px 16px 6px 6px;
+  padding: 6px;
   transform: translateX(-50%);
 }
 
@@ -540,11 +540,11 @@ tr:last-child td {
 }
 
 .popups {
-  top: var(--top);
-  right: var(--gap);
+  left: var(--gap);
   z-index: 30;
-  display: grid;
-  width: min(400px, calc(100% - 2 * var(--gap)));
+  display: flex;
+  flex-direction: column-reverse;
+  width: var(--side);
 }
 
 .popup {
@@ -561,6 +561,10 @@ tr:last-child td {
   width: min(900px, 100%);
   max-height: 85vh;
   overflow: auto;
+}
+
+.alert {
+  width: min(440px, 100%);
 }
 
 .modal-header {
@@ -641,7 +645,7 @@ tr:last-child td {
   }
 
   .popups {
-    top: auto;
-    bottom: var(--gap);
+    right: var(--gap);
+    width: auto;
   }
 }

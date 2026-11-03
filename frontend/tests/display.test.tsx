@@ -30,4 +30,5 @@ it("alarm SOS ma czytelną nazwę", () => {
 it("pokazuje opóźnienie powtórki w minutach", () => {
   expect(formatDelay(150)).toBe("−2:30");
   expect(formatDelay(5)).toBe("−0:05");
+  expect(formatDelay(0)).toBe("−0:00");
 });

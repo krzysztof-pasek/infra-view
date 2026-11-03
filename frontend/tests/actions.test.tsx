@@ -105,7 +105,7 @@ function mockApi(options: Options = {}) {
   });
 
   vi.stubGlobal("fetch", fetchMock);
-  vi.spyOn(window, "confirm").mockReturnValue(true);
+  vi.spyOn(window, "confirm");
   return fetchMock;
 }
 
@@ -117,6 +117,18 @@ function calls(fetchMock: ReturnType<typeof mockApi>, method: string, part: stri
 
     if (init !== undefined && init.method === method && call[0].includes(part)) {
       found.push(call);
+    }
+  }
+
+  return found;
+}
+
+function cameraCalls(fetchMock: ReturnType<typeof mockApi>) {
+  const found: string[] = [];
+
+  for (const call of fetchMock.mock.calls) {
+    if (call[0].includes("/live") || call[0].includes("/replay")) {
+      found.push(call[0]);
     }
   }
 
@@ -135,8 +147,12 @@ it("grupuje powtórzone alarmy i rozwiązuje je jednym kliknięciem", async () =
 
   expect(await within(list).findByText("Upadek ×3")).toBeTruthy();
   fireEvent.click(within(list).getByRole("button", { name: "Rozwiąż" }));
+  const dialog = screen.getByRole("dialog", { name: "Rozwiązać alarm?" });
+  expect(calls(fetchMock, "PUT", "/resolve")).toHaveLength(0);
+  fireEvent.click(within(dialog).getByRole("button", { name: "Rozwiąż" }));
 
   await waitFor(() => expect(calls(fetchMock, "PUT", "/resolve")).toHaveLength(3));
+  expect(window.confirm).not.toHaveBeenCalled();
   expect(await within(list).findByText("Brak aktywnych alarmów")).toBeTruthy();
 });
 
@@ -157,20 +173,56 @@ it("nowy alarm pojawia się jako popup, który otwiera sesję strażaka", async 
   expect(screen.queryByRole("alert")).toBeNull();
 });
 
-it("kończy sesję dopiero po potwierdzeniu", async () => {
+it("kończy sesję dopiero po potwierdzeniu w oknie aplikacji", async () => {
   const fetchMock = mockApi();
-  vi.mocked(window.confirm).mockReturnValue(false);
   render(<App />);
 
   fireEvent.click(await screen.findByRole("button", { name: /^Jan Kowalski/ }));
   fireEvent.click(screen.getByRole("button", { name: "Zakończ sesję" }));
+  const first = screen.getByRole("dialog", { name: "Zakończyć sesję?" });
+  expect(first.querySelector(".modal-header button")).toBeNull();
+  expect(first.lastElementChild).toBe(within(first).getByRole("button", { name: "Zamknij" }).parentElement);
+  fireEvent.click(within(first).getByRole("button", { name: "Zamknij" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
   expect(calls(fetchMock, "PUT", "/end")).toHaveLength(0);
 
-  vi.mocked(window.confirm).mockReturnValue(true);
   fireEvent.click(screen.getByRole("button", { name: "Zakończ sesję" }));
+  const second = screen.getByRole("dialog", { name: "Zakończyć sesję?" });
+  fireEvent.click(within(second).getByRole("button", { name: "Zakończ sesję" }));
 
   expect(await screen.findByText("Zakończona")).toBeTruthy();
   expect(calls(fetchMock, "PUT", "/end")).toHaveLength(1);
+  expect(window.confirm).not.toHaveBeenCalled();
+});
+
+it("Esc zamyka okno", async () => {
+  mockApi();
+  render(<App />);
+  await screen.findByRole("button", { name: /^Jan Kowalski/ });
+
+  fireEvent.click(screen.getByRole("button", { name: "Archiwum" }));
+  expect(screen.getByRole("dialog", { name: "Archiwum sesji" })).toBeTruthy();
+  fireEvent.keyDown(document, { key: "Escape" });
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+it("pauza zatrzymuje obraz, a wznowienie cofa go o czas pauzy", async () => {
+  const fetchMock = mockApi();
+  render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: /^Jan Kowalski/ }));
+  await waitFor(() => expect(cameraCalls(fetchMock).length).toBeGreaterThan(0));
+
+  vi.useFakeTimers({ toFake: ["Date"] });
+  fireEvent.click(screen.getByRole("button", { name: "Wstrzymaj" }));
+  const paused = cameraCalls(fetchMock).length;
+  vi.setSystemTime(Date.now() + 12000);
+  await new Promise(resolve => setTimeout(resolve, 2500));
+  expect(cameraCalls(fetchMock)).toHaveLength(paused);
+
+  fireEvent.click(screen.getByRole("button", { name: "Wznów" }));
+  await waitFor(() => expect(cameraCalls(fetchMock).at(-1)).toContain("/replay?delaySeconds=12"));
+  vi.useRealTimers();
 });
 
 it("błąd operacji zostaje na ekranie do zamknięcia", async () => {
@@ -179,6 +231,7 @@ it("błąd operacji zostaje na ekranie do zamknięcia", async () => {
 
   fireEvent.click(await screen.findByRole("button", { name: /^Jan Kowalski/ }));
   fireEvent.click(screen.getByRole("button", { name: "Zakończ sesję" }));
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Zakończ sesję" }));
   const message = await screen.findByText("Serwer odrzucił żądanie (błąd 500)");
 
   fireEvent.click(within(message.parentElement as HTMLElement).getByRole("button", { name: "Zamknij" }));

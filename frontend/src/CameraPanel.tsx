@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { formatDelay, MAX_REPLAY } from "./format";
 
 const RECONNECT_DELAY = 2000;
-const REPLAY_STEP = 5;
+const PAUSE_ICON = "M7 5h3v14H7zM14 5h3v14h-3z";
+const PLAY_ICON = "M8 5v14l11-7z";
 
 function join(first: Uint8Array, second: Uint8Array) {
   const result = new Uint8Array(first.length + second.length);
@@ -24,14 +25,21 @@ function findMarker(buffer: Uint8Array, marker: number, from: number) {
 type Props = {
   incidentId: number;
   delay: number;
+  paused: boolean;
   onDelay: (delay: number) => void;
+  onPause: () => void;
+  onPlay: () => void;
 };
 
-export function CameraPanel({ incidentId, delay, onDelay }: Props) {
+export function CameraPanel({ incidentId, delay, paused, onDelay, onPause, onPlay }: Props) {
   const [frame, setFrame] = useState("");
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    if (paused) {
+      return;
+    }
+
     const controller = new AbortController();
     let url = "";
     let timer = 0;
@@ -91,9 +99,12 @@ export function CameraPanel({ incidentId, delay, onDelay }: Props) {
     return () => {
       controller.abort();
       clearTimeout(timer);
-      URL.revokeObjectURL(url);
     };
-  }, [incidentId, delay, attempt]);
+  }, [incidentId, delay, attempt, paused]);
+
+  useEffect(() => {
+    return () => URL.revokeObjectURL(frame);
+  }, [frame]);
 
   let image = <p className="camera-status">Brak obrazu z kamery</p>;
 
@@ -101,10 +112,16 @@ export function CameraPanel({ incidentId, delay, onDelay }: Props) {
     image = <img src={frame} alt="Obraz z kamery termowizyjnej" />;
   }
 
-  let position = "0:00";
+  let toggleLabel = "Wstrzymaj";
+  let toggleIcon = PAUSE_ICON;
+  let toggleClass = "icon primary";
+  let toggle = onPause;
 
-  if (delay > 0) {
-    position = formatDelay(delay);
+  if (paused) {
+    toggleLabel = "Wznów";
+    toggleIcon = PLAY_ICON;
+    toggleClass = "icon";
+    toggle = onPlay;
   }
 
   return (
@@ -112,19 +129,23 @@ export function CameraPanel({ incidentId, delay, onDelay }: Props) {
       {image}
 
       <div className="camera-controls glass">
-        <button aria-pressed={delay === 0} onClick={() => onDelay(0)}>
+        <button aria-pressed={delay === 0 && !paused} onClick={() => onDelay(0)}>
           Na żywo
         </button>
         <input
           type="range"
           min={0}
           max={MAX_REPLAY}
-          step={REPLAY_STEP}
           value={MAX_REPLAY - delay}
           aria-label="Przewijanie obrazu"
           onChange={event => onDelay(MAX_REPLAY - Number(event.target.value))}
         />
-        <span>{position}</span>
+        <span>{formatDelay(delay)}</span>
+        <button className={toggleClass} aria-label={toggleLabel} title={toggleLabel} onClick={toggle}>
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d={toggleIcon} />
+          </svg>
+        </button>
       </div>
     </div>
   );

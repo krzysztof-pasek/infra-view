@@ -13,12 +13,20 @@ import { ArchiveDialog } from "./ArchiveDialog";
 import { ThresholdsDialog } from "./ThresholdsDialog";
 import { ThemeToggle } from "./ThemeToggle";
 import { Toast } from "./Toast";
+import { Confirm } from "./Confirm";
 
 const SESSIONS_INTERVAL = 5000;
 const ALARMS_INTERVAL = 2000;
 const THRESHOLDS_INTERVAL = 30000;
 const LIVE_INTERVAL = 1000;
 const ENDED_INTERVAL = 30000;
+
+type Confirmation = {
+  title: string;
+  text: string;
+  button: string;
+  action: () => Promise<unknown>;
+};
 
 export default function App() {
   const sessions = usePolling<Incident[]>("/incidents", SESSIONS_INTERVAL);
@@ -29,6 +37,7 @@ export default function App() {
   const [dismissed, setDismissed] = useState<number[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const [now, setNow] = useState(Date.now);
 
   useEffect(() => {
@@ -118,23 +127,32 @@ export default function App() {
       return;
     }
 
-    if (window.confirm(`Czy na pewno chcesz zakończyć sesję ${selected.code}?`)) {
-      run(() => api(`/incidents/${selected.id}/end`, "PUT"));
-    }
+    setConfirmation({
+      title: "Zakończyć sesję?",
+      text: `Sesja ${selected.code} zostanie zakończona.`,
+      button: "Zakończ sesję",
+      action: () => api(`/incidents/${selected.id}/end`, "PUT"),
+    });
   }
 
   function resolveAlarm(group: AlarmGroup) {
-    const question = `Oznaczyć alarm „${alarmNames[group.alarmType]}” (${group.name}) jako rozwiązany?`;
-
-    if (!window.confirm(question)) {
-      return;
-    }
-
-    run(async () => {
-      for (const id of group.ids) {
-        await api(`/alarms/${id}/resolve`, "PUT");
-      }
+    setConfirmation({
+      title: "Rozwiązać alarm?",
+      text: `Alarm „${alarmNames[group.alarmType]}” (${group.name}) zostanie oznaczony jako rozwiązany.`,
+      button: "Rozwiąż",
+      action: async () => {
+        for (const id of group.ids) {
+          await api(`/alarms/${id}/resolve`, "PUT");
+        }
+      },
     });
+  }
+
+  function accept() {
+    if (confirmation !== null) {
+      run(confirmation.action);
+      setConfirmation(null);
+    }
   }
 
   function saveThresholds(list: Threshold[]) {
@@ -208,6 +226,18 @@ export default function App() {
         busy={busy}
         onSave={saveThresholds}
         onClose={closeDialog}
+      />
+    );
+  }
+
+  if (confirmation !== null) {
+    dialogWindow = (
+      <Confirm
+        title={confirmation.title}
+        text={confirmation.text}
+        button={confirmation.button}
+        onYes={accept}
+        onNo={() => setConfirmation(null)}
       />
     );
   }
