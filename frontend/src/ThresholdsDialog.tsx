@@ -1,8 +1,10 @@
-import { useState } from "react";
-import type { ReactNode, SubmitEvent } from "react";
+import { useRef, useState } from "react";
+import type { SubmitEvent } from "react";
 import type { Threshold } from "./types";
 import { sensors } from "./format";
 import { Modal } from "./Modal";
+import { Confirm } from "./Confirm";
+import { ErrorLine } from "./ErrorLine";
 
 type Props = {
   thresholds: Threshold[] | null;
@@ -14,25 +16,22 @@ type Props = {
 
 export function ThresholdsDialog({ thresholds, error, busy, onSave, onClose }: Props) {
   const [opened, setOpened] = useState<Threshold[] | null>(null);
-  let content: ReactNode = <p className="muted">Ładowanie…</p>;
+  const [discard, setDiscard] = useState(false);
+  const form = useRef<HTMLFormElement>(null);
+  let content = <p className="muted">Ładowanie…</p>;
 
   if (opened === null && thresholds !== null) {
     setOpened(thresholds);
   }
 
-  if (error !== "") {
-    content = <p className="orange">{error}</p>;
-  }
+  function changes() {
+    const changed: Threshold[] = [];
 
-  function submit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (opened === null) {
-      return;
+    if (opened === null || form.current === null) {
+      return changed;
     }
 
-    const data = new FormData(event.currentTarget);
-    const changed: Threshold[] = [];
+    const data = new FormData(form.current);
 
     for (const threshold of opened) {
       const value = {
@@ -47,12 +46,30 @@ export function ThresholdsDialog({ thresholds, error, busy, onSave, onClose }: P
       }
     }
 
-    onSave(changed);
+    return changed;
+  }
+
+  function submit(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    onSave(changes());
+  }
+
+  function close() {
+    if (changes().length > 0) {
+      setDiscard(true);
+      return;
+    }
+
+    onClose();
+  }
+
+  if (error !== "") {
+    content = <ErrorLine error={error} />;
   }
 
   if (opened !== null) {
     content = (
-      <form id="thresholds" onSubmit={submit}>
+      <form id="thresholds" ref={form} onSubmit={submit}>
         {opened.map(threshold => (
           <ThresholdRow key={threshold.metric} threshold={threshold} />
         ))}
@@ -66,15 +83,33 @@ export function ThresholdsDialog({ thresholds, error, busy, onSave, onClose }: P
     </button>
   );
 
-  return (
-    <Modal title="Progi alarmów" action={save} onClose={onClose}>
-      <p className="muted">
-        Alarm włącza się, gdy pomiar przekroczy próg. Kolejny alarm tego typu pojawi się dopiero, gdy wartość spadnie
-        poniżej progu o margines.
-      </p>
+  let question = null;
 
-      {content}
-    </Modal>
+  if (discard) {
+    question = (
+      <Confirm
+        title="Porzucić zmiany?"
+        text="Zmienione progi nie zostały zapisane."
+        button="Porzuć"
+        onYes={onClose}
+        onNo={() => setDiscard(false)}
+      />
+    );
+  }
+
+  return (
+    <>
+      <Modal title="Progi alarmów" action={save} onClose={close}>
+        <p className="muted">
+          Alarm włącza się, gdy pomiar przekroczy próg. Kolejny alarm tego typu pojawi się dopiero, gdy wartość spadnie
+          poniżej progu o margines.
+        </p>
+
+        {content}
+      </Modal>
+
+      {question}
+    </>
   );
 }
 

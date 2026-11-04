@@ -45,7 +45,7 @@ export function SessionBar({ incident, latest, online, busy, onEnd, onClose }: P
   return (
     <div className="session-bar">
       <div>
-        <h2>{incident.code}</h2>
+        <h2 title={incident.code}>{incident.code}</h2>
         <small>start {formatDate(incident.startedAt)}</small>
       </div>
 

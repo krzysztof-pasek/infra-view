@@ -13,25 +13,33 @@ export function SessionList({ incidents, selectedId, alarmIds, onSelect }: Props
   let content = <p className="muted">Ładowanie…</p>;
 
   if (incidents !== null) {
-    count = incidents.length;
-    content = <p className="muted">Brak aktywnych sesji</p>;
-  }
+    const active: Incident[] = [];
 
-  if (incidents !== null && incidents.length > 0) {
-    content = (
-      <ul className="list">
-        {incidents.map(incident => (
-          <li key={incident.id}>
-            <SessionItem
-              incident={incident}
-              selected={incident.id === selectedId}
-              alarm={alarmIds.includes(incident.id)}
-              onSelect={onSelect}
-            />
-          </li>
-        ))}
-      </ul>
-    );
+    for (const incident of incidents) {
+      if (incident.status === "IN_PROGRESS") {
+        active.push(incident);
+      }
+    }
+
+    count = active.length;
+    content = <p className="muted">Brak aktywnych sesji</p>;
+
+    if (active.length > 0) {
+      content = (
+        <ul className="list">
+          {active.map(incident => (
+            <li key={incident.id}>
+              <SessionItem
+                incident={incident}
+                selected={incident.id === selectedId}
+                alarm={alarmIds.includes(incident.id)}
+                onSelect={onSelect}
+              />
+            </li>
+          ))}
+        </ul>
+      );
+    }
   }
 
   return (

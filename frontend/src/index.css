@@ -229,7 +229,7 @@ input[type="checkbox"]:active {
   align-items: center;
 }
 
-h1, button, .status, .value, th, td {
+h1, button, .status, .value, th, td, .session-bar h2, .session-bar small {
   white-space: nowrap;
 }
 
@@ -241,7 +241,7 @@ input[type="range"], input[type="checkbox"], .icon, .list, .alarm-info {
   padding: 0;
 }
 
-.camera {
+.camera, .session-bar h2, .session-bar small {
   overflow: hidden;
 }
 
@@ -310,8 +310,17 @@ button, .topbar, .camera-controls, .toast {
   margin-bottom: var(--gap);
 }
 
+.topbar > .toolbar {
+  margin-left: auto;
+}
+
 .session-bar {
   flex: 1;
+}
+
+.session-bar h2, .session-bar small {
+  display: block;
+  text-overflow: ellipsis;
 }
 
 .toolbar {
@@ -607,6 +616,31 @@ tr:last-child td {
 
   .charts-column {
     grid-column: 2;
+  }
+}
+
+@media (max-width: 1000px) {
+  .pane {
+    position: static;
+    max-height: none;
+  }
+
+  .topbar {
+    position: relative;
+    height: auto;
+    flex-wrap: wrap;
+    border-radius: var(--radius);
+  }
+
+  .session-bar {
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    order: 3;
+  }
+
+  .toast {
+    top: var(--gap);
+    bottom: auto;
   }
 }
 

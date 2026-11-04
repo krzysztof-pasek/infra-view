@@ -1,5 +1,6 @@
 import type { AlarmGroup } from "./types";
 import { AlarmInfo } from "./AlarmInfo";
+import { ErrorLine } from "./ErrorLine";
 
 type Props = {
   groups: AlarmGroup[] | null;
@@ -10,12 +11,7 @@ type Props = {
 };
 
 export function AlarmList({ groups, error, busy, onSelect, onResolve }: Props) {
-  let warning = null;
   let content = null;
-
-  if (error !== "") {
-    warning = <p className="orange">{error}</p>;
-  }
 
   if (groups === null && error === "") {
     content = <p className="muted">Ładowanie…</p>;
@@ -45,7 +41,7 @@ export function AlarmList({ groups, error, busy, onSelect, onResolve }: Props) {
   return (
     <section aria-label="Aktywne alarmy">
       <h2>Aktywne alarmy</h2>
-      {warning}
+      <ErrorLine error={error} />
       {content}
     </section>
   );

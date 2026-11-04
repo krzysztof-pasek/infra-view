@@ -30,7 +30,7 @@ export function AlarmPopups({ groups, dismissed, onShow, onDismiss }: Props) {
             <button className="primary" onClick={() => onShow(group)}>
               Pokaż
             </button>
-            <button onClick={() => onDismiss(group)}>Zamknij</button>
+            <button onClick={() => onDismiss(group)}>Ukryj</button>
           </div>
         </div>
       ))}

@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Alarm, AlarmGroup, Incident, Telemetry, Threshold } from "./types";
 import { api, errorMessage } from "./api";
 import { findIncident, groupAlarms } from "./data";
-import { alarmNames, errorText, ONLINE_TIMEOUT } from "./format";
+import { alarmNames, ONLINE_TIMEOUT } from "./format";
 import { usePolling } from "./usePolling";
 import { SessionBar } from "./SessionBar";
 import { SessionList } from "./SessionList";
@@ -14,6 +14,7 @@ import { ThresholdsDialog } from "./ThresholdsDialog";
 import { ThemeToggle } from "./ThemeToggle";
 import { Toast } from "./Toast";
 import { Confirm } from "./Confirm";
+import { ErrorLine } from "./ErrorLine";
 
 const SESSIONS_INTERVAL = 5000;
 const ALARMS_INTERVAL = 2000;
@@ -39,6 +40,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const [now, setNow] = useState(Date.now);
+  const opening = useRef(0);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -46,17 +48,9 @@ export default function App() {
   }, []);
 
   let incidents: Incident[] = [];
-  let active: Incident[] | null = null;
 
   if (sessions.data !== null) {
     incidents = sessions.data;
-    active = [];
-
-    for (const incident of incidents) {
-      if (incident.status === "IN_PROGRESS") {
-        active.push(incident);
-      }
-    }
   }
 
   const selected = findIncident(incidents, selectedId);
@@ -87,22 +81,21 @@ export default function App() {
 
   let groups: AlarmGroup[] | null = null;
   const alarmIds: number[] = [];
+  const seen: number[] = [];
 
   if (alarms.data !== null) {
     groups = groupAlarms(alarms.data, incidents);
 
     for (const group of groups) {
       alarmIds.push(group.incidentId);
+
+      if (group.alarmType !== "SOS") {
+        seen.push(group.latestId);
+      }
     }
   }
 
   if (groups !== null && dismissed === null) {
-    const seen: number[] = [];
-
-    for (const group of groups) {
-      seen.push(group.latestId);
-    }
-
     setDismissed(seen);
   }
 
@@ -155,8 +148,25 @@ export default function App() {
     }
   }
 
-  function saveThresholds(list: Threshold[]) {
+  function openDialog(name: string) {
+    opening.current = opening.current + 1;
+    setDialog(name);
+  }
+
+  function saveAndClose(action: () => Promise<unknown>) {
+    const opened = opening.current;
+
     run(async () => {
+      await action();
+
+      if (opening.current === opened) {
+        setDialog("");
+      }
+    });
+  }
+
+  function saveThresholds(list: Threshold[]) {
+    saveAndClose(async () => {
       for (const item of list) {
         await api(`/alarm-thresholds/${item.metric}`, "PUT", {
           threshold: item.threshold,
@@ -164,19 +174,13 @@ export default function App() {
           enabled: item.enabled,
         });
       }
-
-      setDialog("");
     });
   }
 
   function dismissAlarm(group: AlarmGroup) {
-    let list: number[] = [];
-
     if (dismissed !== null) {
-      list = dismissed;
+      setDismissed([...dismissed, group.latestId]);
     }
-
-    setDismissed([...list, group.latestId]);
   }
 
   function showAlarm(group: AlarmGroup) {
@@ -191,12 +195,6 @@ export default function App() {
   function openSession(id: number) {
     setSelectedId(id);
     closeDialog();
-  }
-
-  let sessionsError = null;
-
-  if (sessions.error !== "") {
-    sessionsError = <p className="orange">{errorText(sessions.error, sessions.updatedAt)}</p>;
   }
 
   let popups = null;
@@ -255,16 +253,16 @@ export default function App() {
           onClose={() => setSelectedId(null)}
         />
         <nav className="toolbar">
-          <button onClick={() => setDialog("archive")}>Archiwum</button>
-          <button onClick={() => setDialog("thresholds")}>Progi alarmów</button>
+          <button onClick={() => openDialog("archive")}>Archiwum</button>
+          <button onClick={() => openDialog("thresholds")}>Progi alarmów</button>
           <ThemeToggle />
         </nav>
       </header>
 
       <main className="layout">
         <aside className="pane glass">
-          {sessionsError}
-          <SessionList incidents={active} selectedId={selectedId} alarmIds={alarmIds} onSelect={setSelectedId} />
+          <ErrorLine error={sessions.error} updatedAt={sessions.updatedAt} />
+          <SessionList incidents={sessions.data} selectedId={selectedId} alarmIds={alarmIds} onSelect={setSelectedId} />
           <AlarmList
             groups={groups}
             error={alarms.error}
