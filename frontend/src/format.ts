@@ -1,8 +1,7 @@
-import type { AlarmGroup, AlarmType, Metric, MotionState, Telemetry } from "./types";
+import type { AlarmGroup, AlarmType, Metric, MotionState } from "./types";
 
 export const ONLINE_TIMEOUT = 5000;
 export const GAP_TIMEOUT = 5000;
-export const CHART_WINDOW = 120;
 export const MAX_REPLAY = 300;
 
 export type Sensor = {
@@ -44,24 +43,6 @@ export function alarmTitle(group: AlarmGroup) {
   return alarmNames[group.alarmType];
 }
 
-export function findSensor(metric: Metric) {
-  for (const sensor of sensors) {
-    if (sensor.metric === metric) {
-      return sensor;
-    }
-  }
-
-  return null;
-}
-
-export function sensorValue(row: Telemetry | undefined, sensor: Sensor) {
-  if (row === undefined) {
-    return null;
-  }
-
-  return row[sensor.key];
-}
-
 export function formatNumber(value: number | null, digits: number) {
   if (value === null) {
     return "—";
@@ -90,8 +71,36 @@ export function formatDay(value: string) {
   return new Date(value).toLocaleDateString("sv-SE");
 }
 
-export function formatDelay(seconds: number) {
+export function formatClock(seconds: number) {
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
-  return `−${minutes}:${String(rest).padStart(2, "0")}`;
+  return `${minutes}:${String(rest).padStart(2, "0")}`;
+}
+
+export function formatDelay(seconds: number) {
+  return "−" + formatClock(seconds);
+}
+
+export function formatAge(milliseconds: number) {
+  const seconds = Math.max(0, Math.round(milliseconds / 1000));
+
+  if (seconds < 60) {
+    return `${seconds} s`;
+  }
+
+  if (seconds < 3600) {
+    return `${Math.floor(seconds / 60)} min`;
+  }
+
+  return `${Math.floor(seconds / 3600)} h`;
+}
+
+export function animationTime() {
+  let time = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--time")) * 1000;
+
+  if (Number.isNaN(time)) {
+    time = 0;
+  }
+
+  return time;
 }

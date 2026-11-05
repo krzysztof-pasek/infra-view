@@ -1,21 +1,21 @@
-import type { AlarmGroup, Incident } from "./types";
-import { nameOf } from "./data";
-import { alarmTitle, formatTime } from "./format";
+import type { AlarmGroup } from "./types";
+import { ErrorLine } from "./ErrorLine";
+import { Loading } from "./Loading";
+import { AlarmInfo } from "./AlarmInfo";
 
 type Props = {
   groups: AlarmGroup[] | null;
-  incidents: Incident[];
   error: string;
   busy: boolean;
   onSelect: (group: AlarmGroup) => void;
   onResolve: (group: AlarmGroup) => void;
 };
 
-export function AlarmList({ groups, incidents, error, busy, onSelect, onResolve }: Props) {
-  let content = <p className="muted">Ładowanie…</p>;
+export function AlarmList({ groups, error, busy, onSelect, onResolve }: Props) {
+  let content = null;
 
-  if (error !== "" && groups === null) {
-    content = <p className="orange">{error}</p>;
+  if (groups === null && error === "") {
+    content = <Loading />;
   }
 
   if (groups !== null && groups.length === 0) {
@@ -28,9 +28,7 @@ export function AlarmList({ groups, incidents, error, busy, onSelect, onResolve 
         {groups.map(group => (
           <li className="alarm" key={group.key}>
             <button className="alarm-info" onClick={() => onSelect(group)}>
-              <strong>{alarmTitle(group)}</strong>
-              <span>{nameOf(incidents, group.incidentId)}</span>
-              <small>{formatTime(group.triggeredAt)}</small>
+              <AlarmInfo group={group} />
             </button>
             <button disabled={busy} onClick={() => onResolve(group)}>
               Rozwiąż
@@ -41,16 +39,10 @@ export function AlarmList({ groups, incidents, error, busy, onSelect, onResolve 
     );
   }
 
-  let warning = null;
-
-  if (error !== "" && groups !== null) {
-    warning = <p className="orange">{error}</p>;
-  }
-
   return (
     <section aria-label="Aktywne alarmy">
-      <h2 className="pane-title">Aktywne alarmy</h2>
-      {warning}
+      <h2>Aktywne alarmy</h2>
+      <ErrorLine error={error} />
       {content}
     </section>
   );

@@ -1,7 +1,6 @@
 export type Incident = {
   id: number;
   code: string;
-  firefighterName: string | null;
   startedAt: string;
   endedAt: string | null;
   status: "IN_PROGRESS" | "RESOLVED";
@@ -10,7 +9,6 @@ export type Incident = {
 export type MotionState = "MOVING" | "STILL" | "NO_MOTION" | "FALLEN";
 
 export type Telemetry = {
-  id: number;
   recordedAt: string;
   temperature: number | null;
   co2Ppm: number | null;
@@ -26,12 +24,12 @@ export type Alarm = {
   incidentId: number;
   alarmType: AlarmType;
   triggeredAt: string;
-  resolvedAt: string | null;
 };
 
 export type AlarmGroup = {
   key: string;
   incidentId: number;
+  name: string;
   alarmType: AlarmType;
   ids: number[];
   latestId: number;
@@ -42,7 +40,6 @@ export type Metric = "TEMPERATURE" | "CO2_PPM" | "TVOC_PPB";
 
 export type Threshold = {
   metric: Metric;
-  alarmType: AlarmType;
   threshold: number;
   resetMargin: number;
   enabled: boolean;

@@ -28,10 +28,11 @@ export function usePolling<T>(path: string | null, interval: number) {
         const data = await api<T>(currentPath);
         const text = JSON.stringify(data);
 
-        if (text !== lastText) {
-          lastText = text;
+        if (text !== lastText && lastText !== "") {
           changedAt = Date.now();
         }
+
+        lastText = text;
 
         if (active) {
           setSnapshot({ path: currentPath, data, error: "", updatedAt: Date.now(), changedAt });

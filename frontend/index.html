@@ -5,21 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>INFRA VIEW</title>
     <script>
-      let theme = "light";
+      let theme = localStorage.getItem("theme");
 
-      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      if (theme === null && window.matchMedia("(prefers-color-scheme: dark)").matches) {
         theme = "dark";
       }
 
-      try {
-        if (localStorage.getItem("theme") !== null) {
-          theme = localStorage.getItem("theme");
-        }
-      } catch {
-        console.warn("Nie udało się odczytać motywu");
+      if (theme !== null) {
+        document.documentElement.dataset.theme = theme;
       }
-
-      document.documentElement.dataset.theme = theme;
     </script>
   </head>
   <body>

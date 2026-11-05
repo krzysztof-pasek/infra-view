@@ -1,102 +1,51 @@
-import { useEffect, useState } from "react";
-import { formatDelay, MAX_REPLAY } from "./format";
+import { useState } from "react";
+import { Appear } from "./Appear";
+import { Icon } from "./Icon";
 
-const RECONNECT_DELAY = 2000;
-const REPLAY_STEP = 5;
+type Props = {
+  path: string;
+  live: boolean;
+  paused: boolean;
+  max: number;
+  delay: number;
+  label: string | null;
+  onDelay: (delay: number) => void;
+  onPause: () => void;
+  onPlay: () => void;
+};
 
-function join(first: Uint8Array, second: Uint8Array) {
-  const result = new Uint8Array(first.length + second.length);
-  result.set(first);
-  result.set(second, first.length);
-  return result;
-}
-
-function findMarker(buffer: Uint8Array, marker: number, from: number) {
-  for (let i = from; i < buffer.length - 1; i++) {
-    if (buffer[i] === 0xff && buffer[i + 1] === marker) {
-      return i;
-    }
-  }
-
-  return -1;
-}
-
-export function CameraPanel({ incidentId }: { incidentId: number }) {
-  const [delay, setDelay] = useState(0);
-  const [frame, setFrame] = useState("");
-  const [attempt, setAttempt] = useState(0);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let url = "";
-    let timer = 0;
-
-    let path = `/api/incidents/${incidentId}/live`;
-
-    if (delay > 0) {
-      path = `/api/incidents/${incidentId}/replay?delaySeconds=${delay}`;
-    }
-
-    async function read() {
-      try {
-        const response = await fetch(path, { signal: controller.signal });
-
-        if (response.ok && response.body !== null) {
-          const reader = response.body.getReader();
-          let buffer = new Uint8Array(0);
-
-          while (true) {
-            const chunk = await reader.read();
-
-            if (chunk.done) {
-              break;
-            }
-
-            buffer = join(buffer, chunk.value);
-            let start = findMarker(buffer, 0xd8, 0);
-            let end = findMarker(buffer, 0xd9, start + 2);
-
-            while (start !== -1 && end !== -1) {
-              URL.revokeObjectURL(url);
-              url = URL.createObjectURL(new Blob([buffer.slice(start, end + 2)], { type: "image/jpeg" }));
-              setFrame(url);
-              buffer = buffer.slice(end + 2);
-              start = findMarker(buffer, 0xd8, 0);
-              end = findMarker(buffer, 0xd9, start + 2);
-            }
-          }
-        }
-      } catch (error) {
-        if (!controller.signal.aborted) {
-          console.warn("Błąd strumienia kamery", error);
-        }
-      }
-
-      if (!controller.signal.aborted) {
-        setFrame("");
-        timer = window.setTimeout(() => setAttempt(value => value + 1), RECONNECT_DELAY);
-      }
-    }
-
-    read();
-
-    return () => {
-      controller.abort();
-      clearTimeout(timer);
-      URL.revokeObjectURL(url);
-    };
-  }, [incidentId, delay, attempt]);
-
+export function CameraPanel({ path, live, paused, max, delay, label, onDelay, onPause, onPlay }: Props) {
+  const [failedPath, setFailedPath] = useState("");
   let image = <p className="camera-status">Brak obrazu z kamery</p>;
 
-  if (frame !== "") {
-    image = <img src={frame} alt="Obraz z kamery termowizyjnej" />;
+  if (path !== "" && path !== failedPath) {
+    image = <img src={path} alt="Obraz z kamery termowizyjnej" onError={() => setFailedPath(path)} />;
   }
 
-  let position = "0:00";
+  let liveButton = null;
 
-  if (delay > 0) {
-    position = formatDelay(delay);
+  if (live) {
+    liveButton = (
+      <button aria-pressed={delay === 0 && !paused} onClick={() => onDelay(0)}>
+        Na żywo
+      </button>
+    );
+  }
+
+  let timeLabel = null;
+
+  if (label !== null) {
+    timeLabel = <span>{label}</span>;
+  }
+
+  let toggleLabel = "Wstrzymaj";
+  let toggleClass = "icon swap primary";
+  let toggle = onPause;
+
+  if (paused) {
+    toggleLabel = "Wznów";
+    toggleClass = "icon swap on";
+    toggle = onPlay;
   }
 
   return (
@@ -104,19 +53,20 @@ export function CameraPanel({ incidentId }: { incidentId: number }) {
       {image}
 
       <div className="camera-controls glass">
-        <button aria-pressed={delay === 0} onClick={() => setDelay(0)}>
-          Na żywo
-        </button>
+        {liveButton}
         <input
           type="range"
           min={0}
-          max={MAX_REPLAY}
-          step={REPLAY_STEP}
-          value={MAX_REPLAY - delay}
+          max={max}
+          value={max - delay}
           aria-label="Przewijanie obrazu"
-          onChange={event => setDelay(MAX_REPLAY - Number(event.target.value))}
+          onChange={event => onDelay(max - Number(event.target.value))}
         />
-        <span>{position}</span>
+        <Appear>{timeLabel}</Appear>
+        <button className={toggleClass} aria-label={toggleLabel} title={toggleLabel} onClick={toggle}>
+          <Icon d="M7 5h3v14H7zM14 5h3v14h-3z" />
+          <Icon d="M8 5v14l11-7z" />
+        </button>
       </div>
     </div>
   );

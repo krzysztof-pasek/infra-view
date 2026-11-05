@@ -1,105 +1,147 @@
-import { useState } from "react";
-import type { FormEvent } from "react";
-import type { Metric, Threshold } from "./types";
-import { findSensor } from "./format";
+import { useRef, useState } from "react";
+import type { SubmitEvent } from "react";
+import type { Threshold } from "./types";
+import { sensors } from "./format";
 import { Modal } from "./Modal";
-
-export type ThresholdValues = {
-  threshold: number;
-  resetMargin: number;
-  enabled: boolean;
-};
+import { Confirm } from "./Confirm";
+import { ErrorLine } from "./ErrorLine";
+import { Loading } from "./Loading";
+import { Appear } from "./Appear";
 
 type Props = {
   thresholds: Threshold[] | null;
   error: string;
   busy: boolean;
-  onSave: (metric: Metric, values: ThresholdValues) => void;
+  onSave: (thresholds: Threshold[]) => void;
   onClose: () => void;
 };
 
 export function ThresholdsDialog({ thresholds, error, busy, onSave, onClose }: Props) {
-  let content = <p className="muted">Ładowanie…</p>;
+  const [initial, setInitial] = useState<Threshold[] | null>(null);
+  const [discard, setDiscard] = useState(false);
+  const form = useRef<HTMLFormElement>(null);
+  let content = <Loading />;
 
-  if (error !== "") {
-    content = <p className="orange">{error}</p>;
+  if (initial === null && thresholds !== null) {
+    setInitial(thresholds);
   }
 
-  if (thresholds !== null) {
+  function changes() {
+    const changed: Threshold[] = [];
+
+    if (initial === null || form.current === null) {
+      return changed;
+    }
+
+    const data = new FormData(form.current);
+
+    for (const threshold of initial) {
+      const value = {
+        metric: threshold.metric,
+        threshold: Number(data.get(threshold.metric + "-threshold")),
+        resetMargin: Number(data.get(threshold.metric + "-margin")),
+        enabled: data.get(threshold.metric + "-enabled") !== null,
+      };
+
+      if (value.threshold !== threshold.threshold || value.resetMargin !== threshold.resetMargin || value.enabled !== threshold.enabled) {
+        changed.push(value);
+      }
+    }
+
+    return changed;
+  }
+
+  function submit(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    onSave(changes());
+  }
+
+  function close() {
+    if (changes().length > 0) {
+      setDiscard(true);
+      return;
+    }
+
+    onClose();
+  }
+
+  if (error !== "") {
+    content = <ErrorLine error={error} />;
+  }
+
+  if (initial !== null) {
     content = (
-      <div>
-        {thresholds.map(threshold => (
-          <ThresholdRow
-            key={threshold.metric + threshold.threshold + threshold.resetMargin + threshold.enabled}
-            threshold={threshold}
-            busy={busy}
-            onSave={onSave}
-          />
+      <form id="thresholds" ref={form} onSubmit={submit}>
+        {initial.map(threshold => (
+          <ThresholdRow key={threshold.metric} threshold={threshold} />
         ))}
-      </div>
+      </form>
+    );
+  }
+
+  const save = (
+    <button className="primary" form="thresholds" disabled={busy || initial === null}>
+      Zapisz
+    </button>
+  );
+
+  let question = null;
+
+  if (discard) {
+    question = (
+      <Confirm
+        title="Porzucić zmiany?"
+        text="Zmienione progi nie zostały zapisane."
+        button="Porzuć"
+        onYes={onClose}
+        onNo={() => setDiscard(false)}
+      />
     );
   }
 
   return (
-    <Modal title="Progi alarmów" onClose={onClose}>
-      <p className="muted">
-        Alarm włącza się, gdy pomiar przekroczy próg. Kolejny alarm tego typu pojawi się dopiero, gdy wartość spadnie
-        poniżej progu o margines.
-      </p>
+    <>
+      <Modal title="Progi alarmów" action={save} onClose={close}>
+        <p className="muted">
+          Alarm włącza się, gdy pomiar przekroczy próg. Kolejny alarm tego typu pojawi się dopiero, gdy wartość spadnie
+          poniżej progu o margines.
+        </p>
 
-      {content}
-    </Modal>
+        {content}
+      </Modal>
+
+      <Appear>{question}</Appear>
+    </>
   );
 }
 
-type RowProps = {
-  threshold: Threshold;
-  busy: boolean;
-  onSave: (metric: Metric, values: ThresholdValues) => void;
-};
+function ThresholdRow({ threshold }: { threshold: Threshold }) {
+  let label: string = threshold.metric;
 
-function labelOf(metric: Metric) {
-  const sensor = findSensor(metric);
-
-  if (sensor === null) {
-    return metric;
-  }
-
-  return `${sensor.label} (${sensor.unit})`;
-}
-
-function ThresholdRow({ threshold, busy, onSave }: RowProps) {
-  const [value, setValue] = useState(String(threshold.threshold));
-  const [margin, setMargin] = useState(String(threshold.resetMargin));
-  const [enabled, setEnabled] = useState(threshold.enabled);
-
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    onSave(threshold.metric, { threshold: Number(value), resetMargin: Number(margin), enabled });
+  for (const sensor of sensors) {
+    if (sensor.metric === threshold.metric) {
+      label = `${sensor.label} (${sensor.unit})`;
+    }
   }
 
   return (
-    <form className="threshold" onSubmit={submit}>
-      <strong>{labelOf(threshold.metric)}</strong>
+    <div className="threshold">
+      <strong>{label}</strong>
 
       <label>
         Próg
-        <input type="number" step="any" required value={value} onChange={event => setValue(event.target.value)} />
+        <input name={threshold.metric + "-threshold"} type="number" step="any" required defaultValue={threshold.threshold} />
       </label>
 
       <label>
         Margines
-        <input type="number" step="any" min={0} required value={margin} onChange={event => setMargin(event.target.value)} />
+        <input name={threshold.metric + "-margin"} type="number" step="any" min={0} required defaultValue={threshold.resetMargin} />
       </label>
 
       <label className="toggle">
-        <input type="checkbox" checked={enabled} onChange={event => setEnabled(event.target.checked)} />
+        <input name={threshold.metric + "-enabled"} type="checkbox" defaultChecked={threshold.enabled} />
         Włączony
       </label>
-
-      <button className="primary" disabled={busy}>
-        Zapisz
-      </button>
-    </form>
+    </div>
   );
 }

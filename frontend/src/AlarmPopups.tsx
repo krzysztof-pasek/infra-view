@@ -1,43 +1,37 @@
-import type { AlarmGroup, Incident } from "./types";
-import { nameOf } from "./data";
-import { alarmTitle, formatTime } from "./format";
+import type { AlarmGroup } from "./types";
+import { Appear } from "./Appear";
+import { AlarmInfo } from "./AlarmInfo";
 
 type Props = {
   groups: AlarmGroup[];
   dismissed: number[];
-  incidents: Incident[];
   onShow: (group: AlarmGroup) => void;
   onDismiss: (group: AlarmGroup) => void;
 };
 
-export function AlarmPopups({ groups, dismissed, incidents, onShow, onDismiss }: Props) {
-  const visible: AlarmGroup[] = [];
-
-  for (const group of groups) {
-    if (!dismissed.includes(group.latestId)) {
-      visible.push(group);
+export function AlarmPopups({ groups, dismissed, onShow, onDismiss }: Props) {
+  function popup(group: AlarmGroup) {
+    if (dismissed.includes(group.latestId)) {
+      return null;
     }
-  }
 
-  if (visible.length === 0) {
-    return null;
+    return (
+      <div className="popup glass" role="alert">
+        <AlarmInfo group={group} />
+        <div className="toolbar">
+          <button className="primary" onClick={() => onShow(group)}>
+            Pokaż
+          </button>
+          <button onClick={() => onDismiss(group)}>Ukryj</button>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="popups">
-      {visible.map(group => (
-        <div className="popup glass" role="alert" key={group.key}>
-          <strong>{alarmTitle(group)}</strong>
-          <span>
-            {nameOf(incidents, group.incidentId)} · {formatTime(group.triggeredAt)}
-          </span>
-          <div>
-            <button className="primary" onClick={() => onShow(group)}>
-              Pokaż
-            </button>
-            <button onClick={() => onDismiss(group)}>Zamknij</button>
-          </div>
-        </div>
+      {groups.map(group => (
+        <Appear key={group.key}>{popup(group)}</Appear>
       ))}
     </div>
   );

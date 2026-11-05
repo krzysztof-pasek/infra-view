@@ -1,8 +1,7 @@
-import { useState } from "react";
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { Telemetry, Threshold } from "./types";
 import type { Sensor } from "./format";
-import { CHART_WINDOW, formatDate, formatNumber, formatTime, GAP_TIMEOUT, sensors, sensorValue } from "./format";
+import { animationTime, formatDate, formatNumber, formatTime, GAP_TIMEOUT, sensors } from "./format";
 import { findThreshold } from "./data";
 
 type Point = {
@@ -25,7 +24,7 @@ function makePoint(time: number, row: Telemetry | null) {
   return point;
 }
 
-function toPoints(rows: Telemetry[]) {
+export function toPoints(rows: Telemetry[]) {
   const points: Point[] = [];
 
   for (const row of rows) {
@@ -42,79 +41,48 @@ function toPoints(rows: Telemetry[]) {
   return points;
 }
 
+export function pointsUntil(points: Point[], until: number, span: number) {
+  const visible: Point[] = [];
+
+  for (const point of points) {
+    if (point.time <= until && point.time > until - span * 1000) {
+      visible.push(point);
+    }
+  }
+
+  return visible;
+}
+
 type Props = {
   rows: Telemetry[];
   thresholds: Threshold[] | null;
+  until: number;
+  span: number;
+  animate: boolean;
 };
 
-export function Charts({ rows, thresholds }: Props) {
-  const [end, setEnd] = useState<number | null>(null);
-
+export function Charts({ rows, thresholds, until, span, animate }: Props) {
   if (rows.length === 0) {
     return <p className="card muted">Brak pomiarów</p>;
   }
 
-  const points = toPoints(rows);
-  let last = points.length;
+  const visible = pointsUntil(toPoints(rows), until, span);
+  let current = makePoint(0, null);
 
-  if (end !== null && end < points.length) {
-    last = end;
+  if (visible.length > 0) {
+    current = visible[visible.length - 1];
   }
 
-  let first = last - CHART_WINDOW;
-
-  if (first < 0) {
-    first = 0;
-  }
-
-  const visible = points.slice(first, last);
-  const latest = rows[rows.length - 1];
-
-  function move(value: number) {
-    if (value >= points.length) {
-      setEnd(null);
-    } else {
-      setEnd(value);
-    }
-  }
-
-  let scroll = null;
-
-  if (points.length > CHART_WINDOW) {
-    scroll = (
-      <div className="card chart-scroll">
-        <input
-          type="range"
-          min={CHART_WINDOW}
-          max={points.length}
-          value={last}
-          aria-label="Przesuwanie wykresów"
-          onChange={event => move(Number(event.target.value))}
-        />
-        <small>
-          {formatTime(visible[0].time)} – {formatTime(visible[visible.length - 1].time)}
-        </small>
-        <button aria-pressed={end === null} onClick={() => setEnd(null)}>
-          Na żywo
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      {sensors.map(sensor => (
-        <SensorChart
-          key={sensor.key}
-          sensor={sensor}
-          points={visible}
-          value={sensorValue(latest, sensor)}
-          threshold={findThreshold(thresholds, sensor.metric)}
-        />
-      ))}
-      {scroll}
-    </>
-  );
+  return sensors.map(sensor => (
+    <SensorChart
+      key={sensor.key}
+      sensor={sensor}
+      points={visible}
+      value={current[sensor.key]}
+      threshold={findThreshold(thresholds, sensor.metric)}
+      animate={animate}
+    />
+  ));
 }
 
 type ChartProps = {
@@ -122,10 +90,12 @@ type ChartProps = {
   points: Point[];
   value: number | null;
   threshold: Threshold | null;
+  animate: boolean;
 };
 
-function SensorChart({ sensor, points, value, threshold }: ChartProps) {
+function SensorChart({ sensor, points, value, threshold, animate }: ChartProps) {
   const axis = { fill: "var(--muted)", fontSize: 11 };
+  const duration = animationTime();
   let valueClass = "value";
   let line = null;
   let unit = null;
@@ -173,7 +143,8 @@ function SensorChart({ sensor, points, value, threshold }: ChartProps) {
               tickFormatter={value => formatNumber(value, sensor.digits)}
             />
             <Tooltip
-              labelFormatter={time => formatDate(Number(time))}
+              animationDuration={duration}
+              labelFormatter={label => formatDate(Number(label))}
               contentStyle={{ background: "var(--solid)", border: "none", borderRadius: 12 }}
             />
             {line}
@@ -184,7 +155,8 @@ function SensorChart({ sensor, points, value, threshold }: ChartProps) {
               stroke="var(--accent)"
               strokeWidth={2}
               dot={false}
-              isAnimationActive={false}
+              isAnimationActive={animate}
+              animationDuration={duration}
             />
           </LineChart>
         </ResponsiveContainer>
