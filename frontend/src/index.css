@@ -203,12 +203,24 @@ input[type="checkbox"]:active {
   will-change: transform;
 }
 
-.topbar, .pane, .card, .camera, .popup, .modal, .toast, .list > li {
+.topbar, .pane, .card, .camera, .popup, .modal, .menu, .toast, .list > li, .camera-controls > div {
   animation: appear var(--time) ease both;
 }
 
 .overlay {
   animation: dim var(--time) ease both;
+}
+
+.closing .popup, .closing .modal, .closing .menu, .closing .toast {
+  animation-name: disappear;
+}
+
+.camera-controls > .closing {
+  animation-name: disappear, shrink;
+}
+
+.closing .overlay {
+  animation-name: undim;
 }
 
 @keyframes appear {
@@ -218,8 +230,35 @@ input[type="checkbox"]:active {
   }
 }
 
+@keyframes disappear {
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes grow {
+  from {
+    width: 0;
+    margin-left: calc(-1 * var(--gap));
+  }
+}
+
+@keyframes shrink {
+  to {
+    width: 0;
+    margin-left: calc(-1 * var(--gap));
+  }
+}
+
 @keyframes dim {
   from {
+    background-color: transparent;
+  }
+}
+
+@keyframes undim {
+  to {
     background-color: transparent;
   }
 }
@@ -229,7 +268,7 @@ input[type="checkbox"]:active {
   align-items: center;
 }
 
-h1, button, .status, .value, th, td, .session-bar h2, .session-bar small {
+h1, button, .status, .value, th, td, .session-bar h2, .session-bar small, .camera-controls > div {
   white-space: nowrap;
 }
 
@@ -241,7 +280,7 @@ input[type="range"], input[type="checkbox"], .icon, .list, .alarm-info {
   padding: 0;
 }
 
-.camera, .session-bar h2, .session-bar small {
+.camera, .camera-controls > div, .session-bar h2, .session-bar small {
   overflow: hidden;
 }
 
@@ -249,7 +288,7 @@ input[type="range"], input[type="checkbox"], .icon, .list, .alarm-info {
   width: 100%;
 }
 
-.layout, .content, .pane, .list, .alarm-info, .popup, .modal, .threshold, label {
+.menu, .layout, .content, .pane, .list, .alarm-info, .popup, .modal, .threshold, label {
   display: grid;
 }
 
@@ -258,7 +297,7 @@ input[type="range"], input[type="checkbox"], .icon, .list, .alarm-info {
   place-items: center;
 }
 
-.card, .pane, .camera, .popup, .modal {
+.card, .pane, .camera, .popup, .modal, .menu {
   border-radius: var(--radius);
 }
 
@@ -290,11 +329,11 @@ button, .topbar, .camera-controls, .toast {
   gap: 8px;
 }
 
-.pane, .session, .alarm {
+.pane, .menu, .session, .alarm, .menu button {
   padding: 10px;
 }
 
-.session, .alarm, input, select {
+.session, .alarm, .menu button, input, select {
   border-radius: 12px;
 }
 
@@ -357,6 +396,13 @@ button, .topbar, .camera-controls, .toast {
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.menu {
+  position: fixed;
+  z-index: 20;
+  min-width: 180px;
+  transform-origin: top right;
 }
 
 .layout {
@@ -422,14 +468,14 @@ details[open] > summary::before {
   list-style: none;
 }
 
-.session, .alarm-info {
+.session, .alarm-info, .menu button {
   background: none;
   font-weight: 400;
   text-align: left;
   white-space: normal;
 }
 
-.session:not([aria-pressed="true"]):hover {
+.session:not([aria-pressed="true"]):hover, .menu button:hover:not(:disabled) {
   background: var(--fill);
 }
 
@@ -498,6 +544,10 @@ details[open] > summary::before {
 .camera-controls input {
   flex: 1;
   width: 220px;
+}
+
+.camera-controls > div {
+  animation-name: appear, grow;
 }
 
 .camera-controls span {
@@ -636,6 +686,10 @@ tr:last-child td {
     flex-basis: 100%;
     flex-wrap: wrap;
     order: 3;
+  }
+
+  .session-bar .icon {
+    margin-left: auto;
   }
 
   .toast {

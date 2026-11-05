@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: infra-view-db
+    container_name: INFRA_VIEW_DB
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -20,6 +20,7 @@ services:
 
   backend:
     build: ./backend
+    container_name: INFRA_VIEW_BACKEND
     restart: unless-stopped
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
@@ -31,7 +32,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/incidents"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/alarm-thresholds"]
       interval: 10s
       timeout: 3s
       retries: 10

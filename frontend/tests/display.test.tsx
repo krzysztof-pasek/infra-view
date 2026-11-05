@@ -1,8 +1,9 @@
-import { fireEvent, render } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import type { Alarm, AlarmType, Incident } from "../src/types";
 import { groupAlarms } from "../src/data";
-import { alarmTitle, formatDelay } from "../src/format";
+import { alarmTitle, formatAge, formatDelay } from "../src/format";
+import { SessionBar } from "../src/SessionBar";
 import { Modal } from "../src/Modal";
 
 const session: Incident = { id: 1, code: "Jan Kowalski", startedAt: "2026-09-21T10:00:00Z", endedAt: null, status: "IN_PROGRESS" };
@@ -32,7 +33,22 @@ it("alarm SOS ma czytelną nazwę", () => {
 it("pokazuje opóźnienie powtórki w minutach", () => {
   expect(formatDelay(150)).toBe("−2:30");
   expect(formatDelay(5)).toBe("−0:05");
-  expect(formatDelay(0)).toBe("−0:00");
+});
+
+it("pokazuje, jak dawno przyszedł ostatni pomiar", () => {
+  expect(formatAge(25400)).toBe("25 s");
+  expect(formatAge(-3000)).toBe("0 s");
+  expect(formatAge(185000)).toBe("3 min");
+  expect(formatAge(7300000)).toBe("2 h");
+
+  const latest = { recordedAt: session.startedAt, temperature: null, co2Ppm: null, tvocPpb: null, gasVoltage: null, motionState: null };
+  const now = Date.parse(session.startedAt) + 25000;
+  const handlers = { onEnd: () => {}, onRename: () => {}, onClose: () => {} };
+  const view = render(<SessionBar incident={session} latest={latest} online={false} now={now} busy={false} {...handlers} />);
+
+  expect(screen.getByText("Brak danych z kasku · 25 s")).toBeTruthy();
+  view.rerender(<SessionBar incident={session} latest={latest} online={true} now={now} busy={false} {...handlers} />);
+  expect(screen.getByText("Na żywo")).toBeTruthy();
 });
 
 it("Esc zamyka tylko okno na wierzchu", () => {

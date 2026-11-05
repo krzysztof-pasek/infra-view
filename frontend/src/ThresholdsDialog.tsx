@@ -5,6 +5,8 @@ import { sensors } from "./format";
 import { Modal } from "./Modal";
 import { Confirm } from "./Confirm";
 import { ErrorLine } from "./ErrorLine";
+import { Loading } from "./Loading";
+import { Appear } from "./Appear";
 
 type Props = {
   thresholds: Threshold[] | null;
@@ -15,25 +17,25 @@ type Props = {
 };
 
 export function ThresholdsDialog({ thresholds, error, busy, onSave, onClose }: Props) {
-  const [opened, setOpened] = useState<Threshold[] | null>(null);
+  const [initial, setInitial] = useState<Threshold[] | null>(null);
   const [discard, setDiscard] = useState(false);
   const form = useRef<HTMLFormElement>(null);
-  let content = <p className="muted">Ładowanie…</p>;
+  let content = <Loading />;
 
-  if (opened === null && thresholds !== null) {
-    setOpened(thresholds);
+  if (initial === null && thresholds !== null) {
+    setInitial(thresholds);
   }
 
   function changes() {
     const changed: Threshold[] = [];
 
-    if (opened === null || form.current === null) {
+    if (initial === null || form.current === null) {
       return changed;
     }
 
     const data = new FormData(form.current);
 
-    for (const threshold of opened) {
+    for (const threshold of initial) {
       const value = {
         metric: threshold.metric,
         threshold: Number(data.get(threshold.metric + "-threshold")),
@@ -67,10 +69,10 @@ export function ThresholdsDialog({ thresholds, error, busy, onSave, onClose }: P
     content = <ErrorLine error={error} />;
   }
 
-  if (opened !== null) {
+  if (initial !== null) {
     content = (
       <form id="thresholds" ref={form} onSubmit={submit}>
-        {opened.map(threshold => (
+        {initial.map(threshold => (
           <ThresholdRow key={threshold.metric} threshold={threshold} />
         ))}
       </form>
@@ -78,7 +80,7 @@ export function ThresholdsDialog({ thresholds, error, busy, onSave, onClose }: P
   }
 
   const save = (
-    <button className="primary" form="thresholds" disabled={busy || opened === null}>
+    <button className="primary" form="thresholds" disabled={busy || initial === null}>
       Zapisz
     </button>
   );
@@ -108,7 +110,7 @@ export function ThresholdsDialog({ thresholds, error, busy, onSave, onClose }: P
         {content}
       </Modal>
 
-      {question}
+      <Appear>{question}</Appear>
     </>
   );
 }

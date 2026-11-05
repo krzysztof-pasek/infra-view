@@ -11,10 +11,12 @@ import { AlarmPopups } from "./AlarmPopups";
 import { SessionView } from "./SessionView";
 import { ArchiveDialog } from "./ArchiveDialog";
 import { ThresholdsDialog } from "./ThresholdsDialog";
+import { RenameDialog } from "./RenameDialog";
 import { ThemeToggle } from "./ThemeToggle";
 import { Toast } from "./Toast";
 import { Confirm } from "./Confirm";
 import { ErrorLine } from "./ErrorLine";
+import { Appear } from "./Appear";
 
 const SESSIONS_INTERVAL = 5000;
 const ALARMS_INTERVAL = 2000;
@@ -34,13 +36,14 @@ export default function App() {
   const alarms = usePolling<Alarm[]>("/alarms/active", ALARMS_INTERVAL);
   const thresholds = usePolling<Threshold[]>("/alarm-thresholds", THRESHOLDS_INTERVAL);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [renameId, setRenameId] = useState<number | null>(null);
   const [dialog, setDialog] = useState("");
   const [dismissed, setDismissed] = useState<number[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const [now, setNow] = useState(Date.now);
-  const opening = useRef(0);
+  const openCount = useRef(0);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -54,6 +57,7 @@ export default function App() {
   }
 
   const selected = findIncident(incidents, selectedId);
+  const renamed = findIncident(incidents, renameId);
   let telemetryPath = null;
   let telemetryInterval = LIVE_INTERVAL;
 
@@ -149,17 +153,17 @@ export default function App() {
   }
 
   function openDialog(name: string) {
-    opening.current = opening.current + 1;
+    openCount.current = openCount.current + 1;
     setDialog(name);
   }
 
   function saveAndClose(action: () => Promise<unknown>) {
-    const opened = opening.current;
+    const countBefore = openCount.current;
 
     run(async () => {
       await action();
 
-      if (opening.current === opened) {
+      if (openCount.current === countBefore) {
         setDialog("");
       }
     });
@@ -175,6 +179,17 @@ export default function App() {
         });
       }
     });
+  }
+
+  function openRename() {
+    setRenameId(selectedId);
+    openDialog("rename");
+  }
+
+  function saveName(code: string) {
+    if (renamed !== undefined) {
+      saveAndClose(() => api(`/incidents/${renamed.id}/code`, "PUT", { code }));
+    }
   }
 
   function dismissAlarm(group: AlarmGroup) {
@@ -210,6 +225,12 @@ export default function App() {
     );
   }
 
+  let toast = null;
+
+  if (error !== "") {
+    toast = <Toast message={error} onClose={() => setError("")} />;
+  }
+
   let dialogWindow = null;
 
   if (dialog === "archive") {
@@ -226,6 +247,10 @@ export default function App() {
         onClose={closeDialog}
       />
     );
+  }
+
+  if (dialog === "rename" && renamed !== undefined) {
+    dialogWindow = <RenameDialog code={renamed.code} busy={busy} onSave={saveName} onClose={closeDialog} />;
   }
 
   if (confirmation !== null) {
@@ -248,8 +273,10 @@ export default function App() {
           incident={selected}
           latest={latest}
           online={online}
+          now={now}
           busy={busy}
           onEnd={endSession}
+          onRename={openRename}
           onClose={() => setSelectedId(null)}
         />
         <nav className="toolbar">
@@ -279,12 +306,14 @@ export default function App() {
           thresholds={thresholds.data}
           error={telemetry.error}
           updatedAt={telemetry.updatedAt}
+          now={now}
+          online={online}
         />
       </main>
 
       {popups}
-      {dialogWindow}
-      <Toast message={error} onClose={() => setError("")} />
+      <Appear>{dialogWindow}</Appear>
+      <Appear>{toast}</Appear>
     </>
   );
 }

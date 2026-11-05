@@ -1,6 +1,7 @@
 import type { AlarmGroup } from "./types";
-import { AlarmInfo } from "./AlarmInfo";
 import { ErrorLine } from "./ErrorLine";
+import { Loading } from "./Loading";
+import { AlarmInfo } from "./AlarmInfo";
 
 type Props = {
   groups: AlarmGroup[] | null;
@@ -14,7 +15,7 @@ export function AlarmList({ groups, error, busy, onSelect, onResolve }: Props) {
   let content = null;
 
   if (groups === null && error === "") {
-    content = <p className="muted">Ładowanie…</p>;
+    content = <Loading />;
   }
 
   if (groups !== null && groups.length === 0) {

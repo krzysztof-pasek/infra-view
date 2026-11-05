@@ -4,10 +4,6 @@ type Props = {
 };
 
 export function Toast({ message, onClose }: Props) {
-  if (message === "") {
-    return null;
-  }
-
   return (
     <div className="toast glass" role="alert">
       <span className="orange">{message}</span>

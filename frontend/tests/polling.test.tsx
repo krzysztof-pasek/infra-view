@@ -79,3 +79,24 @@ it("po zerwaniu połączenia wraca do pobierania danych", async () => {
   expect(result.current.data).toBe(1);
   expect(result.current.error).toBe("");
 });
+
+it("pierwsze pobranie nie liczy się jako zmiana danych", async () => {
+  vi.useFakeTimers();
+  const fetchMock = vi.fn()
+    .mockImplementationOnce(async () => Response.json(1))
+    .mockImplementationOnce(async () => Response.json(1))
+    .mockImplementation(async () => Response.json(2));
+  vi.stubGlobal("fetch", fetchMock);
+  const { result } = renderHook(() => usePolling<number>("/test", ONE_SECOND));
+
+  await act(() => vi.advanceTimersByTimeAsync(10));
+  expect(result.current.data).toBe(1);
+  expect(result.current.changedAt).toBe(0);
+
+  await act(() => vi.advanceTimersByTimeAsync(ONE_SECOND));
+  expect(result.current.changedAt).toBe(0);
+
+  await act(() => vi.advanceTimersByTimeAsync(ONE_SECOND));
+  expect(result.current.data).toBe(2);
+  expect(result.current.changedAt).toBeGreaterThan(0);
+});

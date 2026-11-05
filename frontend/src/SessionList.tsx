@@ -1,5 +1,6 @@
 import type { Incident } from "./types";
 import { formatTime } from "./format";
+import { Loading } from "./Loading";
 
 type Props = {
   incidents: Incident[] | null;
@@ -10,7 +11,7 @@ type Props = {
 
 export function SessionList({ incidents, selectedId, alarmIds, onSelect }: Props) {
   let count = 0;
-  let content = <p className="muted">Ładowanie…</p>;
+  let content = <Loading />;
 
   if (incidents !== null) {
     const active: Incident[] = [];
