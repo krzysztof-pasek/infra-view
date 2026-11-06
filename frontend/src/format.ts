@@ -1,39 +1,5 @@
-import type { AlarmGroup, AlarmType, Metric, MotionState } from "./types";
-
-export const ONLINE_TIMEOUT = 5000;
-export const GAP_TIMEOUT = 5000;
-export const MAX_REPLAY = 300;
-
-export type Sensor = {
-  key: "temperature" | "co2Ppm" | "tvocPpb" | "gasVoltage";
-  metric: Metric | null;
-  label: string;
-  unit: string;
-  digits: number;
-};
-
-export const sensors: Sensor[] = [
-  { key: "temperature", metric: "TEMPERATURE", label: "Temperatura", unit: "°C", digits: 1 },
-  { key: "co2Ppm", metric: "CO2_PPM", label: "CO₂", unit: "ppm", digits: 0 },
-  { key: "tvocPpb", metric: "TVOC_PPB", label: "Związki organiczne (TVOC)", unit: "ppb", digits: 0 },
-  { key: "gasVoltage", metric: null, label: "CO i gazy palne (intensywność)", unit: "V", digits: 2 },
-];
-
-export const motionStates: Record<MotionState, { label: string; color: string }> = {
-  MOVING: { label: "W ruchu", color: "" },
-  STILL: { label: "Nieruchomo", color: "" },
-  NO_MOTION: { label: "Brak ruchu", color: "red" },
-  FALLEN: { label: "Upadek", color: "red" },
-};
-
-export const alarmNames: Record<AlarmType, string> = {
-  HIGH_TEMPERATURE: "Wysoka temperatura",
-  HIGH_CO2: "Wysokie CO₂",
-  HIGH_TVOC: "Wysokie TVOC",
-  NO_MOTION: "Brak ruchu",
-  FALL: "Upadek",
-  SOS: "SOS",
-};
+import type { AlarmGroup } from "./types";
+import { alarmNames } from "./config";
 
 export function alarmTitle(group: AlarmGroup) {
   if (group.ids.length > 1) {
@@ -78,7 +44,7 @@ export function formatClock(seconds: number) {
 }
 
 export function formatDelay(seconds: number) {
-  return "−" + formatClock(seconds);
+  return `−${formatClock(seconds)}`;
 }
 
 export function formatAge(milliseconds: number) {
@@ -93,14 +59,4 @@ export function formatAge(milliseconds: number) {
   }
 
   return `${Math.floor(seconds / 3600)} h`;
-}
-
-export function animationTime() {
-  let time = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--time")) * 1000;
-
-  if (Number.isNaN(time)) {
-    time = 0;
-  }
-
-  return time;
 }

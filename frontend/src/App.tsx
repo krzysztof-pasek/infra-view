@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { Alarm, AlarmGroup, Incident, Telemetry, Threshold } from "./types";
 import { api, errorMessage } from "./api";
-import { findIncident, groupAlarms } from "./data";
-import { alarmNames, ONLINE_TIMEOUT } from "./format";
+import { findIncident, groupAlarms, lastItem } from "./data";
+import { alarmNames, ONLINE_TIMEOUT } from "./config";
 import { usePolling } from "./usePolling";
 import { SessionBar } from "./SessionBar";
 import { SessionList } from "./SessionList";
@@ -31,7 +31,7 @@ type Confirmation = {
   action: () => Promise<unknown>;
 };
 
-export default function App() {
+export function App() {
   const sessions = usePolling<Incident[]>("/incidents", SESSIONS_INTERVAL);
   const alarms = usePolling<Alarm[]>("/alarms/active", ALARMS_INTERVAL);
   const thresholds = usePolling<Threshold[]>("/alarm-thresholds", THRESHOLDS_INTERVAL);
@@ -56,16 +56,16 @@ export default function App() {
     incidents = sessions.data;
   }
 
-  const selected = findIncident(incidents, selectedId);
-  const renamed = findIncident(incidents, renameId);
+  const selectedIncident = findIncident(incidents, selectedId);
+  const renamedIncident = findIncident(incidents, renameId);
   let telemetryPath = null;
   let telemetryInterval = LIVE_INTERVAL;
 
-  if (selected !== undefined) {
-    telemetryPath = `/telemetry/incident/${selected.id}`;
+  if (selectedIncident !== null) {
+    telemetryPath = `/telemetry/incident/${selectedIncident.id}`;
   }
 
-  if (selected !== undefined && selected.status !== "IN_PROGRESS") {
+  if (selectedIncident !== null && selectedIncident.status !== "IN_PROGRESS") {
     telemetryInterval = ENDED_INTERVAL;
   }
 
@@ -76,22 +76,22 @@ export default function App() {
     rows = telemetry.data;
   }
 
-  const latest = rows.at(-1);
+  const latest = lastItem(rows);
   let online = false;
 
-  if (selected !== undefined && selected.status === "IN_PROGRESS" && latest !== undefined) {
+  if (selectedIncident !== null && selectedIncident.status === "IN_PROGRESS" && latest !== null) {
     online = now - telemetry.changedAt < ONLINE_TIMEOUT;
   }
 
   let groups: AlarmGroup[] | null = null;
-  const alarmIds: number[] = [];
+  const alarmIncidentIds: number[] = [];
   const seen: number[] = [];
 
   if (alarms.data !== null) {
     groups = groupAlarms(alarms.data, incidents);
 
     for (const group of groups) {
-      alarmIds.push(group.incidentId);
+      alarmIncidentIds.push(group.incidentId);
 
       if (group.alarmType !== "SOS") {
         seen.push(group.latestId);
@@ -120,15 +120,15 @@ export default function App() {
   }
 
   function endSession() {
-    if (selected === undefined) {
+    if (selectedIncident === null) {
       return;
     }
 
     setConfirmation({
       title: "Zakończyć sesję?",
-      text: `Sesja ${selected.code} zostanie zakończona.`,
+      text: `Sesja ${selectedIncident.code} zostanie zakończona.`,
       button: "Zakończ sesję",
-      action: () => api(`/incidents/${selected.id}/end`, "PUT"),
+      action: () => api(`/incidents/${selectedIncident.id}/end`, "PUT"),
     });
   }
 
@@ -157,6 +157,10 @@ export default function App() {
     setDialog(name);
   }
 
+  function closeDialog() {
+    setDialog("");
+  }
+
   function saveAndClose(action: () => Promise<unknown>) {
     const countBefore = openCount.current;
 
@@ -164,7 +168,7 @@ export default function App() {
       await action();
 
       if (openCount.current === countBefore) {
-        setDialog("");
+        closeDialog();
       }
     });
   }
@@ -187,8 +191,8 @@ export default function App() {
   }
 
   function saveName(code: string) {
-    if (renamed !== undefined) {
-      saveAndClose(() => api(`/incidents/${renamed.id}/code`, "PUT", { code }));
+    if (renamedIncident !== null) {
+      saveAndClose(() => api(`/incidents/${renamedIncident.id}/code`, "PUT", { code }));
     }
   }
 
@@ -201,10 +205,6 @@ export default function App() {
   function showAlarm(group: AlarmGroup) {
     setSelectedId(group.incidentId);
     dismissAlarm(group);
-  }
-
-  function closeDialog() {
-    setDialog("");
   }
 
   function openSession(id: number) {
@@ -249,8 +249,8 @@ export default function App() {
     );
   }
 
-  if (dialog === "rename" && renamed !== undefined) {
-    dialogWindow = <RenameDialog code={renamed.code} busy={busy} onSave={saveName} onClose={closeDialog} />;
+  if (dialog === "rename" && renamedIncident !== null) {
+    dialogWindow = <RenameDialog code={renamedIncident.code} busy={busy} onSave={saveName} onClose={closeDialog} />;
   }
 
   if (confirmation !== null) {
@@ -270,7 +270,7 @@ export default function App() {
       <header className="topbar glass">
         <h1>INFRA VIEW</h1>
         <SessionBar
-          incident={selected}
+          incident={selectedIncident}
           latest={latest}
           online={online}
           now={now}
@@ -289,7 +289,7 @@ export default function App() {
       <main className="layout">
         <aside className="pane glass">
           <ErrorLine error={sessions.error} updatedAt={sessions.updatedAt} />
-          <SessionList incidents={sessions.data} selectedId={selectedId} alarmIds={alarmIds} onSelect={setSelectedId} />
+          <SessionList incidents={sessions.data} selectedId={selectedId} alarmIncidentIds={alarmIncidentIds} onSelect={setSelectedId} />
           <AlarmList
             groups={groups}
             error={alarms.error}
@@ -301,7 +301,7 @@ export default function App() {
 
         <SessionView
           key={selectedId}
-          incident={selected}
+          incident={selectedIncident}
           rows={rows}
           thresholds={thresholds.data}
           error={telemetry.error}
@@ -312,6 +312,7 @@ export default function App() {
       </main>
 
       {popups}
+
       <Appear>{dialogWindow}</Appear>
       <Appear>{toast}</Appear>
     </>

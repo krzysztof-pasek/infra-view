@@ -7,7 +7,15 @@ export function findIncident(incidents: Incident[], id: number | null) {
     }
   }
 
-  return undefined;
+  return null;
+}
+
+export function lastItem<T>(items: T[]) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return items[items.length - 1];
 }
 
 export function findThreshold(thresholds: Threshold[] | null, metric: Metric | null) {
@@ -28,7 +36,7 @@ export function groupAlarms(alarms: Alarm[], incidents: Incident[]) {
   const groups: AlarmGroup[] = [];
 
   for (const alarm of alarms) {
-    const key = alarm.incidentId + "-" + alarm.alarmType;
+    const key = `${alarm.incidentId}-${alarm.alarmType}`;
     let group: AlarmGroup | null = null;
 
     for (const existing of groups) {
@@ -41,7 +49,7 @@ export function groupAlarms(alarms: Alarm[], incidents: Incident[]) {
       const incident = findIncident(incidents, alarm.incidentId);
       let name = `Sesja ${alarm.incidentId}`;
 
-      if (incident !== undefined) {
+      if (incident !== null) {
         name = incident.code;
       }
 
@@ -65,6 +73,6 @@ export function groupAlarms(alarms: Alarm[], incidents: Incident[]) {
     }
   }
 
-  groups.sort((a, b) => b.latestId - a.latestId);
+  groups.sort((first, second) => second.latestId - first.latestId);
   return groups;
 }

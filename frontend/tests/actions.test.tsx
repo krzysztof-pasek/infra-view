@@ -1,18 +1,12 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
-import App from "../src/App";
+import { App } from "../src/App";
+import type { Incident } from "../src/types";
+import { imagePath, jan, row } from "./fixtures";
 
 vi.mock("../src/Charts", () => ({ Charts: () => null }));
 
-const jan = {
-  id: 1,
-  code: "Jan Kowalski",
-  startedAt: "2026-09-21T10:00:00Z",
-  endedAt: null,
-  status: "IN_PROGRESS",
-};
-
-const anna = {
+const anna: Incident = {
   id: 3,
   code: "Anna Nowak",
   startedAt: "2026-09-20T10:00:00Z",
@@ -20,8 +14,16 @@ const anna = {
   status: "RESOLVED",
 };
 
-function fall(id: number) {
-  return { id, incidentId: 1, alarmType: "FALL", triggeredAt: jan.startedAt, resolvedAt: null as string | null };
+type TestAlarm = {
+  id: number;
+  incidentId: number;
+  alarmType: string;
+  triggeredAt: string;
+  resolvedAt: string | null;
+};
+
+function fall(id: number): TestAlarm {
+  return { id, incidentId: 1, alarmType: "FALL", triggeredAt: jan.startedAt, resolvedAt: null };
 }
 
 const temperature = { metric: "TEMPERATURE", alarmType: "HIGH_TEMPERATURE", threshold: 80, resetMargin: 5, enabled: true };
@@ -31,9 +33,19 @@ const tvoc = { metric: "TVOC_PPB", alarmType: "HIGH_TVOC", threshold: 2000, rese
 type Options = {
   failEnd?: boolean;
   alarmsDown?: boolean;
-  alarms?: ReturnType<typeof fall>[];
+  alarms?: TestAlarm[];
   slowSave?: Promise<void>;
 };
+
+function requestName(url: string, init: RequestInit = {}) {
+  let method = "GET";
+
+  if (init.method !== undefined) {
+    method = init.method;
+  }
+
+  return `${method} ${url}`;
+}
 
 function mockApi(options: Options = {}) {
   let incidents = [jan, anna];
@@ -45,13 +57,7 @@ function mockApi(options: Options = {}) {
   }
 
   const fetchMock = vi.fn(async (url: string, init: RequestInit = {}) => {
-    let method = "GET";
-
-    if (init.method !== undefined) {
-      method = init.method;
-    }
-
-    const request = method + " " + url;
+    const request = requestName(url, init);
 
     if (request === "GET /api/incidents") {
       return Response.json(incidents);
@@ -75,7 +81,7 @@ function mockApi(options: Options = {}) {
 
     if (request === "GET /api/telemetry/incident/1") {
       readings = readings + 1;
-      return Response.json([{ recordedAt: jan.startedAt, temperature: readings, co2Ppm: null, tvocPpb: null, gasVoltage: null, motionState: null }]);
+      return Response.json([row(0, readings)]);
     }
 
     if (request === "GET /api/alarm-thresholds") {
@@ -125,13 +131,7 @@ function calls(fetchMock: ReturnType<typeof mockApi>, part: string) {
   const found = [];
 
   for (const call of fetchMock.mock.calls) {
-    let method = "GET";
-
-    if (call[1] !== undefined && call[1].method !== undefined) {
-      method = call[1].method;
-    }
-
-    if ((method + " " + call[0]).includes(part)) {
+    if (requestName(call[0], call[1]).includes(part)) {
       found.push(call);
     }
   }
@@ -149,10 +149,22 @@ function body(fetchMock: ReturnType<typeof mockApi>, part: string) {
   return JSON.parse(String(init.body));
 }
 
-async function openMenu(name: RegExp) {
-  fireEvent.click(await screen.findByRole("button", { name }));
-  fireEvent.click(screen.getByRole("button", { name: "Opcje sesji" }));
+function findJan() {
+  return screen.findByRole("button", { name: /^Jan Kowalski/ });
+}
+
+function optionsButton() {
+  return screen.getByRole("button", { name: "Opcje sesji" });
+}
+
+async function openMenu() {
+  fireEvent.click(await findJan());
+  fireEvent.click(optionsButton());
   return screen.getByRole("menu");
+}
+
+async function chooseFromMenu(item: string) {
+  fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: item }));
 }
 
 function openDialog(button: string, title: string) {
@@ -166,6 +178,15 @@ function openThresholds() {
 
 function openArchive() {
   return openDialog("Archiwum", "Archiwum sesji");
+}
+
+async function firstLimit(dialog: HTMLElement) {
+  const limits = await within(dialog).findAllByLabelText<HTMLInputElement>("Próg");
+  return limits[0];
+}
+
+async function changeFirstLimit(dialog: HTMLElement) {
+  fireEvent.change(await firstLimit(dialog), { target: { value: "60" } });
 }
 
 function noDialog() {
@@ -217,7 +238,7 @@ it("kończy sesję z menu dopiero po potwierdzeniu w oknie aplikacji", async () 
   const fetchMock = mockApi();
   render(<App />);
 
-  fireEvent.click(within(await openMenu(/^Jan Kowalski/)).getByRole("menuitem", { name: "Zakończ sesję" }));
+  await chooseFromMenu("Zakończ sesję");
   const first = screen.getByRole("dialog", { name: "Zakończyć sesję?" });
   expect(first.querySelector(".modal-header button")).toBeNull();
   expect(first.lastElementChild).toBe(within(first).getByRole("button", { name: "Zamknij" }).parentElement);
@@ -225,7 +246,7 @@ it("kończy sesję z menu dopiero po potwierdzeniu w oknie aplikacji", async () 
   await noDialog();
   expect(calls(fetchMock, "/end")).toHaveLength(0);
 
-  fireEvent.click(screen.getByRole("button", { name: "Opcje sesji" }));
+  fireEvent.click(optionsButton());
   fireEvent.click(screen.getByRole("menuitem", { name: "Zakończ sesję" }));
   const second = screen.getByRole("dialog", { name: "Zakończyć sesję?" });
   fireEvent.click(within(second).getByRole("button", { name: "Zakończ sesję" }));
@@ -237,7 +258,7 @@ it("kończy sesję z menu dopiero po potwierdzeniu w oknie aplikacji", async () 
 it("Esc zamyka okno i oddaje fokus przyciskowi, który je otworzył", async () => {
   mockApi();
   render(<App />);
-  await screen.findByRole("button", { name: /^Jan Kowalski/ });
+  await findJan();
   const button = screen.getByRole("button", { name: "Archiwum" });
 
   button.focus();
@@ -253,39 +274,37 @@ it("Esc zamyka okno i oddaje fokus przyciskowi, który je otworzył", async () =
 it("pauza zatrzymuje obraz na klatce, a wznowienie cofa go o czas pauzy", async () => {
   mockApi();
   render(<App />);
-  fireEvent.click(await screen.findByRole("button", { name: /^Jan Kowalski/ }));
+  fireEvent.click(await findJan());
   expect(screen.getByText("Brak obrazu z kamery")).toBeTruthy();
-  const image = await screen.findByAltText("Obraz z kamery termowizyjnej", {}, { timeout: 3000 });
-  expect(image.getAttribute("src")).toBe("/api/incidents/1/live");
+  await waitFor(() => expect(imagePath()).toBe("/api/incidents/1/live"), { timeout: 3000 });
 
   vi.useFakeTimers({ toFake: ["Date"] });
   fireEvent.click(screen.getByRole("button", { name: "Wstrzymaj" }));
-  expect(image.getAttribute("src")).toContain("/api/incidents/1/frame?at=");
+  expect(imagePath()).toContain("/api/incidents/1/frame?at=");
   vi.setSystemTime(Date.now() + 12000);
   fireEvent.click(screen.getByRole("button", { name: "Wznów" }));
 
-  await waitFor(() => expect(image.getAttribute("src")).toBe("/api/incidents/1/replay?delaySeconds=12"));
-  vi.useRealTimers();
+  await waitFor(() => expect(imagePath()).toBe("/api/incidents/1/replay?delaySeconds=12"));
 });
 
 it("błąd operacji zostaje na ekranie do zamknięcia", async () => {
   mockApi({ failEnd: true });
   render(<App />);
 
-  fireEvent.click(within(await openMenu(/^Jan Kowalski/)).getByRole("menuitem", { name: "Zakończ sesję" }));
+  await chooseFromMenu("Zakończ sesję");
   fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Zakończ sesję" }));
   const message = await screen.findByText("Serwer odrzucił żądanie (błąd 500)");
 
-  fireEvent.click(within(message.parentElement as HTMLElement).getByRole("button", { name: "Zamknij" }));
+  fireEvent.click(within(screen.getByRole("alert")).getByRole("button", { name: "Zamknij" }));
 
-  await waitFor(() => expect(screen.queryByText("Serwer odrzucił żądanie (błąd 500)")).toBeNull());
+  await waitFor(() => expect(message.isConnected).toBe(false));
 });
 
 it("archiwum filtruje sesje i odtwarza nagranie zakończonej od początku", async () => {
   mockApi();
   vi.useFakeTimers({ toFake: ["Date"] });
   render(<App />);
-  await screen.findByRole("button", { name: /^Jan Kowalski/ });
+  await findJan();
   await waitFor(() => expect(screen.queryByRole("button", { name: /^Anna Nowak/ })).toBeNull());
 
   const archive = openArchive();
@@ -295,11 +314,10 @@ it("archiwum filtruje sesje i odtwarza nagranie zakończonej od początku", asyn
   fireEvent.click(within(archive).getByRole("button", { name: "Otwórz" }));
 
   expect(await screen.findByRole("heading", { name: "Anna Nowak" })).toBeTruthy();
-  expect(screen.getByAltText("Obraz z kamery termowizyjnej").getAttribute("src")).toBe("/api/incidents/3/recording?from=2026-09-20T10:00:00.000Z");
+  expect(imagePath()).toBe("/api/incidents/3/recording?from=2026-09-20T10:00:00.000Z");
   await waitFor(() => expect(screen.queryByRole("button", { name: "Na żywo" })).toBeNull());
   expect(screen.getByRole("button", { name: "Wstrzymaj" })).toBeTruthy();
   expect(screen.getByText("0:00")).toBeTruthy();
-  vi.useRealTimers();
 });
 
 it("jednym przyciskiem zapisuje tylko zmienione progi alarmów", async () => {
@@ -307,8 +325,7 @@ it("jednym przyciskiem zapisuje tylko zmienione progi alarmów", async () => {
   render(<App />);
 
   const dialog = openThresholds();
-  const limits = await within(dialog).findAllByLabelText("Próg");
-  fireEvent.change(limits[0], { target: { value: "60" } });
+  await changeFirstLimit(dialog);
   fireEvent.click(within(dialog).getAllByLabelText("Włączony")[1]);
 
   expect(within(dialog).getAllByRole("button", { name: "Zapisz" })).toHaveLength(1);
@@ -326,30 +343,30 @@ it("pyta przed porzuceniem niezapisanych progów", async () => {
   render(<App />);
 
   const dialog = openThresholds();
-  const limits = await within(dialog).findAllByLabelText("Próg");
+  const limit = await firstLimit(dialog);
   fireEvent.keyDown(dialog, { key: "Escape" });
   await noDialog();
 
   const again = openThresholds();
-  fireEvent.change((await within(again).findAllByLabelText("Próg"))[0], { target: { value: "60" } });
+  await changeFirstLimit(again);
   fireEvent.keyDown(again, { key: "Escape" });
   const question = screen.getByRole("dialog", { name: "Porzucić zmiany?" });
   fireEvent.keyDown(question, { key: "Escape" });
 
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "Porzucić zmiany?" })).toBeNull());
-  expect((within(again).getAllByLabelText("Próg")[0] as HTMLInputElement).value).toBe("60");
+  expect((await firstLimit(again)).value).toBe("60");
   fireEvent.click(within(again).getByRole("button", { name: "Zamknij" }));
   fireEvent.click(within(screen.getByRole("dialog", { name: "Porzucić zmiany?" })).getByRole("button", { name: "Porzuć" }));
 
   await noDialog();
-  await waitFor(() => expect(limits[0].isConnected).toBe(false));
+  await waitFor(() => expect(limit.isConnected).toBe(false));
 });
 
 it("zmienia nazwę sesji z menu", async () => {
   const fetchMock = mockApi();
   render(<App />);
 
-  fireEvent.click(within(await openMenu(/^Jan Kowalski/)).getByRole("menuitem", { name: "Zmień nazwę" }));
+  await chooseFromMenu("Zmień nazwę");
   const dialog = screen.getByRole("dialog", { name: "Zmień nazwę sesji" });
   const input = within(dialog).getByLabelText("Nazwa sesji");
   expect(document.activeElement).toBe(input);
@@ -368,17 +385,17 @@ it("menu sesji zamyka się kliknięciem obok i klawiszem Esc", async () => {
   mockApi();
   render(<App />);
 
-  await openMenu(/^Jan Kowalski/);
+  await openMenu();
   fireEvent.click(document.body);
   await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
 
-  fireEvent.click(screen.getByRole("button", { name: "Opcje sesji" }));
+  fireEvent.click(optionsButton());
   expect(screen.getByRole("menu")).toBeTruthy();
   fireEvent.keyDown(document, { key: "Escape" });
   await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
-  expect(document.activeElement).toBe(screen.getByRole("button", { name: "Opcje sesji" }));
+  expect(document.activeElement).toBe(optionsButton());
 
-  fireEvent.click(screen.getByRole("button", { name: "Opcje sesji" }));
+  fireEvent.click(optionsButton());
   fireEvent.click(screen.getByRole("menuitem", { name: "Zamknij" }));
   await waitFor(() => expect(screen.queryByRole("heading", { name: "Jan Kowalski" })).toBeNull());
 });
@@ -408,14 +425,16 @@ it("przeciągnięcie myszy z pola na tło nie zamyka okna", async () => {
   render(<App />);
 
   const dialog = openThresholds();
-  const limits = await within(dialog).findAllByLabelText("Próg");
-  const overlay = dialog.parentElement as HTMLElement;
-  fireEvent.mouseDown(limits[0]);
-  fireEvent.mouseUp(overlay);
-  fireEvent.click(overlay);
+  const overlay = screen.getByRole("dialog", { name: "Progi alarmów" }).closest(".overlay");
+  fireEvent.mouseDown(await firstLimit(dialog));
 
-  expect(screen.getByRole("dialog", { name: "Progi alarmów" })).toBeTruthy();
-  fireEvent.mouseDown(overlay);
+  if (overlay !== null) {
+    fireEvent.mouseUp(overlay);
+    fireEvent.click(overlay);
+    expect(screen.getByRole("dialog", { name: "Progi alarmów" })).toBeTruthy();
+    fireEvent.mouseDown(overlay);
+  }
+
   await noDialog();
 });
 
@@ -428,7 +447,7 @@ it("spóźniony zapis progów nie zamyka innego okna", async () => {
   render(<App />);
 
   const dialog = openThresholds();
-  fireEvent.change((await within(dialog).findAllByLabelText("Próg"))[0], { target: { value: "60" } });
+  await changeFirstLimit(dialog);
   fireEvent.click(within(dialog).getByRole("button", { name: "Zapisz" }));
   await waitFor(() => expect(calls(fetchMock, "PUT /api/alarm-thresholds/")).toHaveLength(1));
   fireEvent.keyDown(dialog, { key: "Escape" });
@@ -458,7 +477,7 @@ it("zmiana nazwy dotyczy sesji, z której otwarto okno, nawet po przejściu do a
   render(<App />);
   await screen.findByText("Upadek");
 
-  fireEvent.click(within(await openMenu(/^Jan Kowalski/)).getByRole("menuitem", { name: "Zmień nazwę" }));
+  await chooseFromMenu("Zmień nazwę");
   alarms.push({ ...fall(2), incidentId: 3, alarmType: "SOS" });
   fireEvent.click(within(await screen.findByRole("alert", {}, { timeout: 4000 })).getByRole("button", { name: "Pokaż" }));
   expect(await screen.findByRole("heading", { name: "Anna Nowak" })).toBeTruthy();
@@ -474,10 +493,11 @@ it("zmiana nazwy dotyczy sesji, z której otwarto okno, nawet po przejściu do a
 it("Esc zamyka okno także wtedy, gdy fokus wypadł poza okno", async () => {
   mockApi();
   render(<App />);
-  await screen.findByRole("button", { name: /^Jan Kowalski/ });
+  await findJan();
 
   fireEvent.click(screen.getByRole("button", { name: "Archiwum" }));
-  (document.activeElement as HTMLElement).blur();
+  within(screen.getByRole("dialog")).getByRole("button", { name: "Zamknij" }).blur();
+  expect(document.activeElement).toBe(document.body);
   fireEvent.keyDown(document.body, { key: "Escape" });
 
   await noDialog();
@@ -488,13 +508,13 @@ it("okno otwarte zaraz po zamknięciu startuje od nowa", async () => {
   render(<App />);
 
   const dialog = openThresholds();
-  fireEvent.change((await within(dialog).findAllByLabelText("Próg"))[0], { target: { value: "60" } });
+  await changeFirstLimit(dialog);
   fireEvent.keyDown(dialog, { key: "Escape" });
   fireEvent.click(await screen.findByRole("button", { name: "Porzuć" }));
   fireEvent.click(screen.getByRole("button", { name: "Progi alarmów" }));
 
   await waitFor(() => expect(screen.getAllByRole("dialog")).toHaveLength(1));
   const again = screen.getByRole("dialog", { name: "Progi alarmów" });
-  expect((within(again).getAllByLabelText("Próg")[0] as HTMLInputElement).value).toBe("80");
+  expect((await firstLimit(again)).value).toBe("80");
   expect(screen.queryByRole("dialog", { name: "Porzucić zmiany?" })).toBeNull();
 });

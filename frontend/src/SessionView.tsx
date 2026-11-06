@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import type { Incident, Telemetry, Threshold } from "./types";
-import { animationTime, formatClock, formatDelay, MAX_REPLAY } from "./format";
+import { lastItem } from "./data";
+import { animationTime, MAX_REPLAY_SECONDS } from "./config";
+import { formatClock, formatDelay } from "./format";
 import { CameraPanel } from "./CameraPanel";
 import { Charts } from "./Charts";
 import { ErrorLine } from "./ErrorLine";
 
 type Props = {
-  incident: Incident | undefined;
+  incident: Incident | null;
   rows: Telemetry[];
   thresholds: Threshold[] | null;
   error: string;
@@ -15,8 +17,8 @@ type Props = {
   online: boolean;
 };
 
-function recordingLength(incident: Incident | undefined) {
-  if (incident === undefined || incident.endedAt === null) {
+function recordingLength(incident: Incident | null) {
+  if (incident === null || incident.endedAt === null) {
     return 0;
   }
 
@@ -39,19 +41,21 @@ export function SessionView({ incident, rows, thresholds, error, updatedAt, now,
     return () => clearTimeout(timer);
   }, [seeking]);
 
-  if (incident === undefined) {
+  if (incident === null) {
     return <p className="card muted empty wide">Wybierz sesję z listy, aby zobaczyć obraz z kamery i pomiary</p>;
   }
 
   const live = incident.status === "IN_PROGRESS";
   const base = `/api/incidents/${incident.id}`;
-  let max = MAX_REPLAY;
+  let max = MAX_REPLAY_SECONDS;
   let current = delay;
-  let path = base + "/live";
+  let paused = pausedAt !== 0;
+  let path = `${base}/live`;
   let label: string | null = null;
   let chartsRows = rows;
   let until = 0;
-  let span = MAX_REPLAY;
+  let span = MAX_REPLAY_SECONDS;
+  let frameTime = pausedAt - delay * 1000;
 
   if (live) {
     const age = Math.round((now - Date.parse(incident.startedAt)) / 1000);
@@ -67,7 +71,7 @@ export function SessionView({ incident, rows, thresholds, error, updatedAt, now,
     span = max;
 
     if (delay > 0) {
-      path = base + "/replay?delaySeconds=" + delay;
+      path = `${base}/replay?delaySeconds=${delay}`;
       label = formatDelay(delay);
     }
 
@@ -75,13 +79,14 @@ export function SessionView({ incident, rows, thresholds, error, updatedAt, now,
       path = "";
     }
 
-    if (pausedAt !== 0) {
-      path = base + "/frame?at=" + new Date(pausedAt - delay * 1000).toISOString();
+    if (paused) {
       chartsRows = frozenRows;
     }
 
-    if (chartsRows.length > 0) {
-      until = Date.parse(chartsRows[chartsRows.length - 1].recordedAt) - delay * 1000;
+    const lastRow = lastItem(chartsRows);
+
+    if (lastRow !== null) {
+      until = Date.parse(lastRow.recordedAt) - delay * 1000;
     }
   }
 
@@ -103,13 +108,18 @@ export function SessionView({ incident, rows, thresholds, error, updatedAt, now,
     max = recordingLength(incident);
     const end = Date.parse(incident.startedAt) + max * 1000;
     current = position(now);
-    path = base + "/recording?from=" + new Date(end - delay * 1000).toISOString();
+    path = `${base}/recording?from=${new Date(end - delay * 1000).toISOString()}`;
     label = formatClock(max - current);
     until = end - current * 1000;
+    frameTime = until;
 
-    if (pausedAt !== 0 || current === 0) {
-      path = base + "/frame?at=" + new Date(until).toISOString();
+    if (current === 0) {
+      paused = true;
     }
+  }
+
+  if (paused) {
+    path = `${base}/frame?at=${new Date(frameTime).toISOString()}`;
   }
 
   function seek(value: number) {
@@ -152,11 +162,11 @@ export function SessionView({ incident, rows, thresholds, error, updatedAt, now,
         <CameraPanel
           path={path}
           live={live}
-          paused={pausedAt !== 0 || (!live && current === 0)}
+          paused={paused}
           max={max}
           delay={current}
           label={label}
-          onDelay={seek}
+          onSeek={seek}
           onPause={pause}
           onPlay={play}
         />

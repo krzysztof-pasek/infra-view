@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import type { SubmitEvent } from "react";
 import type { Threshold } from "./types";
-import { sensors } from "./format";
+import { sensors } from "./config";
 import { Modal } from "./Modal";
 import { Confirm } from "./Confirm";
 import { ErrorLine } from "./ErrorLine";
@@ -38,9 +38,9 @@ export function ThresholdsDialog({ thresholds, error, busy, onSave, onClose }: P
     for (const threshold of initial) {
       const value = {
         metric: threshold.metric,
-        threshold: Number(data.get(threshold.metric + "-threshold")),
-        resetMargin: Number(data.get(threshold.metric + "-margin")),
-        enabled: data.get(threshold.metric + "-enabled") !== null,
+        threshold: Number(data.get(`${threshold.metric}-threshold`)),
+        resetMargin: Number(data.get(`${threshold.metric}-margin`)),
+        enabled: data.get(`${threshold.metric}-enabled`) !== null,
       };
 
       if (value.threshold !== threshold.threshold || value.resetMargin !== threshold.resetMargin || value.enabled !== threshold.enabled) {
@@ -130,16 +130,16 @@ function ThresholdRow({ threshold }: { threshold: Threshold }) {
 
       <label>
         Próg
-        <input name={threshold.metric + "-threshold"} type="number" step="any" required defaultValue={threshold.threshold} />
+        <input name={`${threshold.metric}-threshold`} type="number" step="any" required defaultValue={threshold.threshold} />
       </label>
 
       <label>
         Margines
-        <input name={threshold.metric + "-margin"} type="number" step="any" min={0} required defaultValue={threshold.resetMargin} />
+        <input name={`${threshold.metric}-margin`} type="number" step="any" min={0} required defaultValue={threshold.resetMargin} />
       </label>
 
       <label className="toggle">
-        <input name={threshold.metric + "-enabled"} type="checkbox" defaultChecked={threshold.enabled} />
+        <input name={`${threshold.metric}-enabled`} type="checkbox" defaultChecked={threshold.enabled} />
         Włączony
       </label>
     </div>

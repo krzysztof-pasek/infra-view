@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { MouseEvent } from "react";
 import type { Incident, Telemetry } from "./types";
-import { formatAge, formatDate, motionStates } from "./format";
+import { motionStates } from "./config";
+import { formatAge, formatDate } from "./format";
 import { Appear } from "./Appear";
 import { Icon } from "./Icon";
 
 type Props = {
-  incident: Incident | undefined;
-  latest: Telemetry | undefined;
+  incident: Incident | null;
+  latest: Telemetry | null;
   online: boolean;
   now: number;
   busy: boolean;
@@ -34,7 +35,7 @@ export function SessionBar({ incident, latest, online, now, busy, onEnd, onRenam
 
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === "Escape" && button.current !== null) {
-        setMenuOpen(false);
+        close();
         button.current.focus();
       }
     }
@@ -50,14 +51,14 @@ export function SessionBar({ incident, latest, online, now, busy, onEnd, onRenam
     };
   }, [menuOpen]);
 
-  if (incident === undefined) {
+  if (incident === null) {
     return <div className="session-bar" />;
   }
 
   function toggleMenu(event: MouseEvent<HTMLButtonElement>) {
     const rect = event.currentTarget.getBoundingClientRect();
     event.stopPropagation();
-    setMenuTop(rect.bottom + 8);
+    setMenuTop(rect.bottom);
     setMenuRight(document.documentElement.clientWidth - rect.right);
     setMenuOpen(!menuOpen);
   }
@@ -88,15 +89,15 @@ export function SessionBar({ incident, latest, online, now, busy, onEnd, onRenam
       statusColor = "";
     }
 
-    if (!online && latest !== undefined) {
-      status = status + " · " + formatAge(now - Date.parse(latest.recordedAt));
+    if (!online && latest !== null) {
+      status = `${status} · ${formatAge(now - Date.parse(latest.recordedAt))}`;
     }
   }
 
   let motion = "—";
   let motionColor = "";
 
-  if (latest !== undefined && latest.motionState !== null) {
+  if (latest !== null && latest.motionState !== null) {
     motion = motionStates[latest.motionState].label;
     motionColor = motionStates[latest.motionState].color;
   }
@@ -124,12 +125,12 @@ export function SessionBar({ incident, latest, online, now, busy, onEnd, onRenam
         <small>start {formatDate(incident.startedAt)}</small>
       </div>
 
-      <span className={"status " + statusColor}>
+      <span className={`status ${statusColor}`}>
         <span className="dot" />
         {status}
       </span>
 
-      <span className={"status " + motionColor}>Ruch: {motion}</span>
+      <span className={`status ${motionColor}`}>Ruch: {motion}</span>
 
       <button
         ref={button}

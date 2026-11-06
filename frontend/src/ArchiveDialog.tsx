@@ -53,7 +53,7 @@ export function ArchiveDialog({ incidents, onOpen, onClose }: Props) {
     }
   }
 
-  found.sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt));
+  found.sort((first, second) => Date.parse(second.startedAt) - Date.parse(first.startedAt));
 
   let content = <p className="muted">Brak sesji dla wybranych filtrów</p>;
 
