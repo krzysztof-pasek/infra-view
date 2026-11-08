@@ -101,14 +101,16 @@ export function ThresholdsDialog({ thresholds, error, busy, onSave, onClose }: P
 
   return (
     <>
-      <Modal title="Progi alarmów" action={save} onClose={close}>
-        <p className="muted">
-          Alarm włącza się, gdy pomiar przekroczy próg. Kolejny alarm tego typu pojawi się dopiero, gdy wartość spadnie
-          poniżej progu o margines.
-        </p>
+      <div inert={discard}>
+        <Modal title="Progi alarmów" action={save} onClose={close}>
+          <p className="muted">
+            Alarm włącza się, gdy pomiar przekroczy próg. Kolejny alarm tego typu pojawi się dopiero, gdy wartość
+            spadnie poniżej progu o margines.
+          </p>
 
-        {content}
-      </Modal>
+          {content}
+        </Modal>
+      </div>
 
       <Appear>{question}</Appear>
     </>

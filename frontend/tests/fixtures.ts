@@ -15,7 +15,7 @@ export function row(second: number, temperature: number | null): Telemetry {
   };
 }
 
-function cameraImage() {
+export function cameraImage() {
   return screen.getByAltText("Obraz z kamery termowizyjnej");
 }
 

@@ -23,6 +23,7 @@ const ALARMS_INTERVAL = 2000;
 const THRESHOLDS_INTERVAL = 30000;
 const LIVE_INTERVAL = 1000;
 const ENDED_INTERVAL = 30000;
+const HISTORY_LIMIT = 3600;
 
 type Confirmation = {
   title: string;
@@ -60,6 +61,7 @@ export function App() {
   const renamedIncident = findIncident(incidents, renameId);
   let telemetryPath = null;
   let telemetryInterval = LIVE_INTERVAL;
+  let historyPath = null;
 
   if (selectedIncident !== null) {
     telemetryPath = `/telemetry/incident/${selectedIncident.id}`;
@@ -67,13 +69,19 @@ export function App() {
 
   if (selectedIncident !== null && selectedIncident.status !== "IN_PROGRESS") {
     telemetryInterval = ENDED_INTERVAL;
+    historyPath = `${telemetryPath}?limit=${HISTORY_LIMIT}`;
   }
 
   const telemetry = usePolling<Telemetry[]>(telemetryPath, telemetryInterval);
+  const history = usePolling<Telemetry[]>(historyPath, ENDED_INTERVAL);
   let rows: Telemetry[] = [];
 
   if (telemetry.data !== null) {
     rows = telemetry.data;
+  }
+
+  if (history.data !== null) {
+    rows = history.data;
   }
 
   const latest = lastItem(rows);
@@ -267,51 +275,59 @@ export function App() {
 
   return (
     <>
-      <header className="topbar glass">
-        <h1>INFRA VIEW</h1>
-        <SessionBar
-          incident={selectedIncident}
-          latest={latest}
-          online={online}
-          now={now}
-          busy={busy}
-          onEnd={endSession}
-          onRename={openRename}
-          onClose={() => setSelectedId(null)}
-        />
-        <nav className="toolbar">
-          <button onClick={() => openDialog("archive")}>Archiwum</button>
-          <button onClick={() => openDialog("thresholds")}>Progi alarmów</button>
-          <ThemeToggle />
-        </nav>
-      </header>
-
-      <main className="layout">
-        <aside className="pane glass">
-          <ErrorLine error={sessions.error} updatedAt={sessions.updatedAt} />
-          <SessionList incidents={sessions.data} selectedId={selectedId} alarmIncidentIds={alarmIncidentIds} onSelect={setSelectedId} />
-          <AlarmList
-            groups={groups}
-            error={alarms.error}
+      <div inert={dialogWindow !== null}>
+        <header className="topbar glass">
+          <h1>INFRA VIEW</h1>
+          <SessionBar
+            incident={selectedIncident}
+            latest={latest}
+            online={online}
+            now={now}
             busy={busy}
-            onSelect={showAlarm}
-            onResolve={resolveAlarm}
+            onEnd={endSession}
+            onRename={openRename}
+            onClose={() => setSelectedId(null)}
           />
-        </aside>
+          <nav className="toolbar">
+            <button onClick={() => openDialog("archive")}>Archiwum</button>
+            <button onClick={() => openDialog("thresholds")}>Progi alarmów</button>
+            <ThemeToggle />
+          </nav>
+        </header>
 
-        <SessionView
-          key={selectedId}
-          incident={selectedIncident}
-          rows={rows}
-          thresholds={thresholds.data}
-          error={telemetry.error}
-          updatedAt={telemetry.updatedAt}
-          now={now}
-          online={online}
-        />
-      </main>
+        <main className="layout">
+          <aside className="pane glass">
+            <ErrorLine error={sessions.error} updatedAt={sessions.updatedAt} />
+            <SessionList
+              incidents={sessions.data}
+              error={sessions.error}
+              selectedId={selectedId}
+              alarmIncidentIds={alarmIncidentIds}
+              onSelect={setSelectedId}
+            />
+            <AlarmList
+              groups={groups}
+              error={alarms.error}
+              busy={busy}
+              onSelect={showAlarm}
+              onResolve={resolveAlarm}
+            />
+          </aside>
 
-      {popups}
+          <SessionView
+            key={selectedId}
+            incident={selectedIncident}
+            rows={rows}
+            thresholds={thresholds.data}
+            error={telemetry.error}
+            updatedAt={telemetry.updatedAt}
+            now={now}
+            online={online}
+          />
+        </main>
+
+        {popups}
+      </div>
 
       <Appear>{dialogWindow}</Appear>
       <Appear>{toast}</Appear>

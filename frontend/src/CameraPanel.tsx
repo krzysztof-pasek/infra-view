@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { RETRY_TIMEOUT } from "./config";
 import { Appear } from "./Appear";
 import { Icon } from "./Icon";
 
@@ -16,6 +17,16 @@ type Props = {
 
 export function CameraPanel({ path, live, paused, max, delay, label, onSeek, onPause, onPlay }: Props) {
   const [failedPath, setFailedPath] = useState("");
+
+  useEffect(() => {
+    if (failedPath === "" || !live) {
+      return;
+    }
+
+    const timer = setTimeout(() => setFailedPath(""), RETRY_TIMEOUT);
+    return () => clearTimeout(timer);
+  }, [failedPath, live]);
+
   let image = <p className="camera-status">Brak obrazu z kamery</p>;
 
   if (path !== "" && path !== failedPath) {

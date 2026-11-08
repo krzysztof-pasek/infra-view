@@ -2,6 +2,7 @@ import type { AlarmType, MotionState, Sensor } from "./types";
 
 export const ONLINE_TIMEOUT = 5000;
 export const GAP_TIMEOUT = 5000;
+export const RETRY_TIMEOUT = 3000;
 export const MAX_REPLAY_SECONDS = 300;
 
 export const sensors: Sensor[] = [

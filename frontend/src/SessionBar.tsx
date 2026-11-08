@@ -30,23 +30,51 @@ export function SessionBar({ incident, latest, online, now, busy, onEnd, onRenam
     }
 
     function close() {
+      const active = document.activeElement;
+
+      if (button.current !== null && active !== null && active.closest('[role="menu"]') !== null) {
+        button.current.focus();
+      }
+
       setMenuOpen(false);
     }
 
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape" && button.current !== null) {
+    function pressKey(event: KeyboardEvent) {
+      const items = document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:enabled');
+      let focused = 0;
+      let next = -1;
+
+      for (let index = 0; index < items.length; index++) {
+        if (items[index] === document.activeElement) {
+          focused = index;
+        }
+      }
+
+      if (event.key === "ArrowDown") {
+        next = focused + 1;
+      }
+
+      if (event.key === "ArrowUp") {
+        next = focused + items.length - 1;
+      }
+
+      if (next !== -1 && items.length > 0) {
+        event.preventDefault();
+        items[next % items.length].focus();
+      }
+
+      if (event.key === "Escape" || event.key === "Tab") {
         close();
-        button.current.focus();
       }
     }
 
     document.addEventListener("click", close);
-    document.addEventListener("keydown", closeOnEscape);
+    document.addEventListener("keydown", pressKey);
     window.addEventListener("scroll", close);
 
     return () => {
       document.removeEventListener("click", close);
-      document.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("keydown", pressKey);
       window.removeEventListener("scroll", close);
     };
   }, [menuOpen]);
@@ -107,7 +135,7 @@ export function SessionBar({ incident, latest, online, now, busy, onEnd, onRenam
   if (menuOpen) {
     menu = (
       <div className="menu glass" role="menu" style={{ top: menuTop, right: menuRight }}>
-        <button role="menuitem" onClick={() => choose(onRename)}>
+        <button role="menuitem" autoFocus onClick={() => choose(onRename)}>
           Zmień nazwę
         </button>
         {endItem}

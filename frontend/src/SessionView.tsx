@@ -31,6 +31,14 @@ export function SessionView({ incident, rows, thresholds, error, updatedAt, now,
   const [pausedAt, setPausedAt] = useState(0);
   const [frozenRows, setFrozenRows] = useState<Telemetry[]>([]);
   const [seeking, setSeeking] = useState(false);
+  const [connection, setConnection] = useState(0);
+  const [wasConnected, setWasConnected] = useState(false);
+  const connected = online && error === "";
+
+  if (connected !== wasConnected) {
+    setWasConnected(connected);
+    setConnection(connection + 1);
+  }
 
   useEffect(() => {
     if (!seeking) {
@@ -50,7 +58,7 @@ export function SessionView({ incident, rows, thresholds, error, updatedAt, now,
   let max = MAX_REPLAY_SECONDS;
   let current = delay;
   let paused = pausedAt !== 0;
-  let path = `${base}/live`;
+  let path = `${base}/live?connection=${connection}`;
   let label: string | null = null;
   let chartsRows = rows;
   let until = 0;
@@ -71,11 +79,11 @@ export function SessionView({ incident, rows, thresholds, error, updatedAt, now,
     span = max;
 
     if (delay > 0) {
-      path = `${base}/replay?delaySeconds=${delay}`;
+      path = `${base}/replay?delaySeconds=${delay}&connection=${connection}`;
       label = formatDelay(delay);
     }
 
-    if (!online) {
+    if ((!online && delay === 0) || error !== "") {
       path = "";
     }
 

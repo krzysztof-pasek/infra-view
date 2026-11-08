@@ -13,8 +13,8 @@ function charts(until: number) {
   return <Charts rows={rows} thresholds={null} until={until} span={MAX_REPLAY_SECONDS} animate={false} />;
 }
 
-function sessionView(incident: Incident, shownRows: Telemetry[], now: number) {
-  return <SessionView incident={incident} rows={shownRows} thresholds={null} error="" updatedAt={0} online now={now} />;
+function sessionView(incident: Incident, shownRows: Telemetry[], now: number, online = true, error = "") {
+  return <SessionView incident={incident} rows={shownRows} thresholds={null} error={error} updatedAt={0} online={online} now={now} />;
 }
 
 function young(now: number): Incident {
@@ -166,4 +166,30 @@ it("pauza po cofnięciu pokazuje klatkę z chwili, którą było widać", () => 
   fireEvent.click(screen.getByRole("button", { name: "Wstrzymaj" }));
 
   expect(imagePath()).toBe("/api/incidents/1/frame?at=2026-09-21T10:00:10.000Z");
+});
+
+it("bez łączności z kaskiem obraz na żywo znika, ale cofnięty zostaje, a przy błędzie pobierania znika", () => {
+  const now = Date.now();
+  const view = render(sessionView(young(now), [], now, false));
+
+  expect(screen.getByText("Brak obrazu z kamery")).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("Przewijanie obrazu"), { target: { value: "10" } });
+  expect(imagePath()).toBe("/api/incidents/1/replay?delaySeconds=20&connection=0");
+
+  view.rerender(sessionView(young(now), [], now, true, "Brak połączenia z serwerem"));
+  expect(screen.getByText("Brak obrazu z kamery")).toBeTruthy();
+});
+
+it("każdy powrót łączności daje obrazowi nowy adres, żeby przeglądarka połączyła się od nowa", () => {
+  const now = Date.now();
+  const view = render(sessionView(young(now), [], now));
+  expect(imagePath()).toBe("/api/incidents/1/live?connection=1");
+
+  view.rerender(sessionView(young(now), [], now, false));
+  view.rerender(sessionView(young(now), [], now));
+  expect(imagePath()).toBe("/api/incidents/1/live?connection=3");
+
+  view.rerender(sessionView(young(now), [], now, true, "Brak połączenia z serwerem"));
+  view.rerender(sessionView(young(now), [], now));
+  expect(imagePath()).toBe("/api/incidents/1/live?connection=5");
 });

@@ -1,10 +1,10 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { App } from "../src/App";
-import type { Incident } from "../src/types";
+import type { Incident, Telemetry } from "../src/types";
 import { imagePath, jan, row } from "./fixtures";
 
-vi.mock("../src/Charts", () => ({ Charts: () => null }));
+vi.mock("../src/Charts", () => ({ Charts: ({ rows }: { rows: Telemetry[] }) => <p>Pomiary: {rows.length}</p> }));
 
 const anna: Incident = {
   id: 3,
@@ -32,6 +32,7 @@ const tvoc = { metric: "TVOC_PPB", alarmType: "HIGH_TVOC", threshold: 2000, rese
 
 type Options = {
   failEnd?: boolean;
+  serverDown?: boolean;
   alarmsDown?: boolean;
   alarms?: TestAlarm[];
   slowSave?: Promise<void>;
@@ -59,6 +60,10 @@ function mockApi(options: Options = {}) {
   const fetchMock = vi.fn(async (url: string, init: RequestInit = {}) => {
     const request = requestName(url, init);
 
+    if (options.serverDown) {
+      throw new TypeError("Failed to fetch");
+    }
+
     if (request === "GET /api/incidents") {
       return Response.json(incidents);
     }
@@ -79,7 +84,7 @@ function mockApi(options: Options = {}) {
       return Response.json(unresolved);
     }
 
-    if (request === "GET /api/telemetry/incident/1") {
+    if (request.startsWith("GET /api/telemetry/incident/1")) {
       readings = readings + 1;
       return Response.json([row(0, readings)]);
     }
@@ -252,6 +257,7 @@ it("kończy sesję z menu dopiero po potwierdzeniu w oknie aplikacji", async () 
   fireEvent.click(within(second).getByRole("button", { name: "Zakończ sesję" }));
 
   expect(await screen.findByText("Zakończona")).toBeTruthy();
+  expect(screen.getByText("Pomiary: 1")).toBeTruthy();
   expect(calls(fetchMock, "/end")).toHaveLength(1);
 });
 
@@ -271,12 +277,26 @@ it("Esc zamyka okno i oddaje fokus przyciskowi, który je otworzył", async () =
   await waitFor(() => expect(document.activeElement).toBe(button));
 });
 
+it("otwarte okno wyłącza tło, a po zamknięciu je przywraca", () => {
+  mockApi();
+  render(<App />);
+  const main = screen.getByRole("main");
+
+  expect(main.closest("[inert]")).toBeNull();
+  const dialog = openArchive();
+  expect(main.closest("[inert]")).not.toBeNull();
+  expect(dialog.closest("[inert]")).toBeNull();
+
+  fireEvent.keyDown(dialog, { key: "Escape" });
+  expect(main.closest("[inert]")).toBeNull();
+});
+
 it("pauza zatrzymuje obraz na klatce, a wznowienie cofa go o czas pauzy", async () => {
   mockApi();
   render(<App />);
   fireEvent.click(await findJan());
   expect(screen.getByText("Brak obrazu z kamery")).toBeTruthy();
-  await waitFor(() => expect(imagePath()).toBe("/api/incidents/1/live"), { timeout: 3000 });
+  await waitFor(() => expect(imagePath()).toBe("/api/incidents/1/live?connection=1"), { timeout: 3000 });
 
   vi.useFakeTimers({ toFake: ["Date"] });
   fireEvent.click(screen.getByRole("button", { name: "Wstrzymaj" }));
@@ -284,7 +304,7 @@ it("pauza zatrzymuje obraz na klatce, a wznowienie cofa go o czas pauzy", async 
   vi.setSystemTime(Date.now() + 12000);
   fireEvent.click(screen.getByRole("button", { name: "Wznów" }));
 
-  await waitFor(() => expect(imagePath()).toBe("/api/incidents/1/replay?delaySeconds=12"));
+  await waitFor(() => expect(imagePath()).toBe("/api/incidents/1/replay?delaySeconds=12&connection=1"));
 });
 
 it("błąd operacji zostaje na ekranie do zamknięcia", async () => {
@@ -300,8 +320,8 @@ it("błąd operacji zostaje na ekranie do zamknięcia", async () => {
   await waitFor(() => expect(message.isConnected).toBe(false));
 });
 
-it("archiwum filtruje sesje i odtwarza nagranie zakończonej od początku", async () => {
-  mockApi();
+it("archiwum filtruje sesje, odtwarza nagranie zakończonej od początku i pobiera do niego dłuższą historię pomiarów", async () => {
+  const fetchMock = mockApi();
   vi.useFakeTimers({ toFake: ["Date"] });
   render(<App />);
   await findJan();
@@ -318,6 +338,7 @@ it("archiwum filtruje sesje i odtwarza nagranie zakończonej od początku", asyn
   await waitFor(() => expect(screen.queryByRole("button", { name: "Na żywo" })).toBeNull());
   expect(screen.getByRole("button", { name: "Wstrzymaj" })).toBeTruthy();
   expect(screen.getByText("0:00")).toBeTruthy();
+  expect(calls(fetchMock, "GET /api/telemetry/incident/3?limit=3600")).toHaveLength(1);
 });
 
 it("jednym przyciskiem zapisuje tylko zmienione progi alarmów", async () => {
@@ -400,6 +421,24 @@ it("menu sesji zamyka się kliknięciem obok i klawiszem Esc", async () => {
   await waitFor(() => expect(screen.queryByRole("heading", { name: "Jan Kowalski" })).toBeNull());
 });
 
+it("menu sesji obsługuje się klawiaturą", async () => {
+  mockApi();
+  render(<App />);
+  const menu = await openMenu();
+  const items = within(menu).getAllByRole("menuitem");
+
+  expect(document.activeElement).toBe(items[0]);
+  expect(fireEvent.keyDown(document, { key: "ArrowDown" })).toBe(false);
+  expect(document.activeElement).toBe(items[1]);
+  fireEvent.keyDown(document, { key: "ArrowUp" });
+  fireEvent.keyDown(document, { key: "ArrowUp" });
+  expect(document.activeElement).toBe(items[2]);
+
+  fireEvent.keyDown(document, { key: "Tab" });
+  expect(document.activeElement).toBe(optionsButton());
+  await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+});
+
 it("gdy serwer nie odpowiada, nie twierdzi że alarmów nie ma", async () => {
   mockApi({ alarmsDown: true });
   render(<App />);
@@ -407,6 +446,14 @@ it("gdy serwer nie odpowiada, nie twierdzi że alarmów nie ma", async () => {
 
   expect(await within(list).findByText("Brak połączenia z serwerem")).toBeTruthy();
   expect(within(list).queryByText("Brak aktywnych alarmów")).toBeNull();
+});
+
+it("gdy serwer nie odpowiada, nie udaje że lista sesji się ładuje", async () => {
+  mockApi({ serverDown: true });
+  render(<App />);
+
+  await waitFor(() => expect(screen.getAllByText("Brak połączenia z serwerem")).toHaveLength(2));
+  expect(screen.queryByText("Ładowanie…")).toBeNull();
 });
 
 it("przełącza motyw i zapamiętuje wybór", () => {
