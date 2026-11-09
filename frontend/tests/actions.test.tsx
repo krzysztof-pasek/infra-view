@@ -239,6 +239,18 @@ it("nowy alarm pojawia się jako popup, który otwiera sesję strażaka", async 
   await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
 });
 
+it("okienko rozwiązanego alarmu znika z animacją zamykania", async () => {
+  const alarms = [{ ...fall(1), alarmType: "SOS" }];
+  mockApi({ alarms });
+  render(<App />);
+  const popup = await screen.findByRole("alert");
+
+  alarms[0].resolvedAt = jan.startedAt;
+
+  await waitFor(() => expect(popup.closest(".closing")).not.toBeNull(), { timeout: 4000 });
+  await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+});
+
 it("kończy sesję z menu dopiero po potwierdzeniu w oknie aplikacji", async () => {
   const fetchMock = mockApi();
   render(<App />);

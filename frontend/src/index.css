@@ -9,7 +9,6 @@
   --fill: rgb(120 120 128 / 0.14);
   --glass: rgb(255 255 255 / 0.72);
   --edge: rgb(255 255 255 / 0.8);
-  --solid: #ffffff;
   --accent: #1d1d1f;
   --on-accent: #ffffff;
   --orange: #b02f00;
@@ -35,7 +34,6 @@
   --fill: rgb(118 118 128 / 0.24);
   --glass: rgb(28 28 30 / 0.72);
   --edge: rgb(255 255 255 / 0.12);
-  --solid: #1c1c1e;
   --accent: #f5f5f7;
   --on-accent: #000000;
   --orange: #ff9f0a;
@@ -129,7 +127,7 @@ button:hover:not(:disabled) {
   transform: translateY(-1px);
 }
 
-button:active:not(:disabled) {
+button:active:not(:disabled), input[type="checkbox"]:active {
   transform: scale(0.97);
 }
 
@@ -184,10 +182,6 @@ input[type="checkbox"]:checked {
 
 input[type="checkbox"]:checked::before {
   transform: rotate(45deg) scale(1);
-}
-
-input[type="checkbox"]:active {
-  transform: scale(0.9);
 }
 
 :focus-visible {
@@ -268,7 +262,7 @@ input[type="checkbox"]:active {
   align-items: center;
 }
 
-h1, button, .status, .value, th, td, .session-bar h2, .session-bar small, .camera-controls > div {
+h1, button, .status, .value, th, td, .session-bar h2, .session-bar small, .camera-controls > div, .tooltip {
   white-space: nowrap;
 }
 
@@ -288,7 +282,7 @@ input[type="range"], input[type="checkbox"], .icon, .list, .alarm-info {
   width: 100%;
 }
 
-.menu, .layout, .content, .pane, .list, .alarm-info, .popup, .modal, .threshold, label {
+.menu, .layout, .content, .pane, .list, .alarm-info, .popup, .modal, .tooltip, .threshold, label {
   display: grid;
 }
 
@@ -297,7 +291,7 @@ input[type="range"], input[type="checkbox"], .icon, .list, .alarm-info {
   place-items: center;
 }
 
-.card, .pane, .camera, .popup, .modal, .menu {
+.card, .pane, .camera, .popup, .modal, .menu, .tooltip {
   border-radius: var(--radius);
 }
 
@@ -305,7 +299,7 @@ button, .topbar, .camera-controls, .toast {
   border-radius: 999px;
 }
 
-.card, .popup, .modal, .overlay {
+.card, .popup, .modal, .tooltip, .overlay {
   padding: 16px;
 }
 
@@ -536,7 +530,7 @@ details[open] > summary::before {
 .camera-controls {
   position: absolute;
   left: 50%;
-  max-width: calc(100% - 28px);
+  max-width: calc(100% - 2 * var(--gap));
   padding: 6px;
   transform: translateX(-50%);
 }

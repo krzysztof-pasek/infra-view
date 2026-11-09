@@ -1,4 +1,5 @@
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import type { TooltipContentProps } from "recharts";
 import type { Sensor, Telemetry, Threshold } from "./types";
 import { animationTime, GAP_TIMEOUT, sensors } from "./config";
 import { formatDate, formatNumber, formatTime } from "./format";
@@ -85,6 +86,29 @@ export function Charts({ rows, thresholds, until, span, animate }: Props) {
   ));
 }
 
+export function ChartTooltip({ active, payload, label }: TooltipContentProps) {
+  if (!active || payload.length === 0) {
+    return null;
+  }
+
+  const measured = payload[0].value;
+
+  for (const sensor of sensors) {
+    if (sensor.key === payload[0].dataKey && typeof measured === "number") {
+      return (
+        <div className="tooltip glass">
+          <small>{formatDate(Number(label))}</small>
+          <strong>
+            {formatNumber(measured, sensor.digits)} {sensor.unit}
+          </strong>
+        </div>
+      );
+    }
+  }
+
+  return null;
+}
+
 type ChartProps = {
   sensor: Sensor;
   points: Point[];
@@ -94,7 +118,7 @@ type ChartProps = {
 };
 
 function SensorChart({ sensor, points, value, threshold, animate }: ChartProps) {
-  const axis = { fill: "var(--muted)", fontSize: 11 };
+  const axis = { fill: "var(--muted)", fontSize: 12 };
   const duration = animationTime();
   let valueClass = "value";
   let line = null;
@@ -135,23 +159,17 @@ function SensorChart({ sensor, points, value, threshold, animate }: ChartProps) 
               minTickGap={40}
             />
             <YAxis
-              width={44}
+              width={48}
               domain={["auto", "auto"]}
               tick={axis}
               axisLine={false}
               tickLine={false}
               tickFormatter={tick => formatNumber(tick, sensor.digits)}
             />
-            <Tooltip
-              animationDuration={duration}
-              labelFormatter={label => formatDate(Number(label))}
-              contentStyle={{ background: "var(--solid)", border: "none", borderRadius: 12 }}
-            />
+            <Tooltip animationDuration={duration} content={ChartTooltip} />
             {line}
             <Line
               dataKey={sensor.key}
-              name={sensor.label}
-              unit={` ${sensor.unit}`}
               stroke="var(--accent)"
               strokeWidth={2}
               dot={false}
