@@ -1,19 +1,54 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
-import type { Alarm, AlarmType, Incident } from "../src/types";
+import type { Alarm, AlarmType } from "../src/types";
 import { groupAlarms } from "../src/data";
+import { RETRY_TIMEOUT } from "../src/config";
 import { alarmTitle, formatAge, formatDelay } from "../src/format";
 import { SessionBar } from "../src/SessionBar";
+import { CameraPanel } from "../src/CameraPanel";
+import { AlarmPopups } from "../src/AlarmPopups";
+import { ChartTooltip } from "../src/Charts";
 import { Modal } from "../src/Modal";
-
-const session: Incident = { id: 1, code: "Jan Kowalski", startedAt: "2026-09-21T10:00:00Z", endedAt: null, status: "IN_PROGRESS" };
+import { cameraImage, jan, row, START } from "./fixtures";
 
 function alarm(id: number, incidentId: number, alarmType: AlarmType = "FALL"): Alarm {
-  return { id, incidentId, alarmType, triggeredAt: "2026-09-21T10:00:00Z" };
+  return { id, incidentId, alarmType, triggeredAt: jan.startedAt };
+}
+
+function sessionBar(online: boolean) {
+  const handlers = { onEnd: () => {}, onRename: () => {}, onClose: () => {} };
+  return <SessionBar incident={jan} latest={row(0, null)} online={online} now={START + 25000} busy={false} {...handlers} />;
+}
+
+function cameraPanel(path: string, live: boolean) {
+  const handlers = { onSeek: () => {}, onPause: () => {}, onPlay: () => {} };
+  return <CameraPanel path={path} live={live} paused={false} max={10} delay={0} label={null} {...handlers} />;
+}
+
+function popups(alarms: Alarm[]) {
+  return <AlarmPopups groups={groupAlarms(alarms, [jan])} dismissed={[]} onShow={() => {}} onDismiss={() => {}} />;
+}
+
+function popupTitles() {
+  const titles = [];
+
+  for (const popup of screen.getAllByRole("alert")) {
+    titles.push(popup.children[0].textContent);
+  }
+
+  return titles;
+}
+
+function modal(title: string, onClose: () => void) {
+  return (
+    <Modal title={title} onClose={onClose}>
+      <p>{title}</p>
+    </Modal>
+  );
 }
 
 it("łączy alarmy tego samego typu i strażaka", () => {
-  const groups = groupAlarms([alarm(1, 1), alarm(2, 1), alarm(3, 2), alarm(4, 1, "SOS")], [session]);
+  const groups = groupAlarms([alarm(1, 1), alarm(2, 1), alarm(3, 2), alarm(4, 1, "SOS")], [jan]);
 
   expect(groups).toHaveLength(3);
   expect(groups[0].alarmType).toBe("SOS");
@@ -41,13 +76,10 @@ it("pokazuje, jak dawno przyszedł ostatni pomiar", () => {
   expect(formatAge(185000)).toBe("3 min");
   expect(formatAge(7300000)).toBe("2 h");
 
-  const latest = { recordedAt: session.startedAt, temperature: null, co2Ppm: null, tvocPpb: null, gasVoltage: null, motionState: null };
-  const now = Date.parse(session.startedAt) + 25000;
-  const handlers = { onEnd: () => {}, onRename: () => {}, onClose: () => {} };
-  const view = render(<SessionBar incident={session} latest={latest} online={false} now={now} busy={false} {...handlers} />);
+  const view = render(sessionBar(false));
 
   expect(screen.getByText("Brak danych z kasku · 25 s")).toBeTruthy();
-  view.rerender(<SessionBar incident={session} latest={latest} online={true} now={now} busy={false} {...handlers} />);
+  view.rerender(sessionBar(true));
   expect(screen.getByText("Na żywo")).toBeTruthy();
 });
 
@@ -56,12 +88,8 @@ it("Esc zamyka tylko okno na wierzchu", () => {
   const upper = vi.fn();
   render(
     <>
-      <Modal title="Dolne" onClose={lower}>
-        <p>Dolne</p>
-      </Modal>
-      <Modal title="Górne" alert onClose={upper}>
-        <p>Górne</p>
-      </Modal>
+      {modal("Dolne", lower)}
+      {modal("Górne", upper)}
     </>
   );
 
@@ -69,4 +97,56 @@ it("Esc zamyka tylko okno na wierzchu", () => {
 
   expect(upper).toHaveBeenCalledTimes(1);
   expect(lower).not.toHaveBeenCalled();
+});
+
+it("odświeżenie okna nie odpina nasłuchu Esc, a Esc woła aktualne zamknięcie", () => {
+  const removeListener = vi.spyOn(document, "removeEventListener");
+  const first = vi.fn();
+  const second = vi.fn();
+  const view = render(modal("Okno", first));
+
+  view.rerender(modal("Okno", second));
+  fireEvent.keyDown(document.body, { key: "Escape" });
+
+  expect(removeListener).not.toHaveBeenCalledWith("keydown", expect.anything());
+  expect(first).not.toHaveBeenCalled();
+  expect(second).toHaveBeenCalledTimes(1);
+});
+
+it("po błędzie obrazu kamera na żywo łączy się ponownie, a nagranie czeka na przewinięcie", () => {
+  vi.useFakeTimers();
+  const view = render(cameraPanel("/api/incidents/1/live", true));
+
+  fireEvent.error(cameraImage());
+  expect(screen.getByText("Brak obrazu z kamery")).toBeTruthy();
+  act(() => vi.advanceTimersByTime(RETRY_TIMEOUT));
+  expect(cameraImage()).toBeTruthy();
+
+  view.rerender(cameraPanel("/api/incidents/1/recording", false));
+  fireEvent.error(cameraImage());
+  act(() => vi.advanceTimersByTime(RETRY_TIMEOUT));
+  expect(screen.getByText("Brak obrazu z kamery")).toBeTruthy();
+});
+
+it("okienka alarmów trzymają kolejność listy, a zamykane zostają do końca animacji", () => {
+  const view = render(popups([alarm(1, 1, "SOS")]));
+
+  view.rerender(popups([alarm(1, 1, "SOS"), alarm(2, 1, "NO_MOTION")]));
+  expect(popupTitles()).toEqual(["Brak ruchu", "SOS"]);
+
+  view.rerender(popups([alarm(2, 1, "NO_MOTION"), alarm(3, 1, "SOS")]));
+  expect(popupTitles()).toEqual(["SOS", "Brak ruchu"]);
+
+  view.rerender(popups([alarm(3, 1, "SOS")]));
+  expect(popupTitles()).toEqual(["SOS", "Brak ruchu"]);
+  expect(screen.getAllByRole("alert")[1].closest(".closing")).not.toBeNull();
+});
+
+it("dymek wykresu pokazuje czas i wartość z jednostką czujnika", () => {
+  const point = { active: true, label: START, coordinate: undefined, accessibilityLayer: false, activeIndex: undefined };
+  const view = render(<ChartTooltip {...point} payload={[{ graphicalItemId: "line", dataKey: "temperature", value: 33.26 }]} />);
+
+  expect(screen.getByText("33,3 °C").closest(".tooltip.glass")).not.toBeNull();
+  view.rerender(<ChartTooltip {...point} active={false} payload={[]} />);
+  expect(view.container.textContent).toBe("");
 });

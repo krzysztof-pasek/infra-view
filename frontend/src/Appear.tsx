@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { animationTime } from "./format";
+import { animationTime } from "./config";
 
 export function Appear({ children }: { children: ReactNode }) {
   const [shown, setShown] = useState(children);

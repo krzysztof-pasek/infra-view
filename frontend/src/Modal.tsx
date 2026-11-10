@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 
 type Props = {
@@ -23,24 +23,24 @@ export function Modal({ title, action, alert, onClose, children }: Props) {
     };
   }, [previousFocus]);
 
-  useEffect(() => {
-    function closeOnEscape(event: KeyboardEvent) {
-      let last = null;
+  const closeOnEscape = useEffectEvent((event: KeyboardEvent) => {
+    let last = null;
 
-      for (const other of document.querySelectorAll('[role="dialog"]')) {
-        if (other.closest(".closing") === null) {
-          last = other;
-        }
-      }
-
-      if (event.key === "Escape" && last === dialog.current) {
-        onClose();
+    for (const other of document.querySelectorAll('[role="dialog"]')) {
+      if (other.closest(".closing") === null) {
+        last = other;
       }
     }
 
+    if (event.key === "Escape" && last === dialog.current) {
+      onClose();
+    }
+  });
+
+  useEffect(() => {
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [onClose]);
+  }, []);
 
   function closeOnOverlay(event: MouseEvent) {
     event.preventDefault();

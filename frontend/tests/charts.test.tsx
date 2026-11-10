@@ -2,23 +2,24 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { Charts, pointsUntil, toPoints } from "../src/Charts";
 import { SessionView } from "../src/SessionView";
-import { MAX_REPLAY } from "../src/format";
+import { MAX_REPLAY_SECONDS } from "../src/config";
 import type { Incident, Telemetry } from "../src/types";
-
-const START = Date.parse("2026-09-21T10:00:00Z");
-
-function row(second: number, temperature: number): Telemetry {
-  return {
-    recordedAt: new Date(START + second * 1000).toISOString(),
-    temperature,
-    co2Ppm: null,
-    tvocPpb: null,
-    gasVoltage: null,
-    motionState: null,
-  };
-}
+import { imagePath, jan, row, START } from "./fixtures";
 
 const rows = [row(0, 20), row(10, 30), row(20, 40)];
+const ended: Incident = { ...jan, endedAt: rows[2].recordedAt, status: "RESOLVED" };
+
+function charts(until: number) {
+  return <Charts rows={rows} thresholds={null} until={until} span={MAX_REPLAY_SECONDS} animate={false} />;
+}
+
+function sessionView(incident: Incident, shownRows: Telemetry[], now: number, online = true, error = "") {
+  return <SessionView incident={incident} rows={shownRows} thresholds={null} error={error} updatedAt={0} online={online} now={now} />;
+}
+
+function young(now: number): Incident {
+  return { ...jan, startedAt: new Date(now - 30000).toISOString() };
+}
 
 function valueAfter(title: Element) {
   const value = title.nextElementSibling;
@@ -35,15 +36,15 @@ function temperature() {
 }
 
 it("pokazuje ostatni pomiar sprzed czasu wideo", () => {
-  render(<Charts rows={rows} thresholds={null} until={START + 20000} span={MAX_REPLAY} animate={false} />);
+  render(charts(START + 20000));
   expect(temperature()).toBe("40 °C");
 
-  render(<Charts rows={rows} thresholds={null} until={START + 10000} span={MAX_REPLAY} animate={false} />);
+  render(charts(START + 10000));
   expect(valueAfter(screen.getAllByText("Temperatura")[1])).toBe("30 °C");
 });
 
 it("nie pokazuje pomiaru sprzed początku nagrania", () => {
-  render(<Charts rows={rows} thresholds={null} until={START - 1000} span={MAX_REPLAY} animate={false} />);
+  render(charts(START - 1000));
 
   expect(temperature()).toBe("— ");
 });
@@ -60,14 +61,14 @@ it("okno wykresu obejmuje tylko zakres paska i nigdy nie wychodzi poza czas wide
     const many: Telemetry[] = [];
     let second = 0;
 
-    for (let i = 0; i < 1 + random(400); i++) {
+    for (let index = 0; index < 1 + random(400); index++) {
       second += 1 + random(10);
       many.push(row(second, 20));
     }
 
     const points = toPoints(many);
     const end = points[points.length - 1].time - random(320) * 1000;
-    const span = 1 + random(MAX_REPLAY);
+    const span = 1 + random(MAX_REPLAY_SECONDS);
     const visible = pointsUntil(points, end, span);
 
     let inside = 0;
@@ -94,23 +95,20 @@ it("okno wykresu obejmuje tylko zakres paska i nigdy nie wychodzi poza czas wide
 });
 
 it("po zakończeniu sesji wykres nie zostaje zamrożony na pauzie", () => {
-  const session: Incident = { id: 1, code: "Jan Kowalski", startedAt: rows[0].recordedAt, endedAt: null, status: "IN_PROGRESS" };
-  const view = render(<SessionView incident={session} rows={rows.slice(0, 2)} thresholds={null} error="" updatedAt={0} online now={Date.now()} />);
+  const view = render(sessionView(jan, rows.slice(0, 2), Date.now()));
 
   fireEvent.click(screen.getByRole("button", { name: "Wstrzymaj" }));
-  const ended: Incident = { ...session, endedAt: rows[2].recordedAt, status: "RESOLVED" };
-  view.rerender(<SessionView incident={ended} rows={rows} thresholds={null} error="" updatedAt={0} online now={Date.now()} />);
+  view.rerender(sessionView(ended, rows, Date.now()));
 
   expect(temperature()).toBe("40 °C");
 });
 
 it("nagranie zakończonej sesji przesuwa wykresy razem z wideo i zatrzymuje się na końcu", () => {
   vi.useFakeTimers({ toFake: ["Date"] });
-  const ended: Incident = { id: 1, code: "Jan Kowalski", startedAt: rows[0].recordedAt, endedAt: rows[2].recordedAt, status: "RESOLVED" };
 
   function show(seconds: number) {
     vi.setSystemTime(START + seconds * 1000);
-    return <SessionView incident={ended} rows={rows} thresholds={null} error="" updatedAt={0} online now={Date.now()} />;
+    return sessionView(ended, rows, Date.now());
   }
 
   const view = render(show(0));
@@ -125,40 +123,73 @@ it("nagranie zakończonej sesji przesuwa wykresy razem z wideo i zatrzymuje się
   fireEvent.click(screen.getByRole("button", { name: "Wstrzymaj" }));
   view.rerender(show(40));
   expect(screen.getByText("0:11")).toBeTruthy();
+  expect(imagePath()).toBe("/api/incidents/1/frame?at=2026-09-21T10:00:11.000Z");
 
   fireEvent.click(screen.getByRole("button", { name: "Wznów" }));
   view.rerender(show(100));
   expect(temperature()).toBe("40 °C");
   expect(screen.getByText("0:20")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Wznów" })).toBeTruthy();
-  vi.useRealTimers();
 });
 
 it("na żywo pasek cofania obejmuje tylko czas trwania sesji, do 5 minut", () => {
   const now = Date.now();
-  const young: Incident = { id: 1, code: "Jan Kowalski", startedAt: new Date(now - 30000).toISOString(), endedAt: null, status: "IN_PROGRESS" };
-  const view = render(<SessionView incident={young} rows={[]} thresholds={null} error="" updatedAt={0} online now={now} />);
-  const slider = screen.getByLabelText("Przewijanie obrazu") as HTMLInputElement;
+  const view = render(sessionView(young(now), [], now));
+  const slider = screen.getByLabelText<HTMLInputElement>("Przewijanie obrazu");
 
   expect(slider.max).toBe("30");
-  view.rerender(<SessionView incident={young} rows={[]} thresholds={null} error="" updatedAt={0} online now={now + 15000} />);
+  view.rerender(sessionView(young(now), [], now + 15000));
   expect(slider.max).toBe("45");
 
-  const old: Incident = { ...young, startedAt: new Date(now - 1000000).toISOString() };
-  view.rerender(<SessionView incident={old} rows={[]} thresholds={null} error="" updatedAt={0} online now={now} />);
+  view.rerender(sessionView({ ...jan, startedAt: new Date(now - 1000000).toISOString() }, [], now));
   expect(slider.max).toBe("300");
 });
 
 it("na żywo nie ma podpisu czasu, pojawia się dopiero po cofnięciu", async () => {
   const now = Date.now();
-  const session: Incident = { id: 1, code: "Jan Kowalski", startedAt: new Date(now - 30000).toISOString(), endedAt: null, status: "IN_PROGRESS" };
-  render(<SessionView incident={session} rows={[]} thresholds={null} error="" updatedAt={0} online now={now} />);
-  const slider = screen.getByLabelText("Przewijanie obrazu");
+  render(sessionView(young(now), [], now));
 
   expect(screen.queryByText(/^−?\d+:\d\d$/)).toBeNull();
-  fireEvent.change(slider, { target: { value: "10" } });
+  fireEvent.change(screen.getByLabelText("Przewijanie obrazu"), { target: { value: "10" } });
   expect(screen.getByText("−0:20")).toBeTruthy();
 
   fireEvent.click(screen.getByRole("button", { name: "Na żywo" }));
   await waitFor(() => expect(screen.queryByText("−0:20")).toBeNull());
+});
+
+it("pauza po cofnięciu pokazuje klatkę z chwili, którą było widać", () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(START + 30000);
+  render(sessionView(jan, [], Date.now()));
+
+  fireEvent.change(screen.getByLabelText("Przewijanie obrazu"), { target: { value: "10" } });
+  fireEvent.click(screen.getByRole("button", { name: "Wstrzymaj" }));
+
+  expect(imagePath()).toBe("/api/incidents/1/frame?at=2026-09-21T10:00:10.000Z");
+});
+
+it("bez łączności z kaskiem obraz na żywo znika, ale cofnięty zostaje, a przy błędzie pobierania znika", () => {
+  const now = Date.now();
+  const view = render(sessionView(young(now), [], now, false));
+
+  expect(screen.getByText("Brak obrazu z kamery")).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("Przewijanie obrazu"), { target: { value: "10" } });
+  expect(imagePath()).toBe("/api/incidents/1/replay?delaySeconds=20&connection=0");
+
+  view.rerender(sessionView(young(now), [], now, true, "Brak połączenia z serwerem"));
+  expect(screen.getByText("Brak obrazu z kamery")).toBeTruthy();
+});
+
+it("każdy powrót łączności daje obrazowi nowy adres, żeby przeglądarka połączyła się od nowa", () => {
+  const now = Date.now();
+  const view = render(sessionView(young(now), [], now));
+  expect(imagePath()).toBe("/api/incidents/1/live?connection=1");
+
+  view.rerender(sessionView(young(now), [], now, false));
+  view.rerender(sessionView(young(now), [], now));
+  expect(imagePath()).toBe("/api/incidents/1/live?connection=3");
+
+  view.rerender(sessionView(young(now), [], now, true, "Brak połączenia z serwerem"));
+  view.rerender(sessionView(young(now), [], now));
+  expect(imagePath()).toBe("/api/incidents/1/live?connection=5");
 });

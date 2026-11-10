@@ -1,13 +1,9 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
+import { expect, it, vi } from "vitest";
 import { usePolling } from "../src/usePolling";
 
 const ONE_SECOND = 1000;
-const ONE_MINUTE = 60_000;
-
-afterEach(() => {
-  vi.useRealTimers();
-});
+const ONE_MINUTE = 60000;
 
 it("pobiera dane", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => Response.json(1)));

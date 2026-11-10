@@ -1,8 +1,9 @@
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import type { Telemetry, Threshold } from "./types";
-import type { Sensor } from "./format";
-import { animationTime, formatDate, formatNumber, formatTime, GAP_TIMEOUT, sensors } from "./format";
-import { findThreshold } from "./data";
+import type { TooltipContentProps } from "recharts";
+import type { Sensor, Telemetry, Threshold } from "./types";
+import { animationTime, GAP_TIMEOUT, sensors } from "./config";
+import { formatDate, formatNumber, formatTime } from "./format";
+import { findThreshold, lastItem } from "./data";
 
 type Point = {
   time: number;
@@ -29,9 +30,9 @@ export function toPoints(rows: Telemetry[]) {
 
   for (const row of rows) {
     const time = Date.parse(row.recordedAt);
-    const last = points.at(-1);
+    const last = lastItem(points);
 
-    if (last !== undefined && time - last.time > GAP_TIMEOUT) {
+    if (last !== null && time - last.time > GAP_TIMEOUT) {
       points.push(makePoint(last.time + 1, null));
     }
 
@@ -67,10 +68,10 @@ export function Charts({ rows, thresholds, until, span, animate }: Props) {
   }
 
   const visible = pointsUntil(toPoints(rows), until, span);
-  let current = makePoint(0, null);
+  let current = lastItem(visible);
 
-  if (visible.length > 0) {
-    current = visible[visible.length - 1];
+  if (current === null) {
+    current = makePoint(0, null);
   }
 
   return sensors.map(sensor => (
@@ -85,6 +86,29 @@ export function Charts({ rows, thresholds, until, span, animate }: Props) {
   ));
 }
 
+export function ChartTooltip({ active, payload, label }: TooltipContentProps) {
+  if (!active || payload.length === 0) {
+    return null;
+  }
+
+  const measured = payload[0].value;
+
+  for (const sensor of sensors) {
+    if (sensor.key === payload[0].dataKey && typeof measured === "number") {
+      return (
+        <div className="tooltip glass">
+          <small>{formatDate(Number(label))}</small>
+          <strong>
+            {formatNumber(measured, sensor.digits)} {sensor.unit}
+          </strong>
+        </div>
+      );
+    }
+  }
+
+  return null;
+}
+
 type ChartProps = {
   sensor: Sensor;
   points: Point[];
@@ -94,7 +118,7 @@ type ChartProps = {
 };
 
 function SensorChart({ sensor, points, value, threshold, animate }: ChartProps) {
-  const axis = { fill: "var(--muted)", fontSize: 11 };
+  const axis = { fill: "var(--muted)", fontSize: 12 };
   const duration = animationTime();
   let valueClass = "value";
   let line = null;
@@ -106,10 +130,10 @@ function SensorChart({ sensor, points, value, threshold, animate }: ChartProps) 
 
   if (threshold !== null && threshold.enabled) {
     line = <ReferenceLine y={threshold.threshold} stroke="var(--red)" strokeDasharray="4 4" />;
-  }
 
-  if (threshold !== null && threshold.enabled && value !== null && value >= threshold.threshold) {
-    valueClass = "value red";
+    if (value !== null && value >= threshold.threshold) {
+      valueClass = "value red";
+    }
   }
 
   return (
@@ -135,23 +159,17 @@ function SensorChart({ sensor, points, value, threshold, animate }: ChartProps) 
               minTickGap={40}
             />
             <YAxis
-              width={44}
+              width={48}
               domain={["auto", "auto"]}
               tick={axis}
               axisLine={false}
               tickLine={false}
-              tickFormatter={value => formatNumber(value, sensor.digits)}
+              tickFormatter={tick => formatNumber(tick, sensor.digits)}
             />
-            <Tooltip
-              animationDuration={duration}
-              labelFormatter={label => formatDate(Number(label))}
-              contentStyle={{ background: "var(--solid)", border: "none", borderRadius: 12 }}
-            />
+            <Tooltip animationDuration={duration} content={ChartTooltip} />
             {line}
             <Line
               dataKey={sensor.key}
-              name={sensor.label}
-              unit={" " + sensor.unit}
               stroke="var(--accent)"
               strokeWidth={2}
               dot={false}

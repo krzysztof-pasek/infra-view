@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { RETRY_TIMEOUT } from "./config";
 import { Appear } from "./Appear";
 import { Icon } from "./Icon";
 
@@ -9,13 +10,23 @@ type Props = {
   max: number;
   delay: number;
   label: string | null;
-  onDelay: (delay: number) => void;
+  onSeek: (delay: number) => void;
   onPause: () => void;
   onPlay: () => void;
 };
 
-export function CameraPanel({ path, live, paused, max, delay, label, onDelay, onPause, onPlay }: Props) {
+export function CameraPanel({ path, live, paused, max, delay, label, onSeek, onPause, onPlay }: Props) {
   const [failedPath, setFailedPath] = useState("");
+
+  useEffect(() => {
+    if (failedPath === "" || !live) {
+      return;
+    }
+
+    const timer = setTimeout(() => setFailedPath(""), RETRY_TIMEOUT);
+    return () => clearTimeout(timer);
+  }, [failedPath, live]);
+
   let image = <p className="camera-status">Brak obrazu z kamery</p>;
 
   if (path !== "" && path !== failedPath) {
@@ -26,7 +37,7 @@ export function CameraPanel({ path, live, paused, max, delay, label, onDelay, on
 
   if (live) {
     liveButton = (
-      <button aria-pressed={delay === 0 && !paused} onClick={() => onDelay(0)}>
+      <button aria-pressed={delay === 0 && !paused} onClick={() => onSeek(0)}>
         Na żywo
       </button>
     );
@@ -60,7 +71,7 @@ export function CameraPanel({ path, live, paused, max, delay, label, onDelay, on
           max={max}
           value={max - delay}
           aria-label="Przewijanie obrazu"
-          onChange={event => onDelay(max - Number(event.target.value))}
+          onChange={event => onSeek(max - Number(event.target.value))}
         />
         <Appear>{timeLabel}</Appear>
         <button className={toggleClass} aria-label={toggleLabel} title={toggleLabel} onClick={toggle}>

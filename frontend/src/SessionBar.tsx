@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { MouseEvent } from "react";
 import type { Incident, Telemetry } from "./types";
-import { formatAge, formatDate, motionStates } from "./format";
+import { motionStates } from "./config";
+import { formatAge, formatDate } from "./format";
 import { Appear } from "./Appear";
 import { Icon } from "./Icon";
 
 type Props = {
-  incident: Incident | undefined;
-  latest: Telemetry | undefined;
+  incident: Incident | null;
+  latest: Telemetry | null;
   online: boolean;
   now: number;
   busy: boolean;
@@ -29,35 +30,63 @@ export function SessionBar({ incident, latest, online, now, busy, onEnd, onRenam
     }
 
     function close() {
+      const active = document.activeElement;
+
+      if (button.current !== null && active !== null && active.closest('[role="menu"]') !== null) {
+        button.current.focus();
+      }
+
       setMenuOpen(false);
     }
 
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape" && button.current !== null) {
-        setMenuOpen(false);
-        button.current.focus();
+    function pressKey(event: KeyboardEvent) {
+      const items = document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:enabled');
+      let focused = 0;
+      let next = -1;
+
+      for (let index = 0; index < items.length; index++) {
+        if (items[index] === document.activeElement) {
+          focused = index;
+        }
+      }
+
+      if (event.key === "ArrowDown") {
+        next = focused + 1;
+      }
+
+      if (event.key === "ArrowUp") {
+        next = focused + items.length - 1;
+      }
+
+      if (next !== -1 && items.length > 0) {
+        event.preventDefault();
+        items[next % items.length].focus();
+      }
+
+      if (event.key === "Escape" || event.key === "Tab") {
+        close();
       }
     }
 
     document.addEventListener("click", close);
-    document.addEventListener("keydown", closeOnEscape);
+    document.addEventListener("keydown", pressKey);
     window.addEventListener("scroll", close);
 
     return () => {
       document.removeEventListener("click", close);
-      document.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("keydown", pressKey);
       window.removeEventListener("scroll", close);
     };
   }, [menuOpen]);
 
-  if (incident === undefined) {
+  if (incident === null) {
     return <div className="session-bar" />;
   }
 
   function toggleMenu(event: MouseEvent<HTMLButtonElement>) {
     const rect = event.currentTarget.getBoundingClientRect();
     event.stopPropagation();
-    setMenuTop(rect.bottom + 8);
+    setMenuTop(rect.bottom);
     setMenuRight(document.documentElement.clientWidth - rect.right);
     setMenuOpen(!menuOpen);
   }
@@ -88,15 +117,15 @@ export function SessionBar({ incident, latest, online, now, busy, onEnd, onRenam
       statusColor = "";
     }
 
-    if (!online && latest !== undefined) {
-      status = status + " · " + formatAge(now - Date.parse(latest.recordedAt));
+    if (!online && latest !== null) {
+      status = `${status} · ${formatAge(now - Date.parse(latest.recordedAt))}`;
     }
   }
 
   let motion = "—";
   let motionColor = "";
 
-  if (latest !== undefined && latest.motionState !== null) {
+  if (latest !== null && latest.motionState !== null) {
     motion = motionStates[latest.motionState].label;
     motionColor = motionStates[latest.motionState].color;
   }
@@ -106,7 +135,7 @@ export function SessionBar({ incident, latest, online, now, busy, onEnd, onRenam
   if (menuOpen) {
     menu = (
       <div className="menu glass" role="menu" style={{ top: menuTop, right: menuRight }}>
-        <button role="menuitem" onClick={() => choose(onRename)}>
+        <button role="menuitem" autoFocus onClick={() => choose(onRename)}>
           Zmień nazwę
         </button>
         {endItem}
@@ -124,12 +153,12 @@ export function SessionBar({ incident, latest, online, now, busy, onEnd, onRenam
         <small>start {formatDate(incident.startedAt)}</small>
       </div>
 
-      <span className={"status " + statusColor}>
+      <span className={`status ${statusColor}`}>
         <span className="dot" />
         {status}
       </span>
 
-      <span className={"status " + motionColor}>Ruch: {motion}</span>
+      <span className={`status ${motionColor}`}>Ruch: {motion}</span>
 
       <button
         ref={button}

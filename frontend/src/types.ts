@@ -38,6 +38,14 @@ export type AlarmGroup = {
 
 export type Metric = "TEMPERATURE" | "CO2_PPM" | "TVOC_PPB";
 
+export type Sensor = {
+  key: "temperature" | "co2Ppm" | "tvocPpb" | "gasVoltage";
+  metric: Metric | null;
+  label: string;
+  unit: string;
+  digits: number;
+};
+
 export type Threshold = {
   metric: Metric;
   threshold: number;

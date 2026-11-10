@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { Alarm, AlarmGroup, Incident, Telemetry, Threshold } from "./types";
 import { api, errorMessage } from "./api";
-import { findIncident, groupAlarms } from "./data";
-import { alarmNames, ONLINE_TIMEOUT } from "./format";
+import { findIncident, groupAlarms, lastItem } from "./data";
+import { alarmNames, ONLINE_TIMEOUT } from "./config";
 import { usePolling } from "./usePolling";
 import { SessionBar } from "./SessionBar";
 import { SessionList } from "./SessionList";
@@ -23,6 +23,7 @@ const ALARMS_INTERVAL = 2000;
 const THRESHOLDS_INTERVAL = 30000;
 const LIVE_INTERVAL = 1000;
 const ENDED_INTERVAL = 30000;
+const HISTORY_LIMIT = 3600;
 
 type Confirmation = {
   title: string;
@@ -31,7 +32,7 @@ type Confirmation = {
   action: () => Promise<unknown>;
 };
 
-export default function App() {
+export function App() {
   const sessions = usePolling<Incident[]>("/incidents", SESSIONS_INTERVAL);
   const alarms = usePolling<Alarm[]>("/alarms/active", ALARMS_INTERVAL);
   const thresholds = usePolling<Threshold[]>("/alarm-thresholds", THRESHOLDS_INTERVAL);
@@ -56,42 +57,49 @@ export default function App() {
     incidents = sessions.data;
   }
 
-  const selected = findIncident(incidents, selectedId);
-  const renamed = findIncident(incidents, renameId);
+  const selectedIncident = findIncident(incidents, selectedId);
+  const renamedIncident = findIncident(incidents, renameId);
   let telemetryPath = null;
   let telemetryInterval = LIVE_INTERVAL;
+  let historyPath = null;
 
-  if (selected !== undefined) {
-    telemetryPath = `/telemetry/incident/${selected.id}`;
+  if (selectedIncident !== null) {
+    telemetryPath = `/telemetry/incident/${selectedIncident.id}`;
   }
 
-  if (selected !== undefined && selected.status !== "IN_PROGRESS") {
+  if (selectedIncident !== null && selectedIncident.status !== "IN_PROGRESS") {
     telemetryInterval = ENDED_INTERVAL;
+    historyPath = `${telemetryPath}?limit=${HISTORY_LIMIT}`;
   }
 
   const telemetry = usePolling<Telemetry[]>(telemetryPath, telemetryInterval);
+  const history = usePolling<Telemetry[]>(historyPath, ENDED_INTERVAL);
   let rows: Telemetry[] = [];
 
   if (telemetry.data !== null) {
     rows = telemetry.data;
   }
 
-  const latest = rows.at(-1);
+  if (history.data !== null) {
+    rows = history.data;
+  }
+
+  const latest = lastItem(rows);
   let online = false;
 
-  if (selected !== undefined && selected.status === "IN_PROGRESS" && latest !== undefined) {
+  if (selectedIncident !== null && selectedIncident.status === "IN_PROGRESS" && latest !== null) {
     online = now - telemetry.changedAt < ONLINE_TIMEOUT;
   }
 
   let groups: AlarmGroup[] | null = null;
-  const alarmIds: number[] = [];
+  const alarmIncidentIds: number[] = [];
   const seen: number[] = [];
 
   if (alarms.data !== null) {
     groups = groupAlarms(alarms.data, incidents);
 
     for (const group of groups) {
-      alarmIds.push(group.incidentId);
+      alarmIncidentIds.push(group.incidentId);
 
       if (group.alarmType !== "SOS") {
         seen.push(group.latestId);
@@ -120,15 +128,15 @@ export default function App() {
   }
 
   function endSession() {
-    if (selected === undefined) {
+    if (selectedIncident === null) {
       return;
     }
 
     setConfirmation({
       title: "Zakończyć sesję?",
-      text: `Sesja ${selected.code} zostanie zakończona.`,
+      text: `Sesja ${selectedIncident.code} zostanie zakończona.`,
       button: "Zakończ sesję",
-      action: () => api(`/incidents/${selected.id}/end`, "PUT"),
+      action: () => api(`/incidents/${selectedIncident.id}/end`, "PUT"),
     });
   }
 
@@ -157,6 +165,10 @@ export default function App() {
     setDialog(name);
   }
 
+  function closeDialog() {
+    setDialog("");
+  }
+
   function saveAndClose(action: () => Promise<unknown>) {
     const countBefore = openCount.current;
 
@@ -164,7 +176,7 @@ export default function App() {
       await action();
 
       if (openCount.current === countBefore) {
-        setDialog("");
+        closeDialog();
       }
     });
   }
@@ -187,8 +199,8 @@ export default function App() {
   }
 
   function saveName(code: string) {
-    if (renamed !== undefined) {
-      saveAndClose(() => api(`/incidents/${renamed.id}/code`, "PUT", { code }));
+    if (renamedIncident !== null) {
+      saveAndClose(() => api(`/incidents/${renamedIncident.id}/code`, "PUT", { code }));
     }
   }
 
@@ -201,10 +213,6 @@ export default function App() {
   function showAlarm(group: AlarmGroup) {
     setSelectedId(group.incidentId);
     dismissAlarm(group);
-  }
-
-  function closeDialog() {
-    setDialog("");
   }
 
   function openSession(id: number) {
@@ -249,8 +257,8 @@ export default function App() {
     );
   }
 
-  if (dialog === "rename" && renamed !== undefined) {
-    dialogWindow = <RenameDialog code={renamed.code} busy={busy} onSave={saveName} onClose={closeDialog} />;
+  if (dialog === "rename" && renamedIncident !== null) {
+    dialogWindow = <RenameDialog code={renamedIncident.code} busy={busy} onSave={saveName} onClose={closeDialog} />;
   }
 
   if (confirmation !== null) {
@@ -267,51 +275,60 @@ export default function App() {
 
   return (
     <>
-      <header className="topbar glass">
-        <h1>INFRA VIEW</h1>
-        <SessionBar
-          incident={selected}
-          latest={latest}
-          online={online}
-          now={now}
-          busy={busy}
-          onEnd={endSession}
-          onRename={openRename}
-          onClose={() => setSelectedId(null)}
-        />
-        <nav className="toolbar">
-          <button onClick={() => openDialog("archive")}>Archiwum</button>
-          <button onClick={() => openDialog("thresholds")}>Progi alarmów</button>
-          <ThemeToggle />
-        </nav>
-      </header>
-
-      <main className="layout">
-        <aside className="pane glass">
-          <ErrorLine error={sessions.error} updatedAt={sessions.updatedAt} />
-          <SessionList incidents={sessions.data} selectedId={selectedId} alarmIds={alarmIds} onSelect={setSelectedId} />
-          <AlarmList
-            groups={groups}
-            error={alarms.error}
+      <div inert={dialogWindow !== null}>
+        <header className="topbar glass">
+          <h1>INFRA VIEW</h1>
+          <SessionBar
+            incident={selectedIncident}
+            latest={latest}
+            online={online}
+            now={now}
             busy={busy}
-            onSelect={showAlarm}
-            onResolve={resolveAlarm}
+            onEnd={endSession}
+            onRename={openRename}
+            onClose={() => setSelectedId(null)}
           />
-        </aside>
+          <nav className="toolbar">
+            <button onClick={() => openDialog("archive")}>Archiwum</button>
+            <button onClick={() => openDialog("thresholds")}>Progi alarmów</button>
+            <ThemeToggle />
+          </nav>
+        </header>
 
-        <SessionView
-          key={selectedId}
-          incident={selected}
-          rows={rows}
-          thresholds={thresholds.data}
-          error={telemetry.error}
-          updatedAt={telemetry.updatedAt}
-          now={now}
-          online={online}
-        />
-      </main>
+        <main className="layout">
+          <aside className="pane glass">
+            <ErrorLine error={sessions.error} updatedAt={sessions.updatedAt} />
+            <SessionList
+              incidents={sessions.data}
+              error={sessions.error}
+              selectedId={selectedId}
+              alarmIncidentIds={alarmIncidentIds}
+              onSelect={setSelectedId}
+            />
+            <AlarmList
+              groups={groups}
+              error={alarms.error}
+              busy={busy}
+              onSelect={showAlarm}
+              onResolve={resolveAlarm}
+            />
+          </aside>
 
-      {popups}
+          <SessionView
+            key={selectedId}
+            incident={selectedIncident}
+            rows={rows}
+            thresholds={thresholds.data}
+            error={telemetry.error}
+            updatedAt={telemetry.updatedAt}
+            now={now}
+            online={online}
+          />
+        </main>
+
+        {popups}
+      </div>
+
       <Appear>{dialogWindow}</Appear>
       <Appear>{toast}</Appear>
     </>

@@ -11,7 +11,7 @@ export async function api<T>(path: string, method = "GET", body?: unknown): Prom
   let response: Response;
 
   try {
-    response = await fetch("/api" + path, options);
+    response = await fetch(`/api${path}`, options);
   } catch {
     throw new Error("Brak połączenia z serwerem");
   }
