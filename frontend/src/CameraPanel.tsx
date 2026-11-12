@@ -5,6 +5,7 @@ import { Icon } from "./Icon";
 
 type Props = {
   path: string;
+  message: string;
   live: boolean;
   paused: boolean;
   max: number;
@@ -15,7 +16,7 @@ type Props = {
   onPlay: () => void;
 };
 
-export function CameraPanel({ path, live, paused, max, delay, label, onSeek, onPause, onPlay }: Props) {
+export function CameraPanel({ path, message, live, paused, max, delay, label, onSeek, onPause, onPlay }: Props) {
   const [failedPath, setFailedPath] = useState("");
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export function CameraPanel({ path, live, paused, max, delay, label, onSeek, onP
     return () => clearTimeout(timer);
   }, [failedPath, live]);
 
-  let image = <p className="camera-status">Brak obrazu z kamery</p>;
+  let image = <p className="camera-status">{message}</p>;
 
   if (path !== "" && path !== failedPath) {
     image = <img src={path} alt="Obraz z kamery termowizyjnej" onError={() => setFailedPath(path)} />;

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, expect, it, vi } from "vitest";
 import { App } from "../src/App";
 import type { Incident, Telemetry } from "../src/types";
+import { ONLINE_TIMEOUT } from "../src/config";
 import { imagePath, jan, row } from "./fixtures";
 
 vi.mock("../src/Charts", () => ({ Charts: ({ rows }: { rows: Telemetry[] }) => <p>Pomiary: {rows.length}</p> }));
@@ -29,11 +30,13 @@ function fall(id: number): TestAlarm {
 const temperature = { metric: "TEMPERATURE", alarmType: "HIGH_TEMPERATURE", threshold: 80, resetMargin: 5, enabled: true };
 const co2 = { metric: "CO2_PPM", alarmType: "HIGH_CO2", threshold: 5000, resetMargin: 500, enabled: false };
 const tvoc = { metric: "TVOC_PPB", alarmType: "HIGH_TVOC", threshold: 2000, resetMargin: 200, enabled: true };
+const gas = { metric: "GAS_VOLTAGE", alarmType: "HIGH_GAS", threshold: 1, resetMargin: 0.1, enabled: true };
 
 type Options = {
   failEnd?: boolean;
   serverDown?: boolean;
   alarmsDown?: boolean;
+  silentHelmet?: boolean;
   alarms?: TestAlarm[];
   slowSave?: Promise<void>;
 };
@@ -85,12 +88,15 @@ function mockApi(options: Options = {}) {
     }
 
     if (request.startsWith("GET /api/telemetry/incident/1")) {
-      readings = readings + 1;
+      if (!options.silentHelmet) {
+        readings = readings + 1;
+      }
+
       return Response.json([row(0, readings)]);
     }
 
     if (request === "GET /api/alarm-thresholds") {
-      return Response.json([temperature, co2, tvoc]);
+      return Response.json([temperature, co2, tvoc, gas]);
     }
 
     if (request === "PUT /api/incidents/1/end") {
@@ -307,7 +313,8 @@ it("pauza zatrzymuje obraz na klatce, a wznowienie cofa go o czas pauzy", async 
   mockApi();
   render(<App />);
   fireEvent.click(await findJan());
-  expect(screen.getByText("Brak obrazu z kamery")).toBeTruthy();
+  expect(screen.getAllByText("Łączenie…")).toHaveLength(2);
+  expect(screen.queryByText(/^Brak danych z kasku/)).toBeNull();
   await waitFor(() => expect(imagePath()).toBe("/api/incidents/1/live?connection=1"), { timeout: 3000 });
 
   vi.useFakeTimers({ toFake: ["Date"] });
@@ -317,6 +324,19 @@ it("pauza zatrzymuje obraz na klatce, a wznowienie cofa go o czas pauzy", async 
   fireEvent.click(screen.getByRole("button", { name: "Wznów" }));
 
   await waitFor(() => expect(imagePath()).toBe("/api/incidents/1/replay?delaySeconds=12&connection=1"));
+});
+
+it("kask, który milczy, po czasie na połączenie dostaje status braku danych", async () => {
+  mockApi({ silentHelmet: true });
+  render(<App />);
+  fireEvent.click(await findJan());
+  expect(screen.getAllByText("Łączenie…")).toHaveLength(2);
+
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(Date.now() + ONLINE_TIMEOUT);
+
+  expect(await screen.findByText(/^Brak danych z kasku/, {}, { timeout: 3000 })).toBeTruthy();
+  expect(screen.getByText("Brak obrazu z kamery")).toBeTruthy();
 });
 
 it("błąd operacji zostaje na ekranie do zamknięcia", async () => {
@@ -360,6 +380,7 @@ it("jednym przyciskiem zapisuje tylko zmienione progi alarmów", async () => {
   const dialog = openThresholds();
   await changeFirstLimit(dialog);
   fireEvent.click(within(dialog).getAllByLabelText("Włączony")[1]);
+  expect(within(dialog).getByText("CO i gazy palne (intensywność) (V)")).toBeTruthy();
 
   expect(within(dialog).getAllByRole("button", { name: "Zapisz" })).toHaveLength(1);
   fireEvent.click(within(dialog).getByRole("button", { name: "Zapisz" }));
@@ -451,22 +472,34 @@ it("menu sesji obsługuje się klawiaturą", async () => {
   await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
 });
 
-it("gdy serwer nie odpowiada, nie twierdzi że alarmów nie ma", async () => {
+it("gdy serwer nie odpowiada, pokazuje jedno okno oczekiwania zamiast napisów o błędzie i blokuje tło", async () => {
   mockApi({ alarmsDown: true });
   render(<App />);
   const list = await alarmList();
 
-  expect(await within(list).findByText("Brak połączenia z serwerem")).toBeTruthy();
+  expect((await screen.findByRole("status")).textContent).toBe("Oczekiwanie na połączenie z serwerem");
+  expect(screen.queryByText("Brak połączenia z serwerem")).toBeNull();
   expect(within(list).queryByText("Brak aktywnych alarmów")).toBeNull();
+  expect(list.closest("[inert]")).not.toBeNull();
 });
 
-it("gdy serwer nie odpowiada, nie udaje że lista sesji się ładuje", async () => {
-  mockApi({ serverDown: true });
+it("okno oczekiwania wyłącza otwarte okno i znika samo, gdy serwer wraca", async () => {
+  const options: Options = {};
+  mockApi(options);
   render(<App />);
+  await findJan();
+  const archive = openArchive();
 
-  await waitFor(() => expect(screen.getAllByText("Brak połączenia z serwerem")).toHaveLength(2));
-  expect(screen.queryByText("Ładowanie…")).toBeNull();
-});
+  options.serverDown = true;
+  await screen.findByRole("status", {}, { timeout: 4000 });
+  expect(archive.closest("[inert]")).not.toBeNull();
+  fireEvent.keyDown(document.body, { key: "Escape" });
+  expect(archive.closest(".closing")).toBeNull();
+
+  options.serverDown = false;
+  await waitFor(() => expect(screen.queryByRole("status")).toBeNull(), { timeout: 6000 });
+  expect(archive.closest("[inert]")).toBeNull();
+}, 15000);
 
 it("przełącza motyw i zapamiętuje wybór", () => {
   mockApi();

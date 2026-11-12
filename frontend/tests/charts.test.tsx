@@ -3,7 +3,7 @@ import { expect, it, vi } from "vitest";
 import { Charts, pointsUntil, toPoints } from "../src/Charts";
 import { SessionView } from "../src/SessionView";
 import { MAX_REPLAY_SECONDS } from "../src/config";
-import type { Incident, Telemetry } from "../src/types";
+import type { Incident, Telemetry, Threshold } from "../src/types";
 import { imagePath, jan, row, START } from "./fixtures";
 
 const rows = [row(0, 20), row(10, 30), row(20, 40)];
@@ -13,8 +13,9 @@ function charts(until: number) {
   return <Charts rows={rows} thresholds={null} until={until} span={MAX_REPLAY_SECONDS} animate={false} />;
 }
 
-function sessionView(incident: Incident, shownRows: Telemetry[], now: number, online = true, error = "") {
-  return <SessionView incident={incident} rows={shownRows} thresholds={null} error={error} updatedAt={0} online={online} now={now} />;
+function sessionView(incident: Incident, shownRows: Telemetry[], now: number, online = true, waiting = false, connecting = false) {
+  const state = { online, waiting, connecting, now };
+  return <SessionView incident={incident} rows={shownRows} thresholds={null} {...state} />;
 }
 
 function young(now: number): Incident {
@@ -47,6 +48,14 @@ it("nie pokazuje pomiaru sprzed początku nagrania", () => {
   render(charts(START - 1000));
 
   expect(temperature()).toBe("— ");
+});
+
+it("pomiar gazu powyżej progu jest czerwony", () => {
+  const gasRows = [{ ...row(0, 20), gasVoltage: 2.4 }];
+  const gasThreshold: Threshold[] = [{ metric: "GAS_VOLTAGE", threshold: 1, resetMargin: 0.1, enabled: true }];
+  render(<Charts rows={gasRows} thresholds={gasThreshold} until={START} span={MAX_REPLAY_SECONDS} animate={false} />);
+
+  expect(screen.getByText("2,4").className).toBe("value red");
 });
 
 it("okno wykresu obejmuje tylko zakres paska i nigdy nie wychodzi poza czas wideo", () => {
@@ -168,16 +177,19 @@ it("pauza po cofnięciu pokazuje klatkę z chwili, którą było widać", () => 
   expect(imagePath()).toBe("/api/incidents/1/frame?at=2026-09-21T10:00:10.000Z");
 });
 
-it("bez łączności z kaskiem obraz na żywo znika, ale cofnięty zostaje, a przy błędzie pobierania znika", () => {
+it("panel kamery mówi, co się dzieje: łączenie, brak obrazu, cofnięty obraz albo nic przy braku serwera", () => {
   const now = Date.now();
-  const view = render(sessionView(young(now), [], now, false));
+  const view = render(sessionView(young(now), [], now, false, false, true));
+  expect(screen.getByText("Łączenie…")).toBeTruthy();
 
+  view.rerender(sessionView(young(now), [], now, false));
   expect(screen.getByText("Brak obrazu z kamery")).toBeTruthy();
   fireEvent.change(screen.getByLabelText("Przewijanie obrazu"), { target: { value: "10" } });
   expect(imagePath()).toBe("/api/incidents/1/replay?delaySeconds=20&connection=0");
 
-  view.rerender(sessionView(young(now), [], now, true, "Brak połączenia z serwerem"));
-  expect(screen.getByText("Brak obrazu z kamery")).toBeTruthy();
+  view.rerender(sessionView(young(now), [], now, true, true));
+  expect(screen.queryByAltText("Obraz z kamery termowizyjnej")).toBeNull();
+  expect(screen.queryByText("Brak obrazu z kamery")).toBeNull();
 });
 
 it("każdy powrót łączności daje obrazowi nowy adres, żeby przeglądarka połączyła się od nowa", () => {
@@ -189,7 +201,7 @@ it("każdy powrót łączności daje obrazowi nowy adres, żeby przeglądarka po
   view.rerender(sessionView(young(now), [], now));
   expect(imagePath()).toBe("/api/incidents/1/live?connection=3");
 
-  view.rerender(sessionView(young(now), [], now, true, "Brak połączenia z serwerem"));
+  view.rerender(sessionView(young(now), [], now, true, true));
   view.rerender(sessionView(young(now), [], now));
   expect(imagePath()).toBe("/api/incidents/1/live?connection=5");
 });

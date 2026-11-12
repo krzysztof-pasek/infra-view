@@ -4,19 +4,17 @@ import type { Threshold } from "./types";
 import { sensors } from "./config";
 import { Modal } from "./Modal";
 import { Confirm } from "./Confirm";
-import { ErrorLine } from "./ErrorLine";
 import { Loading } from "./Loading";
 import { Appear } from "./Appear";
 
 type Props = {
   thresholds: Threshold[] | null;
-  error: string;
   busy: boolean;
   onSave: (thresholds: Threshold[]) => void;
   onClose: () => void;
 };
 
-export function ThresholdsDialog({ thresholds, error, busy, onSave, onClose }: Props) {
+export function ThresholdsDialog({ thresholds, busy, onSave, onClose }: Props) {
   const [initial, setInitial] = useState<Threshold[] | null>(null);
   const [discard, setDiscard] = useState(false);
   const form = useRef<HTMLFormElement>(null);
@@ -63,10 +61,6 @@ export function ThresholdsDialog({ thresholds, error, busy, onSave, onClose }: P
     }
 
     onClose();
-  }
-
-  if (error !== "") {
-    content = <ErrorLine error={error} />;
   }
 
   if (initial !== null) {

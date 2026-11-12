@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
+import { RETRY_TIMEOUT } from "../src/config";
 import { usePolling } from "../src/usePolling";
 
 const ONE_SECOND = 1000;
@@ -60,18 +61,18 @@ it("nie wysyła nowego żądania, dopóki poprzednie trwa", async () => {
   expect(fetchMock).toHaveBeenCalledTimes(1);
 });
 
-it("po zerwaniu połączenia wraca do pobierania danych", async () => {
+it("po zerwaniu połączenia wraca do pobierania danych, nie czekając pełnego odstępu", async () => {
   vi.useFakeTimers();
   const fetchMock = vi.fn()
     .mockRejectedValueOnce(new TypeError("Failed to fetch"))
     .mockImplementation(async () => Response.json(1));
   vi.stubGlobal("fetch", fetchMock);
-  const { result } = renderHook(() => usePolling<number>("/test", ONE_SECOND));
+  const { result } = renderHook(() => usePolling<number>("/test", ONE_MINUTE));
 
   await act(() => vi.advanceTimersByTimeAsync(10));
   expect(result.current.error).toBe("Brak połączenia z serwerem");
 
-  await act(() => vi.advanceTimersByTimeAsync(ONE_SECOND));
+  await act(() => vi.advanceTimersByTimeAsync(RETRY_TIMEOUT));
   expect(result.current.data).toBe(1);
   expect(result.current.error).toBe("");
 });

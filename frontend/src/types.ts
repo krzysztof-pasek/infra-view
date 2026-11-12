@@ -17,7 +17,7 @@ export type Telemetry = {
   motionState: MotionState | null;
 };
 
-export type AlarmType = "HIGH_TEMPERATURE" | "HIGH_CO2" | "HIGH_TVOC" | "NO_MOTION" | "FALL" | "SOS";
+export type AlarmType = "HIGH_TEMPERATURE" | "HIGH_CO2" | "HIGH_TVOC" | "HIGH_GAS" | "NO_MOTION" | "FALL" | "SOS";
 
 export type Alarm = {
   id: number;
@@ -36,11 +36,11 @@ export type AlarmGroup = {
   triggeredAt: string;
 };
 
-export type Metric = "TEMPERATURE" | "CO2_PPM" | "TVOC_PPB";
+export type Metric = "TEMPERATURE" | "CO2_PPM" | "TVOC_PPB" | "GAS_VOLTAGE";
 
 export type Sensor = {
   key: "temperature" | "co2Ppm" | "tvocPpb" | "gasVoltage";
-  metric: Metric | null;
+  metric: Metric;
   label: string;
   unit: string;
   digits: number;
