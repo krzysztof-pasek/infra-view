@@ -56,6 +56,20 @@ class AlarmThresholdControllerTest {
     }
 
     @Test
+    fun `should return gas voltage threshold`() {
+        every { useCase.getByMetric(ThresholdMetric.GAS_VOLTAGE) } returns
+            AlarmThreshold(ThresholdMetric.GAS_VOLTAGE, threshold = 1.0, resetMargin = 0.1, enabled = true)
+
+        mockMvc.perform(get("/alarm-thresholds/GAS_VOLTAGE"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.metric").value("GAS_VOLTAGE"))
+            .andExpect(jsonPath("$.alarmType").value("HIGH_GAS"))
+            .andExpect(jsonPath("$.threshold").value(1.0))
+            .andExpect(jsonPath("$.resetMargin").value(0.1))
+            .andExpect(jsonPath("$.enabled").value(true))
+    }
+
+    @Test
     fun `should return 404 when threshold not found`() {
         every { useCase.getByMetric(ThresholdMetric.TVOC_PPB) } returns null
 
@@ -84,6 +98,23 @@ class AlarmThresholdControllerTest {
             .andExpect(jsonPath("$.threshold").value(70.0))
             .andExpect(jsonPath("$.resetMargin").value(3.5))
             .andExpect(jsonPath("$.enabled").value(false))
+    }
+
+    @Test
+    fun `should update gas voltage threshold`() {
+        val updated = AlarmThreshold(ThresholdMetric.GAS_VOLTAGE, threshold = 1.5, resetMargin = 0.2, enabled = true)
+        every { useCase.update(updated) } returns updated
+
+        mockMvc.perform(
+            put("/alarm-thresholds/GAS_VOLTAGE")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"threshold": 1.5, "resetMargin": 0.2, "enabled": true}""")
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.metric").value("GAS_VOLTAGE"))
+            .andExpect(jsonPath("$.alarmType").value("HIGH_GAS"))
+            .andExpect(jsonPath("$.threshold").value(1.5))
+            .andExpect(jsonPath("$.resetMargin").value(0.2))
     }
 
     @Test

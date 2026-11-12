@@ -28,7 +28,8 @@ class TelemetryServiceTest {
     private val thresholds = listOf(
         AlarmThreshold(ThresholdMetric.TEMPERATURE, threshold = 80.0, resetMargin = 5.0, enabled = true),
         AlarmThreshold(ThresholdMetric.CO2_PPM, threshold = 5000.0, resetMargin = 500.0, enabled = true),
-        AlarmThreshold(ThresholdMetric.TVOC_PPB, threshold = 5500.0, resetMargin = 500.0, enabled = true)
+        AlarmThreshold(ThresholdMetric.TVOC_PPB, threshold = 5500.0, resetMargin = 500.0, enabled = true),
+        AlarmThreshold(ThresholdMetric.GAS_VOLTAGE, threshold = 1.0, resetMargin = 0.1, enabled = true)
     )
 
     private val start = OffsetDateTime.parse("2026-09-28T10:00:00Z")
@@ -183,6 +184,22 @@ class TelemetryServiceTest {
 
         verify(exactly = 1) { alarmUseCase.triggerAlarm(match { it.alarmType == AlarmType.HIGH_CO2 && it.incidentId == 7L }) }
         verify(exactly = 1) { alarmUseCase.triggerAlarm(match { it.alarmType == AlarmType.HIGH_TVOC && it.incidentId == 7L }) }
+    }
+
+    @Test
+    fun `should trigger gas alarm when gas voltage exceeds threshold`() {
+        stubSave()
+        val gas = { second: Long, voltage: Double ->
+            Telemetry(deviceId = 1L, incidentId = 7L, recordedAt = start.plusSeconds(second), gasVoltage = voltage)
+        }
+        every { telemetryRepository.getRecentByDeviceId(1L, MotionDetector.HISTORY_SIZE) } returns
+            listOf(gas(0, 0.27), gas(1, 1.2), gas(2, 1.3))
+        every { alarmUseCase.getUnresolvedByIncidentId(7L) } returns emptyList()
+        every { alarmUseCase.triggerAlarm(any()) } answers { firstArg<Alarm>().copy(id = 9L) }
+
+        service.add(gas(3, 1.4))
+
+        verify(exactly = 1) { alarmUseCase.triggerAlarm(match { it.alarmType == AlarmType.HIGH_GAS && it.incidentId == 7L }) }
     }
 
     @Test
