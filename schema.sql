@@ -76,4 +76,5 @@ CREATE TABLE alarm_thresholds (
 INSERT INTO alarm_thresholds (metric, threshold, reset_margin, enabled) VALUES
     ('TEMPERATURE', 80.0, 5.0, TRUE),
     ('CO2_PPM', 5000.0, 500.0, TRUE),
-    ('TVOC_PPB', 5500.0, 500.0, TRUE);
+    ('TVOC_PPB', 5500.0, 500.0, TRUE),
+    ('GAS_VOLTAGE', 1.0, 0.1, TRUE);

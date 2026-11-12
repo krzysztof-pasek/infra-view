@@ -72,4 +72,14 @@ class ThresholdDetectorTest {
         val triggers = all.indices.filter { ThresholdDetector.shouldTrigger(all.take(it), all[it], zero) }
         assertEquals(listOf(2, 6), triggers)
     }
+
+    @Test
+    fun `should read gas voltage for gas threshold`() {
+        val gas = AlarmThreshold(ThresholdMetric.GAS_VOLTAGE, threshold = 1.0, resetMargin = 0.1, enabled = true)
+        val all = listOf(0.27, 1.2, 1.3, 1.4).mapIndexed { i, v ->
+            Telemetry(deviceId = 1L, incidentId = 7L, recordedAt = start.plusSeconds(i.toLong()), temperature = 25.0, gasVoltage = v)
+        }
+        val triggers = all.indices.filter { ThresholdDetector.shouldTrigger(all.take(it), all[it], gas) }
+        assertEquals(listOf(3), triggers)
+    }
 }

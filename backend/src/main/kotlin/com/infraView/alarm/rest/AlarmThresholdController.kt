@@ -8,7 +8,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 
-@Tag(name = "Alarm Thresholds API", description = "Sensor thresholds that trigger HIGH_TEMPERATURE, HIGH_CO2 and HIGH_TVOC alarms")
+@Tag(name = "Alarm Thresholds API", description = "Sensor thresholds that trigger HIGH_TEMPERATURE, HIGH_CO2, HIGH_TVOC and HIGH_GAS alarms")
 @RestController
 @RequestMapping("/alarm-thresholds")
 class AlarmThresholdController(

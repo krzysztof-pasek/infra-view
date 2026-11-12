@@ -26,5 +26,6 @@ object ThresholdDetector {
         ThresholdMetric.TEMPERATURE -> temperature
         ThresholdMetric.CO2_PPM -> co2Ppm
         ThresholdMetric.TVOC_PPB -> tvocPpb
+        ThresholdMetric.GAS_VOLTAGE -> gasVoltage
     }
 }
