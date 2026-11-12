@@ -25,7 +25,7 @@ class LiveViewController(
 ) {
     @Operation(
         summary = "Stream live thermal view",
-        description = "Streams thermal frames of the helmet assigned to an in-progress incident as MJPEG. The stream closes after 3 seconds without a new frame or when the helmet starts a new session."
+        description = "Streams thermal frames of the helmet assigned to an in-progress incident as MJPEG. The stream closes after 10 seconds without a new frame or when the helmet starts a new session."
     )
     @GetMapping("/incidents/{incidentId}/live")
     fun live(@PathVariable incidentId: Long): ResponseEntity<StreamingResponseBody> {
@@ -45,7 +45,7 @@ class LiveViewController(
 
     @Operation(
         summary = "Stream delayed thermal view",
-        description = "Streams thermal frames of the incident as MJPEG with a constant delay behind real time, like rewinding a live stream. Each frame is sent exactly delaySeconds after it was captured, so the view stays behind until the client switches back to /live. Reconnect with a larger delaySeconds to rewind further. The stream closes 3 seconds (in delayed time) after the helmet stops sending frames."
+        description = "Streams thermal frames of the incident as MJPEG with a constant delay behind real time, like rewinding a live stream. Each frame is sent exactly delaySeconds after it was captured, so the view stays behind until the client switches back to /live. Reconnect with a larger delaySeconds to rewind further. The stream closes 10 seconds (in delayed time) after the helmet stops sending frames."
     )
     @GetMapping("/incidents/{incidentId}/replay")
     fun replay(
@@ -83,7 +83,7 @@ class LiveViewController(
 
     @Operation(
         summary = "Play thermal recording",
-        description = "Streams the recorded thermal frames of the incident as MJPEG, starting from the frame on screen at the given time (the same frame /frame returns) and keeping the original pace between frames. Reconnect with a different from to seek. For an in-progress incident playback continues behind real time. The stream closes 3 seconds after the last recorded frame."
+        description = "Streams the recorded thermal frames of the incident as MJPEG, starting from the frame on screen at the given time (the same frame /frame returns) and keeping the original pace between frames. Reconnect with a different from to seek. For an in-progress incident playback continues behind real time. The stream closes 10 seconds after the last recorded frame."
     )
     @GetMapping("/incidents/{incidentId}/recording")
     fun recording(
@@ -137,7 +137,7 @@ class LiveViewController(
     companion object {
         private const val BOUNDARY = "frame"
         private const val CAPTURED_AT_HEADER = "X-Captured-At"
-        private val FRAME_TIMEOUT = Duration.ofSeconds(3)
+        private val FRAME_TIMEOUT = Duration.ofSeconds(10)
         private const val MAX_DELAY_SECONDS = 300L
         private const val REPLAY_BATCH_SIZE = 50
         private val REPLAY_POLL_INTERVAL = Duration.ofMillis(200)

@@ -27,7 +27,7 @@ class LiveViewControllerTest {
     @MockkBean
     private lateinit var useCase: DeviceUseCase
 
-    private val timeout = Duration.ofSeconds(3)
+    private val timeout = Duration.ofSeconds(10)
     private val jpeg = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0xD9.toByte())
 
     @Test
