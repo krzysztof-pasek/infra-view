@@ -18,7 +18,7 @@ export function lastItem<T>(items: T[]) {
   return items[items.length - 1];
 }
 
-export function findThreshold(thresholds: Threshold[] | null, metric: Metric | null) {
+export function findThreshold(thresholds: Threshold[] | null, metric: Metric) {
   if (thresholds === null) {
     return null;
   }

@@ -11,6 +11,7 @@ type Props = {
   incident: Incident | null;
   latest: Telemetry | null;
   online: boolean;
+  connecting: boolean;
   now: number;
   busy: boolean;
   onEnd: () => void;
@@ -18,7 +19,7 @@ type Props = {
   onClose: () => void;
 };
 
-export function SessionBar({ incident, latest, online, now, busy, onEnd, onRename, onClose }: Props) {
+export function SessionBar({ incident, latest, online, connecting, now, busy, onEnd, onRename, onClose }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuTop, setMenuTop] = useState(0);
   const [menuRight, setMenuRight] = useState(0);
@@ -99,35 +100,42 @@ export function SessionBar({ incident, latest, online, now, busy, onEnd, onRenam
     action();
   }
 
-  let status = "Zakończona";
-  let statusColor = "muted";
-  let endItem = null;
-
-  if (incident.status === "IN_PROGRESS") {
-    status = "Brak danych z kasku";
-    statusColor = "orange";
-    endItem = (
-      <button className="red" role="menuitem" disabled={busy} onClick={() => choose(onEnd)}>
-        Zakończ sesję
-      </button>
-    );
-
-    if (online) {
-      status = "Na żywo";
-      statusColor = "";
-    }
-
-    if (!online && latest !== null) {
-      status = `${status} · ${formatAge(now - Date.parse(latest.recordedAt))}`;
-    }
-  }
-
   let motion = "—";
   let motionColor = "";
 
   if (latest !== null && latest.motionState !== null) {
     motion = motionStates[latest.motionState].label;
     motionColor = motionStates[latest.motionState].color;
+  }
+
+  let status = "Zakończona";
+  let statusColor = "muted";
+  let motionStatus = null;
+  let endItem = null;
+
+  if (incident.status === "IN_PROGRESS") {
+    status = "Brak danych z kasku";
+    statusColor = "orange";
+    motionStatus = <span className={`status ${motionColor}`}>Ruch: {motion}</span>;
+    endItem = (
+      <button className="red" role="menuitem" disabled={busy} onClick={() => choose(onEnd)}>
+        Zakończ sesję
+      </button>
+    );
+
+    if (latest !== null) {
+      status = `${status} · ${formatAge(now - Date.parse(latest.recordedAt))}`;
+    }
+
+    if (connecting) {
+      status = "Łączenie…";
+      statusColor = "muted";
+    }
+
+    if (online) {
+      status = "Na żywo";
+      statusColor = "";
+    }
   }
 
   let menu = null;
@@ -158,7 +166,7 @@ export function SessionBar({ incident, latest, online, now, busy, onEnd, onRenam
         {status}
       </span>
 
-      <span className={`status ${motionColor}`}>Ruch: {motion}</span>
+      {motionStatus}
 
       <button
         ref={button}

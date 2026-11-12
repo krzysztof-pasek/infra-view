@@ -245,6 +245,12 @@ input[type="checkbox"]:checked::before {
   }
 }
 
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @keyframes dim {
   from {
     background-color: transparent;
@@ -365,7 +371,7 @@ button, .topbar, .camera-controls, .toast {
   height: 34px;
 }
 
-.icon svg {
+.icon svg, .spinner {
   width: 18px;
   height: 18px;
 }
@@ -483,12 +489,21 @@ details[open] > summary::before {
   overflow-wrap: anywhere;
 }
 
-.dot {
+.dot, .spinner {
   flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
   background: currentColor;
+}
+
+.spinner {
+  border: 2px solid var(--line);
+  border-top-color: currentColor;
+  animation: spin calc(3 * var(--time)) linear infinite;
 }
 
 .status {
@@ -643,11 +658,14 @@ tr:last-child td {
   color: var(--text);
 }
 
+.toast, .waiting {
+  width: fit-content;
+}
+
 .toast {
   left: var(--gap);
   right: var(--gap);
   z-index: 50;
-  width: fit-content;
   margin: 0 auto;
 }
 

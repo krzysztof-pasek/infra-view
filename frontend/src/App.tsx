@@ -15,7 +15,7 @@ import { RenameDialog } from "./RenameDialog";
 import { ThemeToggle } from "./ThemeToggle";
 import { Toast } from "./Toast";
 import { Confirm } from "./Confirm";
-import { ErrorLine } from "./ErrorLine";
+import { Waiting } from "./Waiting";
 import { Appear } from "./Appear";
 
 const SESSIONS_INTERVAL = 5000;
@@ -37,6 +37,7 @@ export function App() {
   const alarms = usePolling<Alarm[]>("/alarms/active", ALARMS_INTERVAL);
   const thresholds = usePolling<Threshold[]>("/alarm-thresholds", THRESHOLDS_INTERVAL);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedAt, setSelectedAt] = useState(0);
   const [renameId, setRenameId] = useState<number | null>(null);
   const [dialog, setDialog] = useState("");
   const [dismissed, setDismissed] = useState<number[] | null>(null);
@@ -84,11 +85,18 @@ export function App() {
     rows = history.data;
   }
 
+  const waiting =
+    sessions.error !== "" || alarms.error !== "" || thresholds.error !== "" || telemetry.error !== "" || history.error !== "";
   const latest = lastItem(rows);
   let online = false;
+  let connecting = false;
 
-  if (selectedIncident !== null && selectedIncident.status === "IN_PROGRESS" && latest !== null) {
-    online = now - telemetry.changedAt < ONLINE_TIMEOUT;
+  if (selectedIncident !== null && selectedIncident.status === "IN_PROGRESS") {
+    connecting = telemetry.changedAt === 0 && now - selectedAt < ONLINE_TIMEOUT;
+
+    if (latest !== null) {
+      online = now - telemetry.changedAt < ONLINE_TIMEOUT;
+    }
   }
 
   let groups: AlarmGroup[] | null = null;
@@ -153,6 +161,11 @@ export function App() {
     });
   }
 
+  function selectSession(id: number | null) {
+    setSelectedId(id);
+    setSelectedAt(Date.now());
+  }
+
   function accept() {
     if (confirmation !== null) {
       run(confirmation.action);
@@ -211,12 +224,12 @@ export function App() {
   }
 
   function showAlarm(group: AlarmGroup) {
-    setSelectedId(group.incidentId);
+    selectSession(group.incidentId);
     dismissAlarm(group);
   }
 
   function openSession(id: number) {
-    setSelectedId(id);
+    selectSession(id);
     closeDialog();
   }
 
@@ -249,7 +262,6 @@ export function App() {
     dialogWindow = (
       <ThresholdsDialog
         thresholds={thresholds.data}
-        error={thresholds.error}
         busy={busy}
         onSave={saveThresholds}
         onClose={closeDialog}
@@ -273,20 +285,27 @@ export function App() {
     );
   }
 
+  let waitingWindow = null;
+
+  if (waiting) {
+    waitingWindow = <Waiting />;
+  }
+
   return (
     <>
-      <div inert={dialogWindow !== null}>
+      <div inert={dialogWindow !== null || waiting}>
         <header className="topbar glass">
           <h1>INFRA VIEW</h1>
           <SessionBar
             incident={selectedIncident}
             latest={latest}
             online={online}
+            connecting={connecting}
             now={now}
             busy={busy}
             onEnd={endSession}
             onRename={openRename}
-            onClose={() => setSelectedId(null)}
+            onClose={() => selectSession(null)}
           />
           <nav className="toolbar">
             <button onClick={() => openDialog("archive")}>Archiwum</button>
@@ -297,21 +316,8 @@ export function App() {
 
         <main className="layout">
           <aside className="pane glass">
-            <ErrorLine error={sessions.error} updatedAt={sessions.updatedAt} />
-            <SessionList
-              incidents={sessions.data}
-              error={sessions.error}
-              selectedId={selectedId}
-              alarmIncidentIds={alarmIncidentIds}
-              onSelect={setSelectedId}
-            />
-            <AlarmList
-              groups={groups}
-              error={alarms.error}
-              busy={busy}
-              onSelect={showAlarm}
-              onResolve={resolveAlarm}
-            />
+            <SessionList incidents={sessions.data} selectedId={selectedId} alarmIncidentIds={alarmIncidentIds} onSelect={selectSession} />
+            <AlarmList groups={groups} busy={busy} onSelect={showAlarm} onResolve={resolveAlarm} />
           </aside>
 
           <SessionView
@@ -319,17 +325,21 @@ export function App() {
             incident={selectedIncident}
             rows={rows}
             thresholds={thresholds.data}
-            error={telemetry.error}
-            updatedAt={telemetry.updatedAt}
+            waiting={waiting}
             now={now}
             online={online}
+            connecting={connecting}
           />
         </main>
 
         {popups}
       </div>
 
-      <Appear>{dialogWindow}</Appear>
+      <div inert={waiting}>
+        <Appear>{dialogWindow}</Appear>
+      </div>
+
+      <Appear>{waitingWindow}</Appear>
       <Appear>{toast}</Appear>
     </>
   );

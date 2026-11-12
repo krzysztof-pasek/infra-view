@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
-import type { Alarm, AlarmType } from "../src/types";
+import type { Alarm, AlarmType, Incident } from "../src/types";
 import { groupAlarms } from "../src/data";
 import { RETRY_TIMEOUT } from "../src/config";
 import { alarmTitle, formatAge, formatDelay } from "../src/format";
@@ -15,14 +15,15 @@ function alarm(id: number, incidentId: number, alarmType: AlarmType = "FALL"): A
   return { id, incidentId, alarmType, triggeredAt: jan.startedAt };
 }
 
-function sessionBar(online: boolean) {
+function sessionBar(incident: Incident, online: boolean, connecting: boolean) {
   const handlers = { onEnd: () => {}, onRename: () => {}, onClose: () => {} };
-  return <SessionBar incident={jan} latest={row(0, null)} online={online} now={START + 25000} busy={false} {...handlers} />;
+  const state = { online, connecting, now: START + 25000, busy: false };
+  return <SessionBar incident={incident} latest={row(0, null)} {...state} {...handlers} />;
 }
 
 function cameraPanel(path: string, live: boolean) {
   const handlers = { onSeek: () => {}, onPause: () => {}, onPlay: () => {} };
-  return <CameraPanel path={path} live={live} paused={false} max={10} delay={0} label={null} {...handlers} />;
+  return <CameraPanel path={path} message="Brak obrazu z kamery" live={live} paused={false} max={10} delay={0} label={null} {...handlers} />;
 }
 
 function popups(alarms: Alarm[]) {
@@ -59,10 +60,11 @@ it("łączy alarmy tego samego typu i strażaka", () => {
   expect(groups[1].name).toBe("Sesja 2");
 });
 
-it("alarm SOS ma czytelną nazwę", () => {
-  const groups = groupAlarms([alarm(1, 1, "SOS")], []);
+it("alarmy SOS i gazu mają czytelne nazwy", () => {
+  const groups = groupAlarms([alarm(1, 1, "SOS"), alarm(2, 1, "HIGH_GAS")], []);
 
-  expect(alarmTitle(groups[0])).toBe("SOS");
+  expect(alarmTitle(groups[1])).toBe("SOS");
+  expect(alarmTitle(groups[0])).toBe("Wysoki poziom gazów");
 });
 
 it("pokazuje opóźnienie powtórki w minutach", () => {
@@ -76,11 +78,20 @@ it("pokazuje, jak dawno przyszedł ostatni pomiar", () => {
   expect(formatAge(185000)).toBe("3 min");
   expect(formatAge(7300000)).toBe("2 h");
 
-  const view = render(sessionBar(false));
+  const view = render(sessionBar(jan, false, false));
 
   expect(screen.getByText("Brak danych z kasku · 25 s")).toBeTruthy();
-  view.rerender(sessionBar(true));
+  view.rerender(sessionBar(jan, true, false));
   expect(screen.getByText("Na żywo")).toBeTruthy();
+  expect(screen.getByText("Ruch: —")).toBeTruthy();
+
+  view.rerender(sessionBar(jan, false, true));
+  expect(screen.getByText("Łączenie…")).toBeTruthy();
+  expect(screen.queryByText(/^Brak danych z kasku/)).toBeNull();
+
+  view.rerender(sessionBar({ ...jan, endedAt: jan.startedAt, status: "RESOLVED" }, false, false));
+  expect(screen.getByText("Zakończona")).toBeTruthy();
+  expect(screen.queryByText(/^Ruch/)).toBeNull();
 });
 
 it("Esc zamyka tylko okno na wierzchu", () => {

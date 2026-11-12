@@ -27,7 +27,7 @@ export function Modal({ title, action, alert, onClose, children }: Props) {
     let last = null;
 
     for (const other of document.querySelectorAll('[role="dialog"]')) {
-      if (other.closest(".closing") === null) {
+      if (other.closest("[inert]") === null) {
         last = other;
       }
     }

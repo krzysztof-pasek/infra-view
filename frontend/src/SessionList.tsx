@@ -4,19 +4,14 @@ import { Loading } from "./Loading";
 
 type Props = {
   incidents: Incident[] | null;
-  error: string;
   selectedId: number | null;
   alarmIncidentIds: number[];
   onSelect: (id: number) => void;
 };
 
-export function SessionList({ incidents, error, selectedId, alarmIncidentIds, onSelect }: Props) {
+export function SessionList({ incidents, selectedId, alarmIncidentIds, onSelect }: Props) {
   let count = 0;
-  let content = null;
-
-  if (incidents === null && error === "") {
-    content = <Loading />;
-  }
+  let content = <Loading />;
 
   if (incidents !== null) {
     const active: Incident[] = [];

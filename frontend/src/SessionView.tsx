@@ -5,16 +5,15 @@ import { animationTime, MAX_REPLAY_SECONDS } from "./config";
 import { formatClock, formatDelay } from "./format";
 import { CameraPanel } from "./CameraPanel";
 import { Charts } from "./Charts";
-import { ErrorLine } from "./ErrorLine";
 
 type Props = {
   incident: Incident | null;
   rows: Telemetry[];
   thresholds: Threshold[] | null;
-  error: string;
-  updatedAt: number;
+  waiting: boolean;
   now: number;
   online: boolean;
+  connecting: boolean;
 };
 
 function recordingLength(incident: Incident | null) {
@@ -25,7 +24,7 @@ function recordingLength(incident: Incident | null) {
   return Math.round((Date.parse(incident.endedAt) - Date.parse(incident.startedAt)) / 1000);
 }
 
-export function SessionView({ incident, rows, thresholds, error, updatedAt, now, online }: Props) {
+export function SessionView({ incident, rows, thresholds, waiting, now, online, connecting }: Props) {
   const [delay, setDelay] = useState(recordingLength(incident));
   const [playedAt, setPlayedAt] = useState(Date.now);
   const [pausedAt, setPausedAt] = useState(0);
@@ -33,7 +32,7 @@ export function SessionView({ incident, rows, thresholds, error, updatedAt, now,
   const [seeking, setSeeking] = useState(false);
   const [connection, setConnection] = useState(0);
   const [wasConnected, setWasConnected] = useState(false);
-  const connected = online && error === "";
+  const connected = online && !waiting;
 
   if (connected !== wasConnected) {
     setWasConnected(connected);
@@ -59,6 +58,7 @@ export function SessionView({ incident, rows, thresholds, error, updatedAt, now,
   let current = delay;
   let paused = pausedAt !== 0;
   let path = `${base}/live?connection=${connection}`;
+  let message = "Brak obrazu z kamery";
   let label: string | null = null;
   let chartsRows = rows;
   let until = 0;
@@ -83,8 +83,16 @@ export function SessionView({ incident, rows, thresholds, error, updatedAt, now,
       label = formatDelay(delay);
     }
 
-    if ((!online && delay === 0) || error !== "") {
+    if ((!online && delay === 0) || waiting) {
       path = "";
+    }
+
+    if (connecting) {
+      message = "Łączenie…";
+    }
+
+    if (waiting) {
+      message = "";
     }
 
     if (paused) {
@@ -169,6 +177,7 @@ export function SessionView({ incident, rows, thresholds, error, updatedAt, now,
       <section className="content" aria-label="Kamera">
         <CameraPanel
           path={path}
+          message={message}
           live={live}
           paused={paused}
           max={max}
@@ -181,7 +190,6 @@ export function SessionView({ incident, rows, thresholds, error, updatedAt, now,
       </section>
 
       <section className="content charts-column" aria-label="Wykresy">
-        <ErrorLine error={error} updatedAt={updatedAt} />
         <Charts rows={chartsRows} thresholds={thresholds} until={until} span={span} animate={seeking} />
       </section>
     </>

@@ -25,14 +25,6 @@ export function formatTime(value: string | number) {
   return new Date(value).toLocaleTimeString("pl-PL");
 }
 
-export function errorText(error: string, updatedAt: number) {
-  if (updatedAt === 0) {
-    return error;
-  }
-
-  return `${error} · ostatnio ${formatTime(updatedAt)}`;
-}
-
 export function formatDay(value: string) {
   return new Date(value).toLocaleDateString("sv-SE");
 }
