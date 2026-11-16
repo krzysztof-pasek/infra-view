@@ -83,12 +83,13 @@ class DeviceService(
         }
         val deviceId = device.requireId()
         val session = incidentUseCase.getOrStartDeviceSession(deviceId)
-        publishLiveFrame(deviceId, session.requireId(), jpeg)
+        val capturedAt = OffsetDateTime.now(ZoneOffset.UTC)
+        publishLiveFrame(deviceId, session.requireId(), capturedAt, jpeg)
         val saved = thermalFrameRepository.save(
             ThermalFrame(
                 deviceId = deviceId,
                 incidentId = session.requireId(),
-                capturedAt = OffsetDateTime.now(ZoneOffset.UTC),
+                capturedAt = capturedAt,
                 image = jpeg
             )
         )
@@ -149,9 +150,9 @@ class DeviceService(
         return thermalFrameRepository.getByIncidentIdAfter(incidentId, after, limit)
     }
 
-    private fun publishLiveFrame(deviceId: Long, incidentId: Long, jpeg: ByteArray) {
+    private fun publishLiveFrame(deviceId: Long, incidentId: Long, capturedAt: OffsetDateTime, jpeg: ByteArray) {
         liveLock.withLock {
-            liveFrames[deviceId] = LiveFrame(sequence = ++liveSequence, incidentId = incidentId, image = jpeg)
+            liveFrames[deviceId] = LiveFrame(sequence = ++liveSequence, incidentId = incidentId, capturedAt = capturedAt, image = jpeg)
             newLiveFrame.signalAll()
         }
     }

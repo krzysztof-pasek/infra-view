@@ -166,14 +166,16 @@ class DeviceServiceTest {
     @Test
     fun `should publish stored frame as live frame of the session`() {
         val jpeg = byteArrayOf(0xFF.toByte(), 0xD8.toByte())
+        val saved = slot<ThermalFrame>()
         every { deviceRepository.getByUuid(uuid) } returns device
         every { incidentUseCase.getOrStartDeviceSession(1L) } returns session
-        every { thermalFrameRepository.save(any()) } answers { firstArg() }
+        every { thermalFrameRepository.save(capture(saved)) } answers { firstArg() }
 
         service.ingestFrame(uuid, jpeg)
 
         val frame = assertNotNull(service.awaitLiveFrame(1L, 0L, Duration.ZERO))
         assertEquals(7L, frame.incidentId)
+        assertEquals(saved.captured.capturedAt, frame.capturedAt)
         assertTrue(jpeg.contentEquals(frame.image))
     }
 
