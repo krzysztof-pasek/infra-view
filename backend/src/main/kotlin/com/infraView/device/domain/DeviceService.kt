@@ -15,6 +15,7 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -22,6 +23,7 @@ import kotlin.concurrent.withLock
 class DeviceService(
     private val deviceRepository: DeviceRepository,
     private val thermalFrameRepository: ThermalFrameRepository,
+    private val thermalFrameRecorder: ThermalFrameRecorder,
     private val telemetryUseCase: TelemetryUseCase,
     private val incidentUseCase: IncidentUseCase,
     private val alarmUseCase: AlarmUseCase
@@ -76,27 +78,31 @@ class DeviceService(
     }
 
     override fun ingestFrame(uuid: String, jpeg: ByteArray): Boolean {
+        val startedAt = System.nanoTime()
         val device = deviceRepository.getByUuid(uuid)
         if (device == null) {
             log.warn("Rejected thermal frame from unknown device")
             return false
         }
         val deviceId = device.requireId()
-        val session = incidentUseCase.getOrStartDeviceSession(deviceId)
+        val incidentId = incidentUseCase.getOrStartDeviceSession(deviceId).requireId()
+        val lookupMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt)
+        if (lookupMs >= SLOW_LOOKUP_MS) {
+            log.warn("Slow thermal frame session lookup: deviceId={}, incidentId={}, lookupMs={}", deviceId, incidentId, lookupMs)
+        }
         val capturedAt = OffsetDateTime.now(ZoneOffset.UTC)
-        publishLiveFrame(deviceId, session.requireId(), capturedAt, jpeg)
-        val saved = thermalFrameRepository.save(
+        publishLiveFrame(deviceId, incidentId, capturedAt, jpeg)
+        thermalFrameRecorder.record(
             ThermalFrame(
                 deviceId = deviceId,
-                incidentId = session.requireId(),
+                incidentId = incidentId,
                 capturedAt = capturedAt,
                 image = jpeg
             )
         )
         if (streamingDevices.add(deviceId)) {
-            log.info("Thermal stream started: deviceId={}, incidentId={}", deviceId, saved.incidentId)
+            log.info("Thermal stream started: deviceId={}, incidentId={}", deviceId, incidentId)
         }
-        log.debug("Thermal frame received: deviceId={}, frameId={}, bytes={}", deviceId, saved.id, jpeg.size)
         return true
     }
 
@@ -180,6 +186,7 @@ class DeviceService(
     }
 
     companion object {
+        private const val SLOW_LOOKUP_MS = 200L
         private val KNOWN_METRICS = setOf(
             "ax", "ay", "az",
             "gx", "gy", "gz",
