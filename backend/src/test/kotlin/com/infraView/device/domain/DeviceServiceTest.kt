@@ -12,11 +12,15 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertTimeout
 import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -30,7 +34,8 @@ class DeviceServiceTest {
     private val telemetryUseCase = mockk<TelemetryUseCase>()
     private val incidentUseCase = mockk<IncidentUseCase>()
     private val alarmUseCase = mockk<AlarmUseCase>()
-    private val service = DeviceService(deviceRepository, thermalFrameRepository, telemetryUseCase, incidentUseCase, alarmUseCase)
+    private val thermalFrameRecorder = ThermalFrameRecorder(thermalFrameRepository)
+    private val service = DeviceService(deviceRepository, thermalFrameRepository, thermalFrameRecorder, telemetryUseCase, incidentUseCase, alarmUseCase)
 
     private val mac = "d8:3a:dd:ed:3f:42"
     private val uuid = "689d8e89-2503-4739-9dd8-c93bc9d7c14d"
@@ -55,6 +60,11 @@ class DeviceServiceTest {
         "tvoc" to 0.0,
         "voltage" to 0.267
     )
+
+    @AfterEach
+    fun stopRecorder() {
+        thermalFrameRecorder.close()
+    }
 
     @Test
     fun `should return existing device for known mac`() {
@@ -147,6 +157,7 @@ class DeviceServiceTest {
         every { thermalFrameRepository.save(capture(saved)) } answers { saved.captured.copy(id = 20L) }
 
         assertTrue(service.ingestFrame(uuid, jpeg))
+        thermalFrameRecorder.close()
         assertEquals(
             ThermalFrame(deviceId = 1L, incidentId = 7L, capturedAt = saved.captured.capturedAt, image = jpeg),
             saved.captured
@@ -159,8 +170,69 @@ class DeviceServiceTest {
         every { deviceRepository.getByUuid("unknown") } returns null
 
         assertFalse(service.ingestFrame("unknown", byteArrayOf(0xFF.toByte(), 0xD8.toByte())))
+        thermalFrameRecorder.close()
         verify(exactly = 0) { thermalFrameRepository.save(any()) }
         verify(exactly = 0) { incidentUseCase.getOrStartDeviceSession(any()) }
+    }
+
+    @Test
+    fun `should return from frame ingest without waiting for database save`() {
+        val saveStarted = CountDownLatch(1)
+        val releaseSave = CountDownLatch(1)
+        every { deviceRepository.getByUuid(uuid) } returns device
+        every { incidentUseCase.getOrStartDeviceSession(1L) } returns session
+        every { thermalFrameRepository.save(any()) } answers {
+            saveStarted.countDown()
+            releaseSave.await(5, TimeUnit.SECONDS)
+            firstArg()
+        }
+
+        assertTimeout(Duration.ofSeconds(1)) { assertTrue(service.ingestFrame(uuid, byteArrayOf(0xFF.toByte(), 0xD8.toByte()))) }
+        assertTrue(saveStarted.await(5, TimeUnit.SECONDS))
+        releaseSave.countDown()
+        thermalFrameRecorder.close()
+        verify(exactly = 1) { thermalFrameRepository.save(any()) }
+    }
+
+    @Test
+    fun `should drop frames without blocking when save queue is full`() {
+        val saveStarted = CountDownLatch(1)
+        val releaseSave = CountDownLatch(1)
+        every { deviceRepository.getByUuid(uuid) } returns device
+        every { incidentUseCase.getOrStartDeviceSession(1L) } returns session
+        every { thermalFrameRepository.save(any()) } answers {
+            saveStarted.countDown()
+            releaseSave.await(5, TimeUnit.SECONDS)
+            firstArg()
+        }
+
+        service.ingestFrame(uuid, byteArrayOf(0))
+        assertTrue(saveStarted.await(5, TimeUnit.SECONDS))
+        assertTimeout(Duration.ofSeconds(1)) {
+            repeat(ThermalFrameRecorder.QUEUE_CAPACITY + 5) { assertTrue(service.ingestFrame(uuid, byteArrayOf(1))) }
+        }
+        releaseSave.countDown()
+        thermalFrameRecorder.close()
+
+        verify(exactly = 1 + ThermalFrameRecorder.QUEUE_CAPACITY) { thermalFrameRepository.save(any()) }
+    }
+
+    @Test
+    fun `should keep saving frames after a failed save`() {
+        val saved = mutableListOf<ThermalFrame>()
+        every { deviceRepository.getByUuid(uuid) } returns device
+        every { incidentUseCase.getOrStartDeviceSession(1L) } returns session
+        every { thermalFrameRepository.save(any()) } throws IllegalStateException("insert failed") andThenAnswer {
+            saved.add(firstArg())
+            firstArg()
+        }
+
+        service.ingestFrame(uuid, byteArrayOf(1))
+        service.ingestFrame(uuid, byteArrayOf(2))
+        thermalFrameRecorder.close()
+
+        assertEquals(1, saved.size)
+        assertTrue(byteArrayOf(2).contentEquals(saved.single().image))
     }
 
     @Test
@@ -172,6 +244,7 @@ class DeviceServiceTest {
         every { thermalFrameRepository.save(capture(saved)) } answers { firstArg() }
 
         service.ingestFrame(uuid, jpeg)
+        thermalFrameRecorder.close()
 
         val frame = assertNotNull(service.awaitLiveFrame(1L, 0L, Duration.ZERO))
         assertEquals(7L, frame.incidentId)
