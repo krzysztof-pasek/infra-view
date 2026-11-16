@@ -33,7 +33,8 @@ class LiveViewControllerTest {
     @Test
     fun `should stream frames as mjpeg until helmet stops sending`() {
         every { useCase.getLiveDeviceId(7L) } returns 1L
-        every { useCase.awaitLiveFrame(1L, 0L, timeout) } returns LiveFrame(sequence = 5L, incidentId = 7L, image = jpeg)
+        val capturedAt = OffsetDateTime.parse("2026-09-26T10:05:00.120Z")
+        every { useCase.awaitLiveFrame(1L, 0L, timeout) } returns LiveFrame(sequence = 5L, incidentId = 7L, capturedAt = capturedAt, image = jpeg)
         every { useCase.awaitLiveFrame(1L, 5L, timeout) } returns null
 
         val started = mockMvc.perform(get("/incidents/7/live"))
@@ -46,14 +47,13 @@ class LiveViewControllerTest {
             .andExpect(header().string("X-Accel-Buffering", "no"))
             .andReturn()
 
-        val expected = "--frame\r\nContent-Type: image/jpeg\r\nContent-Length: 4\r\n\r\n".toByteArray() + jpeg + "\r\n".toByteArray()
-        assertEquals(expected.toList(), result.response.contentAsByteArray.toList())
+        assertEquals(part(jpeg, "2026-09-26T10:05:00.120Z").toList(), result.response.contentAsByteArray.toList())
     }
 
     @Test
     fun `should end stream when helmet starts a new session`() {
         every { useCase.getLiveDeviceId(7L) } returns 1L
-        every { useCase.awaitLiveFrame(1L, 0L, timeout) } returns LiveFrame(sequence = 5L, incidentId = 8L, image = jpeg)
+        every { useCase.awaitLiveFrame(1L, 0L, timeout) } returns LiveFrame(sequence = 5L, incidentId = 8L, capturedAt = OffsetDateTime.parse("2026-09-26T10:05:00Z"), image = jpeg)
 
         val started = mockMvc.perform(get("/incidents/7/live"))
             .andExpect(request().asyncStarted())
@@ -98,8 +98,7 @@ class LiveViewControllerTest {
             .andExpect(header().string("X-Accel-Buffering", "no"))
             .andReturn()
 
-        val expected = "--frame\r\nContent-Type: image/jpeg\r\nContent-Length: 4\r\n\r\n".toByteArray() + jpeg + "\r\n".toByteArray() +
-            "--frame\r\nContent-Type: image/jpeg\r\nContent-Length: 5\r\n\r\n".toByteArray() + second + "\r\n".toByteArray()
+        val expected = part(jpeg, "2026-09-26T10:04:59.900Z") + part(second, "2026-09-26T10:05Z")
         assertEquals(expected.toList(), result.response.contentAsByteArray.toList())
         val startDelay = Duration.between(afters[0], requestedAt)
         assertTrue(startDelay > Duration.ofSeconds(19) && startDelay < Duration.ofSeconds(21))
@@ -128,9 +127,7 @@ class LiveViewControllerTest {
             .andExpect(status().isOk)
             .andReturn()
 
-        val expected = frames.map {
-            "--frame\r\nContent-Type: image/jpeg\r\nContent-Length: 1\r\n\r\n".toByteArray() + it.image + "\r\n".toByteArray()
-        }.reduce(ByteArray::plus)
+        val expected = frames.map { part(it.image, it.capturedAt.toString()) }.reduce(ByteArray::plus)
         assertEquals(expected.toList(), result.response.contentAsByteArray.toList())
         assertEquals(listOf(frames[49].capturedAt, frames[52].capturedAt), afters.subList(1, 3))
     }
@@ -205,8 +202,7 @@ class LiveViewControllerTest {
             .andExpect(header().string("X-Accel-Buffering", "no"))
             .andReturn()
 
-        val expected = "--frame\r\nContent-Type: image/jpeg\r\nContent-Length: 4\r\n\r\n".toByteArray() + jpeg + "\r\n".toByteArray() +
-            "--frame\r\nContent-Type: image/jpeg\r\nContent-Length: 5\r\n\r\n".toByteArray() + second + "\r\n".toByteArray()
+        val expected = part(jpeg, "2026-09-26T10:03:59.900Z") + part(second, "2026-09-26T10:04:00.100Z")
         assertEquals(expected.toList(), result.response.contentAsByteArray.toList())
         assertEquals(firstAt, afters[0])
         assertEquals(secondAt, afters[1])
@@ -218,5 +214,9 @@ class LiveViewControllerTest {
 
         mockMvc.perform(get("/incidents/7/recording").param("from", "2026-09-26T10:04:00Z"))
             .andExpect(status().isNotFound)
+    }
+
+    private fun part(image: ByteArray, capturedAt: String): ByteArray {
+        return "--frame\r\nContent-Type: image/jpeg\r\nContent-Length: ${image.size}\r\nX-Captured-At: $capturedAt\r\n\r\n".toByteArray() + image + "\r\n".toByteArray()
     }
 }
