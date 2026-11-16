@@ -27,6 +27,10 @@ class TelemetryService(
         return telemetryRepository.getRecentByIncidentId(incidentId, limit)
     }
 
+    override fun getByIncidentIdBetween(incidentId: Long, from: OffsetDateTime, to: OffsetDateTime?): List<Telemetry> {
+        return telemetryRepository.getByIncidentIdBetween(incidentId, from, to)
+    }
+
     override fun add(telemetry: Telemetry): Telemetry {
         val deviceId = telemetry.deviceId ?: return telemetryRepository.save(telemetry)
         val history = telemetryRepository.getRecentByDeviceId(deviceId, MotionDetector.HISTORY_SIZE)

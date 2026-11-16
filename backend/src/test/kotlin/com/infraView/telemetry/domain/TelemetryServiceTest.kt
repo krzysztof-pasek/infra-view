@@ -213,4 +213,13 @@ class TelemetryServiceTest {
         verify(exactly = 0) { alarmUseCase.getUnresolvedByIncidentId(any()) }
         verify(exactly = 0) { alarmUseCase.triggerAlarm(any()) }
     }
+
+    @Test
+    fun `should return telemetry of incident in given time range`() {
+        val to = start.plusHours(1)
+        val measurements = listOf(walking(0), walking(1))
+        every { telemetryRepository.getByIncidentIdBetween(7L, start, to) } returns measurements
+
+        assertEquals(measurements, service.getByIncidentIdBetween(7L, start, to))
+    }
 }

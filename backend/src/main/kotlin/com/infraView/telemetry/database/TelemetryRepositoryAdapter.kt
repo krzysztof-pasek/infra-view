@@ -8,6 +8,7 @@ import jakarta.persistence.EntityManager
 import org.springframework.data.domain.Limit
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
+import java.time.OffsetDateTime
 
 @Component
 class TelemetryRepositoryAdapter(
@@ -19,6 +20,15 @@ class TelemetryRepositoryAdapter(
         return jpaRepository.findByIncidentIdOrderByRecordedAtDescIdDesc(incidentId, Limit.of(limit))
             .map { it.toDomain() }
             .asReversed()
+    }
+
+    override fun getByIncidentIdBetween(incidentId: Long, from: OffsetDateTime, to: OffsetDateTime?): List<Telemetry> {
+        val entities = if (to == null) {
+            jpaRepository.findByIncidentIdAndRecordedAtGreaterThanEqualOrderByRecordedAtAscIdAsc(incidentId, from)
+        } else {
+            jpaRepository.findByIncidentIdAndRecordedAtGreaterThanEqualAndRecordedAtLessThanOrderByRecordedAtAscIdAsc(incidentId, from, to)
+        }
+        return entities.map { it.toDomain() }
     }
 
     override fun getRecentByDeviceId(deviceId: Long, limit: Int): List<Telemetry> {
