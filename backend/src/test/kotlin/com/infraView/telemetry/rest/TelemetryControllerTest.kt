@@ -97,6 +97,61 @@ class TelemetryControllerTest {
     }
 
     @Test
+    fun `should return telemetry from given time until the end`() {
+        every { useCase.getByIncidentIdBetween(100L, recordedAt, null) } returns listOf(telemetry, telemetry.copy(id = 2L))
+
+        mockMvc.perform(get("/telemetry/incident/100").param("from", "2026-09-24T10:00:00Z"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.length()").value(2))
+            .andExpect(jsonPath("$[0].id").value(1))
+            .andExpect(jsonPath("$[1].id").value(2))
+    }
+
+    @Test
+    fun `should return telemetry between from and to`() {
+        val to = OffsetDateTime.parse("2026-09-24T11:00:00Z")
+        every { useCase.getByIncidentIdBetween(100L, recordedAt, to) } returns listOf(telemetry)
+
+        mockMvc.perform(
+            get("/telemetry/incident/100")
+                .param("from", "2026-09-24T10:00:00Z")
+                .param("to", "2026-09-24T11:00:00Z")
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].recordedAt").value("2026-09-24T10:00:00Z"))
+    }
+
+    @Test
+    fun `should return 400 when telemetry range is invalid`() {
+        mockMvc.perform(get("/telemetry/incident/100").param("to", "2026-09-24T11:00:00Z"))
+            .andExpect(status().isBadRequest)
+        mockMvc.perform(
+            get("/telemetry/incident/100")
+                .param("from", "2026-09-24T11:00:00Z")
+                .param("to", "2026-09-24T11:00:00Z")
+        )
+            .andExpect(status().isBadRequest)
+        mockMvc.perform(
+            get("/telemetry/incident/100")
+                .param("from", "2026-09-24T11:00:00Z")
+                .param("to", "2026-09-24T10:00:00Z")
+        )
+            .andExpect(status().isBadRequest)
+        mockMvc.perform(
+            get("/telemetry/incident/100")
+                .param("from", "2026-09-24T10:00:00Z")
+                .param("limit", "100")
+        )
+            .andExpect(status().isBadRequest)
+        mockMvc.perform(get("/telemetry/incident/100").param("from", "yesterday"))
+            .andExpect(status().isBadRequest)
+
+        verify(exactly = 0) { useCase.getByIncidentId(any(), any()) }
+        verify(exactly = 0) { useCase.getByIncidentIdBetween(any(), any(), any()) }
+    }
+
+    @Test
     fun `should add telemetry`() {
         val expectedDomain = telemetry.copy(id = null)
         every { useCase.add(expectedDomain) } returns telemetry
