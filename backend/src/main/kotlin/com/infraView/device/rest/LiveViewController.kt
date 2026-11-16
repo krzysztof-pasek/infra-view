@@ -1,6 +1,7 @@
 package com.infraView.device.rest
 
 import com.infraView.device.domain.DeviceUseCase
+import com.infraView.device.domain.ThermalFrame
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.format.annotation.DateTimeFormat
@@ -17,12 +18,16 @@ import java.io.OutputStream
 import java.time.Duration
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
 
 @Tag(name = "Live view", description = "Live and recorded thermal camera view for the dashboard")
 @RestController
 class LiveViewController(
     private val useCase: DeviceUseCase
 ) {
+    private val prefetchExecutor = Executors.newVirtualThreadPerTaskExecutor()
+
     @Operation(
         summary = "Stream live thermal view",
         description = "Streams thermal frames of the helmet assigned to an in-progress incident as MJPEG. The stream closes after 10 seconds without a new frame or when the helmet starts a new session."
@@ -102,20 +107,29 @@ class LiveViewController(
 
     private fun OutputStream.writeStoredFrames(incidentId: Long, start: OffsetDateTime, delay: Duration) {
         var cursor = start
+        var frames = useCase.getFramesAfter(incidentId, cursor, REPLAY_BATCH_SIZE)
         while (true) {
-            val frames = useCase.getFramesAfter(incidentId, cursor, REPLAY_BATCH_SIZE)
             if (frames.isEmpty()) {
                 if (Duration.between(cursor, delayedNow(delay)) > FRAME_TIMEOUT) return
                 Thread.sleep(REPLAY_POLL_INTERVAL)
+                frames = useCase.getFramesAfter(incidentId, cursor, REPLAY_BATCH_SIZE)
                 continue
             }
-            for (frame in frames) {
+            val prefetchIndex = maxOf(0, frames.size - REPLAY_PREFETCH_REMAINING)
+            lateinit var next: CompletableFuture<List<ThermalFrame>>
+            frames.forEachIndexed { index, frame ->
+                if (index == prefetchIndex) next = prefetchFramesAfter(incidentId, frames.last().capturedAt)
                 val wait = Duration.between(delayedNow(delay), frame.capturedAt)
                 if (wait.isPositive) Thread.sleep(wait)
                 writeFrame(frame.image)
                 cursor = frame.capturedAt
             }
+            frames = next.join()
         }
+    }
+
+    private fun prefetchFramesAfter(incidentId: Long, after: OffsetDateTime): CompletableFuture<List<ThermalFrame>> {
+        return CompletableFuture.supplyAsync({ useCase.getFramesAfter(incidentId, after, REPLAY_BATCH_SIZE) }, prefetchExecutor)
     }
 
     private fun delayedNow(delay: Duration): OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC).minus(delay)
@@ -140,6 +154,7 @@ class LiveViewController(
         private val FRAME_TIMEOUT = Duration.ofSeconds(10)
         private const val MAX_DELAY_SECONDS = 300L
         private const val REPLAY_BATCH_SIZE = 50
-        private val REPLAY_POLL_INTERVAL = Duration.ofMillis(200)
+        private const val REPLAY_PREFETCH_REMAINING = 10
+        private val REPLAY_POLL_INTERVAL = Duration.ofMillis(50)
     }
 }

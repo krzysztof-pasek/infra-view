@@ -107,6 +107,35 @@ class LiveViewControllerTest {
     }
 
     @Test
+    fun `should replay frames in order without gaps or duplicates across batches`() {
+        val start = OffsetDateTime.parse("2026-09-26T10:00:00Z")
+        val frames = (1..53).map {
+            ThermalFrame(id = it.toLong(), deviceId = 1L, incidentId = 7L, capturedAt = start.plusNanos(it * 120_000_000L), image = byteArrayOf(it.toByte()))
+        }
+        val afters = mutableListOf<OffsetDateTime>()
+        every { useCase.getLastFrameTime(7L) } returns frames.last().capturedAt
+        every { useCase.getFramesAfter(7L, capture(afters), 50) } returnsMany listOf(
+            frames.take(50),
+            frames.drop(50),
+            emptyList()
+        )
+
+        val started = mockMvc.perform(get("/incidents/7/replay").param("delaySeconds", "1"))
+            .andExpect(request().asyncStarted())
+            .andReturn()
+
+        val result = mockMvc.perform(asyncDispatch(started))
+            .andExpect(status().isOk)
+            .andReturn()
+
+        val expected = frames.map {
+            "--frame\r\nContent-Type: image/jpeg\r\nContent-Length: 1\r\n\r\n".toByteArray() + it.image + "\r\n".toByteArray()
+        }.reduce(ByteArray::plus)
+        assertEquals(expected.toList(), result.response.contentAsByteArray.toList())
+        assertEquals(listOf(frames[49].capturedAt, frames[52].capturedAt), afters.subList(1, 3))
+    }
+
+    @Test
     fun `should return 404 when incident has no recorded frames to replay`() {
         every { useCase.getLastFrameTime(7L) } returns null
 
