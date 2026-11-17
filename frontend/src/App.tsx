@@ -23,7 +23,6 @@ const ALARMS_INTERVAL = 2000;
 const THRESHOLDS_INTERVAL = 30000;
 const LIVE_INTERVAL = 1000;
 const ENDED_INTERVAL = 30000;
-const HISTORY_LIMIT = 3600;
 
 type Confirmation = {
   title: string;
@@ -70,7 +69,7 @@ export function App() {
 
   if (selectedIncident !== null && selectedIncident.status !== "IN_PROGRESS") {
     telemetryInterval = ENDED_INTERVAL;
-    historyPath = `${telemetryPath}?limit=${HISTORY_LIMIT}`;
+    historyPath = `${telemetryPath}?from=${selectedIncident.startedAt}`;
   }
 
   const telemetry = usePolling<Telemetry[]>(telemetryPath, telemetryInterval);
@@ -135,16 +134,21 @@ export function App() {
     thresholds.refresh();
   }
 
-  function endSession() {
-    if (selectedIncident === null) {
-      return;
-    }
-
+  function endSession(incident: Incident) {
     setConfirmation({
       title: "Zakończyć sesję?",
-      text: `Sesja ${selectedIncident.code} zostanie zakończona.`,
+      text: `Sesja ${incident.code} zostanie zakończona.`,
       button: "Zakończ sesję",
-      action: () => api(`/incidents/${selectedIncident.id}/end`, "PUT"),
+      action: () => api(`/incidents/${incident.id}/end`, "PUT"),
+    });
+  }
+
+  function deleteSession(incident: Incident) {
+    setConfirmation({
+      title: "Usunąć sesję?",
+      text: `Sesja ${incident.code} zostanie usunięta razem z nagraniem, pomiarami i alarmami. Tej operacji nie można cofnąć.`,
+      button: "Usuń sesję",
+      action: () => api(`/incidents/${incident.id}`, "DELETE"),
     });
   }
 
@@ -304,6 +308,7 @@ export function App() {
             now={now}
             busy={busy}
             onEnd={endSession}
+            onDelete={deleteSession}
             onRename={openRename}
             onClose={() => selectSession(null)}
           />

@@ -1,6 +1,6 @@
 const TIMEOUT = 5000;
 
-export async function api<T>(path: string, method = "GET", body?: unknown): Promise<T> {
+export async function api<T>(path: string, method = "GET", body?: unknown): Promise<T | null> {
   const options: RequestInit = { method, signal: AbortSignal.timeout(TIMEOUT) };
 
   if (body !== undefined) {
@@ -18,6 +18,10 @@ export async function api<T>(path: string, method = "GET", body?: unknown): Prom
 
   if (!response.ok) {
     throw new Error(`Serwer odrzucił żądanie (błąd ${response.status})`);
+  }
+
+  if (response.status === 204) {
+    return null;
   }
 
   return response.json();

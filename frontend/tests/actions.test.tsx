@@ -108,6 +108,11 @@ function mockApi(options: Options = {}) {
       return Response.json(incidents[0]);
     }
 
+    if (request === "DELETE /api/incidents/3") {
+      incidents = [jan];
+      return new Response(null, { status: 204 });
+    }
+
     if (request === "PUT /api/incidents/1/code") {
       incidents = [{ ...jan, code: JSON.parse(String(init.body)).code }, anna];
       return Response.json(incidents[0]);
@@ -352,7 +357,7 @@ it("błąd operacji zostaje na ekranie do zamknięcia", async () => {
   await waitFor(() => expect(message.isConnected).toBe(false));
 });
 
-it("archiwum filtruje sesje, odtwarza nagranie zakończonej od początku i pobiera do niego dłuższą historię pomiarów", async () => {
+it("archiwum filtruje sesje, odtwarza nagranie zakończonej od początku i pobiera do niego pomiary całej sesji", async () => {
   const fetchMock = mockApi();
   vi.useFakeTimers({ toFake: ["Date"] });
   render(<App />);
@@ -370,7 +375,27 @@ it("archiwum filtruje sesje, odtwarza nagranie zakończonej od początku i pobie
   await waitFor(() => expect(screen.queryByRole("button", { name: "Na żywo" })).toBeNull());
   expect(screen.getByRole("button", { name: "Wstrzymaj" })).toBeTruthy();
   expect(screen.getByText("0:00")).toBeTruthy();
-  expect(calls(fetchMock, "GET /api/telemetry/incident/3?limit=3600")).toHaveLength(1);
+  expect(calls(fetchMock, "GET /api/telemetry/incident/3?from=2026-09-20T10:00:00Z")).toHaveLength(1);
+});
+
+it("usuwa zakończoną sesję z menu dopiero po potwierdzeniu, a trwającej usunąć się nie da", async () => {
+  const fetchMock = mockApi();
+  render(<App />);
+
+  expect(within(await openMenu()).queryByRole("menuitem", { name: "Usuń sesję" })).toBeNull();
+  fireEvent.click(within(openArchive()).getAllByRole("button", { name: "Otwórz" })[1]);
+  await screen.findByRole("heading", { name: "Anna Nowak" });
+  fireEvent.click(optionsButton());
+  expect(screen.queryByRole("menuitem", { name: "Zakończ sesję" })).toBeNull();
+  fireEvent.click(screen.getByRole("menuitem", { name: "Usuń sesję" }));
+  const dialog = screen.getByRole("dialog", { name: "Usunąć sesję?" });
+  expect(within(dialog).getByText(/Tej operacji nie można cofnąć/)).toBeTruthy();
+  expect(calls(fetchMock, "DELETE")).toHaveLength(0);
+  fireEvent.click(within(dialog).getByRole("button", { name: "Usuń sesję" }));
+
+  await waitFor(() => expect(screen.queryByRole("heading", { name: "Anna Nowak" })).toBeNull());
+  expect(calls(fetchMock, "DELETE /api/incidents/3")).toHaveLength(1);
+  expect(screen.queryByRole("alert")).toBeNull();
 });
 
 it("jednym przyciskiem zapisuje tylko zmienione progi alarmów", async () => {

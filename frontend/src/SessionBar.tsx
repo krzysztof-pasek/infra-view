@@ -14,12 +14,13 @@ type Props = {
   connecting: boolean;
   now: number;
   busy: boolean;
-  onEnd: () => void;
+  onEnd: (incident: Incident) => void;
+  onDelete: (incident: Incident) => void;
   onRename: () => void;
   onClose: () => void;
 };
 
-export function SessionBar({ incident, latest, online, connecting, now, busy, onEnd, onRename, onClose }: Props) {
+export function SessionBar({ incident, latest, online, connecting, now, busy, onEnd, onDelete, onRename, onClose }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuTop, setMenuTop] = useState(0);
   const [menuRight, setMenuRight] = useState(0);
@@ -111,17 +112,15 @@ export function SessionBar({ incident, latest, online, connecting, now, busy, on
   let status = "Zakończona";
   let statusColor = "muted";
   let motionStatus = null;
-  let endItem = null;
+  let dangerLabel = "Usuń sesję";
+  let dangerAction = onDelete;
 
   if (incident.status === "IN_PROGRESS") {
     status = "Brak danych z kasku";
     statusColor = "orange";
     motionStatus = <span className={`status ${motionColor}`}>Ruch: {motion}</span>;
-    endItem = (
-      <button className="red" role="menuitem" disabled={busy} onClick={() => choose(onEnd)}>
-        Zakończ sesję
-      </button>
-    );
+    dangerLabel = "Zakończ sesję";
+    dangerAction = onEnd;
 
     if (latest !== null) {
       status = `${status} · ${formatAge(now - Date.parse(latest.recordedAt))}`;
@@ -146,7 +145,9 @@ export function SessionBar({ incident, latest, online, connecting, now, busy, on
         <button role="menuitem" autoFocus onClick={() => choose(onRename)}>
           Zmień nazwę
         </button>
-        {endItem}
+        <button className="red" role="menuitem" disabled={busy} onClick={() => choose(() => dangerAction(incident))}>
+          {dangerLabel}
+        </button>
         <button role="menuitem" onClick={() => choose(onClose)}>
           Zamknij
         </button>

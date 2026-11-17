@@ -16,7 +16,7 @@ function alarm(id: number, incidentId: number, alarmType: AlarmType = "FALL"): A
 }
 
 function sessionBar(incident: Incident, online: boolean, connecting: boolean) {
-  const handlers = { onEnd: () => {}, onRename: () => {}, onClose: () => {} };
+  const handlers = { onEnd: () => {}, onDelete: () => {}, onRename: () => {}, onClose: () => {} };
   const state = { online, connecting, now: START + 25000, busy: false };
   return <SessionBar incident={incident} latest={row(0, null)} {...state} {...handlers} />;
 }
