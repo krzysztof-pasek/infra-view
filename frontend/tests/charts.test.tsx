@@ -141,7 +141,7 @@ it("nagranie zakończonej sesji przesuwa wykresy razem z wideo i zatrzymuje się
   expect(screen.getByRole("button", { name: "Wznów" })).toBeTruthy();
 });
 
-it("na żywo pasek cofania obejmuje tylko czas trwania sesji, do 5 minut", () => {
+it("na żywo pasek cofania obejmuje tylko czas trwania sesji, od zera do 5 minut", () => {
   const now = Date.now();
   const view = render(sessionView(young(now), [], now));
   const slider = screen.getByLabelText<HTMLInputElement>("Przewijanie obrazu");
@@ -152,6 +152,9 @@ it("na żywo pasek cofania obejmuje tylko czas trwania sesji, do 5 minut", () =>
 
   view.rerender(sessionView({ ...jan, startedAt: new Date(now - 1000000).toISOString() }, [], now));
   expect(slider.max).toBe("300");
+
+  view.rerender(sessionView(young(now), [], now - 60000));
+  expect(slider.max).toBe("0");
 });
 
 it("na żywo nie ma podpisu czasu, pojawia się dopiero po cofnięciu", async () => {
@@ -166,7 +169,7 @@ it("na żywo nie ma podpisu czasu, pojawia się dopiero po cofnięciu", async ()
   await waitFor(() => expect(screen.queryByText("−0:20")).toBeNull());
 });
 
-it("pauza po cofnięciu pokazuje klatkę z chwili, którą było widać", () => {
+it("pauza po cofnięciu pokazuje klatkę z chwili, którą było widać, a wznowienie nie wychodzi poza pasek", () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(START + 30000);
   render(sessionView(jan, [], Date.now()));
@@ -175,6 +178,10 @@ it("pauza po cofnięciu pokazuje klatkę z chwili, którą było widać", () => 
   fireEvent.click(screen.getByRole("button", { name: "Wstrzymaj" }));
 
   expect(imagePath()).toBe("/api/incidents/1/frame?at=2026-09-21T10:00:10.000Z");
+
+  vi.setSystemTime(START + 430000);
+  fireEvent.click(screen.getByRole("button", { name: "Wznów" }));
+  expect(imagePath()).toBe("/api/incidents/1/replay?delaySeconds=30&connection=1");
 });
 
 it("panel kamery mówi, co się dzieje: łączenie, brak obrazu, cofnięty obraz albo nic przy braku serwera", () => {

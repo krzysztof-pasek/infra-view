@@ -16,15 +16,14 @@ type Props = {
   busy: boolean;
   onEnd: (incident: Incident) => void;
   onDelete: (incident: Incident) => void;
-  onRename: () => void;
+  onRename: (incident: Incident) => void;
   onClose: () => void;
 };
 
 export function SessionBar({ incident, latest, online, connecting, now, busy, onEnd, onDelete, onRename, onClose }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [menuTop, setMenuTop] = useState(0);
-  const [menuRight, setMenuRight] = useState(0);
-  const button = useRef<HTMLButtonElement>(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
+  const menuButton = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!menuOpen) {
@@ -34,8 +33,8 @@ export function SessionBar({ incident, latest, online, connecting, now, busy, on
     function close() {
       const active = document.activeElement;
 
-      if (button.current !== null && active !== null && active.closest('[role="menu"]') !== null) {
-        button.current.focus();
+      if (menuButton.current !== null && active !== null && active.closest('[role="menu"]') !== null) {
+        menuButton.current.focus();
       }
 
       setMenuOpen(false);
@@ -88,14 +87,13 @@ export function SessionBar({ incident, latest, online, connecting, now, busy, on
   function toggleMenu(event: MouseEvent<HTMLButtonElement>) {
     const rect = event.currentTarget.getBoundingClientRect();
     event.stopPropagation();
-    setMenuTop(rect.bottom);
-    setMenuRight(document.documentElement.clientWidth - rect.right);
+    setMenuPosition({ top: rect.bottom, right: document.documentElement.clientWidth - rect.right });
     setMenuOpen(!menuOpen);
   }
 
   function choose(action: () => void) {
-    if (button.current !== null) {
-      button.current.focus();
+    if (menuButton.current !== null) {
+      menuButton.current.focus();
     }
 
     action();
@@ -141,8 +139,8 @@ export function SessionBar({ incident, latest, online, connecting, now, busy, on
 
   if (menuOpen) {
     menu = (
-      <div className="menu glass" role="menu" style={{ top: menuTop, right: menuRight }}>
-        <button role="menuitem" autoFocus onClick={() => choose(onRename)}>
+      <div className="menu glass" role="menu" style={menuPosition}>
+        <button role="menuitem" autoFocus onClick={() => choose(() => onRename(incident))}>
           Zmień nazwę
         </button>
         <button className="red" role="menuitem" disabled={busy} onClick={() => choose(() => dangerAction(incident))}>
@@ -170,7 +168,7 @@ export function SessionBar({ incident, latest, online, connecting, now, busy, on
       {motionStatus}
 
       <button
-        ref={button}
+        ref={menuButton}
         className="icon"
         aria-label="Opcje sesji"
         title="Opcje sesji"

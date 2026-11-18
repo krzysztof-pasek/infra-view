@@ -10,7 +10,7 @@ type Props = {
   paused: boolean;
   max: number;
   delay: number;
-  label: string | null;
+  label: string;
   onSeek: (delay: number) => void;
   onPause: () => void;
   onPlay: () => void;
@@ -46,7 +46,7 @@ export function CameraPanel({ path, message, live, paused, max, delay, label, on
 
   let timeLabel = null;
 
-  if (label !== null) {
+  if (label !== "") {
     timeLabel = <span>{label}</span>;
   }
 

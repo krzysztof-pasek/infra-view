@@ -166,7 +166,7 @@ function SensorChart({ sensor, points, value, threshold, animate }: ChartProps) 
               tickLine={false}
               tickFormatter={tick => formatNumber(tick, sensor.digits)}
             />
-            <Tooltip animationDuration={duration} content={ChartTooltip} />
+            <Tooltip isAnimationActive animationDuration={duration} content={ChartTooltip} />
             {line}
             <Line
               dataKey={sensor.key}

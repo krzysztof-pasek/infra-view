@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { Incident, Telemetry, Threshold } from "./types";
 import { lastItem } from "./data";
 import { animationTime, MAX_REPLAY_SECONDS } from "./config";
-import { formatClock, formatDelay } from "./format";
+import { formatClock } from "./format";
 import { CameraPanel } from "./CameraPanel";
 import { Charts } from "./Charts";
 
@@ -59,7 +59,7 @@ export function SessionView({ incident, rows, thresholds, waiting, now, online, 
   let paused = pausedAt !== 0;
   let path = `${base}/live?connection=${connection}`;
   let message = "Brak obrazu z kamery";
-  let label: string | null = null;
+  let label = "";
   let chartsRows = rows;
   let until = 0;
   let span = MAX_REPLAY_SECONDS;
@@ -68,19 +68,12 @@ export function SessionView({ incident, rows, thresholds, waiting, now, online, 
   if (live) {
     const age = Math.round((now - Date.parse(incident.startedAt)) / 1000);
 
-    if (age < max) {
-      max = age;
-    }
-
-    if (max < 0) {
-      max = 0;
-    }
-
+    max = Math.max(0, Math.min(age, max));
     span = max;
 
     if (delay > 0) {
       path = `${base}/replay?delaySeconds=${delay}&connection=${connection}`;
-      label = formatDelay(delay);
+      label = `−${formatClock(delay)}`;
     }
 
     if ((!online && delay === 0) || waiting) {
@@ -113,11 +106,7 @@ export function SessionView({ incident, rows, thresholds, waiting, now, online, 
       played = 0;
     }
 
-    if (played > delay) {
-      played = delay;
-    }
-
-    return delay - played;
+    return delay - Math.min(played, delay);
   }
 
   if (!live) {
@@ -165,11 +154,7 @@ export function SessionView({ incident, rows, thresholds, waiting, now, online, 
       next = max;
     }
 
-    if (next > max) {
-      next = max;
-    }
-
-    seek(next);
+    seek(Math.min(next, max));
   }
 
   return (

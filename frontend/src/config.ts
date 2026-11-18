@@ -19,7 +19,7 @@ export const motionStates: Record<MotionState, { label: string; color: string }>
   FALLEN: { label: "Upadek", color: "red" },
 };
 
-export const alarmNames: Record<AlarmType, string> = {
+export const alarmLabels: Record<AlarmType, string> = {
   HIGH_TEMPERATURE: "Wysoka temperatura",
   HIGH_CO2: "Wysokie CO₂",
   HIGH_TVOC: "Wysokie TVOC",

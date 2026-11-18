@@ -110,7 +110,7 @@ button, input, select {
   color: var(--text);
 }
 
-button, input, summary::before, .swap svg {
+button, input, summary::before, .swap svg, input[type="checkbox"]::before {
   transition: var(--theme-transition), transform var(--time) ease, opacity var(--time) ease;
 }
 
@@ -159,8 +159,6 @@ input[type="checkbox"] {
   display: inline-grid;
   place-content: center;
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
   border-radius: 5px;
   cursor: pointer;
 }
@@ -172,7 +170,6 @@ input[type="checkbox"]::before {
   border: solid var(--on-accent);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg) scale(0);
-  transition: transform var(--time) ease;
 }
 
 input[type="checkbox"]:checked {
@@ -199,10 +196,6 @@ input[type="checkbox"]:checked::before {
 
 .topbar, .pane, .card, .camera, .popup, .modal, .menu, .toast, .list > li, .camera-controls > div {
   animation: appear var(--time) ease both;
-}
-
-.overlay {
-  animation: dim var(--time) ease both;
 }
 
 .closing .popup, .closing .modal, .closing .menu, .closing .toast {
@@ -333,7 +326,7 @@ button, .topbar, .camera-controls, .toast {
   padding: 10px;
 }
 
-.session, .alarm, .menu button, input, select {
+.session, .alarm, .menu button, .alarm-info, input, select {
   border-radius: 12px;
 }
 
@@ -353,7 +346,7 @@ button, .topbar, .camera-controls, .toast {
   margin-left: auto;
 }
 
-.session-bar {
+.session-bar, .alarm-info, .camera-controls input {
   flex: 1;
 }
 
@@ -371,7 +364,7 @@ button, .topbar, .camera-controls, .toast {
   height: 34px;
 }
 
-.icon svg, .spinner {
+.icon svg, .spinner, input[type="checkbox"] {
   width: 18px;
   height: 18px;
 }
@@ -428,7 +421,6 @@ button, .topbar, .camera-controls, .toast {
 
 summary {
   align-items: baseline;
-  list-style: none;
   cursor: pointer;
 }
 
@@ -464,7 +456,7 @@ details[open] > summary::before {
   }
 }
 
-.list {
+summary, .list {
   list-style: none;
 }
 
@@ -519,9 +511,7 @@ details[open] > summary::before {
 }
 
 .alarm-info {
-  flex: 1;
   overflow-wrap: anywhere;
-  border-radius: 0;
 }
 
 .camera {
@@ -551,7 +541,6 @@ details[open] > summary::before {
 }
 
 .camera-controls input {
-  flex: 1;
   width: 220px;
 }
 
@@ -559,23 +548,20 @@ details[open] > summary::before {
   animation-name: appear, grow;
 }
 
-.camera-controls span {
+.camera-controls span, .value {
   font-variant-numeric: tabular-nums;
 }
 
 .chart-header {
   align-items: baseline;
-  justify-content: space-between;
 }
 
 .value {
   font-size: 22px;
-  font-variant-numeric: tabular-nums;
 }
 
 .chart {
   height: 140px;
-  margin-top: 6px;
 }
 
 .wide {
@@ -591,7 +577,7 @@ details[open] > summary::before {
   overflow-x: auto;
 }
 
-.menu, table {
+.menu, table, .chart {
   margin-top: 8px;
 }
 
@@ -625,6 +611,7 @@ tr:last-child td {
   inset: 0;
   z-index: 40;
   background: rgb(0 0 0 / 0.3);
+  animation: dim var(--time) ease both;
 }
 
 .modal {
@@ -637,7 +624,7 @@ tr:last-child td {
   width: min(440px, 100%);
 }
 
-.modal-header {
+.modal-header, .chart-header {
   justify-content: space-between;
 }
 

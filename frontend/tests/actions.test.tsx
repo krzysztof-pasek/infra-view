@@ -27,10 +27,10 @@ function fall(id: number): TestAlarm {
   return { id, incidentId: 1, alarmType: "FALL", triggeredAt: jan.startedAt, resolvedAt: null };
 }
 
-const temperature = { metric: "TEMPERATURE", alarmType: "HIGH_TEMPERATURE", threshold: 80, resetMargin: 5, enabled: true };
-const co2 = { metric: "CO2_PPM", alarmType: "HIGH_CO2", threshold: 5000, resetMargin: 500, enabled: false };
-const tvoc = { metric: "TVOC_PPB", alarmType: "HIGH_TVOC", threshold: 2000, resetMargin: 200, enabled: true };
-const gas = { metric: "GAS_VOLTAGE", alarmType: "HIGH_GAS", threshold: 1, resetMargin: 0.1, enabled: true };
+const temperature = { metric: "TEMPERATURE", threshold: 80, resetMargin: 5, enabled: true };
+const co2 = { metric: "CO2_PPM", threshold: 5000, resetMargin: 500, enabled: false };
+const tvoc = { metric: "TVOC_PPB", threshold: 2000, resetMargin: 200, enabled: true };
+const gas = { metric: "GAS_VOLTAGE", threshold: 1, resetMargin: 0.1, enabled: true };
 
 type Options = {
   failEnd?: boolean;
@@ -129,9 +129,7 @@ function mockApi(options: Options = {}) {
     }
 
     if (request.startsWith("PUT /api/alarm-thresholds/")) {
-      if (options.slowSave !== undefined) {
-        await options.slowSave;
-      }
+      await options.slowSave;
 
       return Response.json(JSON.parse(String(init.body)));
     }
@@ -218,12 +216,14 @@ beforeEach(() => {
   localStorage.clear();
 });
 
-it("grupuje powtórzone alarmy i rozwiązuje je jednym kliknięciem", async () => {
+it("grupuje powtórzone alarmy, otwiera ich sesję i rozwiązuje je jednym kliknięciem", async () => {
   const fetchMock = mockApi();
   render(<App />);
   const list = await alarmList();
 
   expect(await within(list).findByText("Upadek ×3")).toBeTruthy();
+  fireEvent.click(within(list).getByRole("button", { name: /^Upadek ×3/ }));
+  expect(await screen.findByRole("heading", { name: "Jan Kowalski" })).toBeTruthy();
   fireEvent.click(within(list).getByRole("button", { name: "Rozwiąż" }));
   const dialog = screen.getByRole("dialog", { name: "Rozwiązać alarm?" });
   expect(calls(fetchMock, "/resolve")).toHaveLength(0);
@@ -542,7 +542,7 @@ it("przeciągnięcie myszy z pola na tło nie zamyka okna", async () => {
   render(<App />);
 
   const dialog = openThresholds();
-  const overlay = screen.getByRole("dialog", { name: "Progi alarmów" }).closest(".overlay");
+  const overlay = dialog.closest(".overlay");
   fireEvent.mouseDown(await firstLimit(dialog));
 
   if (overlay !== null) {
@@ -612,8 +612,7 @@ it("Esc zamyka okno także wtedy, gdy fokus wypadł poza okno", async () => {
   render(<App />);
   await findJan();
 
-  fireEvent.click(screen.getByRole("button", { name: "Archiwum" }));
-  within(screen.getByRole("dialog")).getByRole("button", { name: "Zamknij" }).blur();
+  within(openArchive()).getByRole("button", { name: "Zamknij" }).blur();
   expect(document.activeElement).toBe(document.body);
   fireEvent.keyDown(document.body, { key: "Escape" });
 
