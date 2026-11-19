@@ -5,11 +5,11 @@ import { AlarmInfo } from "./AlarmInfo";
 type Props = {
   groups: AlarmGroup[] | null;
   busy: boolean;
-  onSelect: (group: AlarmGroup) => void;
+  onShow: (group: AlarmGroup) => void;
   onResolve: (group: AlarmGroup) => void;
 };
 
-export function AlarmList({ groups, busy, onSelect, onResolve }: Props) {
+export function AlarmList({ groups, busy, onShow, onResolve }: Props) {
   let content = <Loading />;
 
   if (groups !== null && groups.length === 0) {
@@ -21,7 +21,7 @@ export function AlarmList({ groups, busy, onSelect, onResolve }: Props) {
       <ul className="list">
         {groups.map(group => (
           <li className="alarm" key={group.key}>
-            <button className="alarm-info" onClick={() => onSelect(group)}>
+            <button className="alarm-info" onClick={() => onShow(group)}>
               <AlarmInfo group={group} />
             </button>
             <button disabled={busy} onClick={() => onResolve(group)}>

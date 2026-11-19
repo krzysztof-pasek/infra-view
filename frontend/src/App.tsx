@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Alarm, AlarmGroup, Incident, Telemetry, Threshold } from "./types";
 import { api, errorMessage } from "./api";
 import { findIncident, groupAlarms, lastItem } from "./data";
-import { alarmNames, ONLINE_TIMEOUT } from "./config";
+import { alarmLabels, ONLINE_TIMEOUT } from "./config";
 import { usePolling } from "./usePolling";
 import { SessionBar } from "./SessionBar";
 import { SessionList } from "./SessionList";
@@ -23,7 +23,6 @@ const ALARMS_INTERVAL = 2000;
 const THRESHOLDS_INTERVAL = 30000;
 const LIVE_INTERVAL = 1000;
 const ENDED_INTERVAL = 30000;
-const HISTORY_LIMIT = 3600;
 
 type Confirmation = {
   title: string;
@@ -38,8 +37,8 @@ export function App() {
   const thresholds = usePolling<Threshold[]>("/alarm-thresholds", THRESHOLDS_INTERVAL);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedAt, setSelectedAt] = useState(0);
-  const [renameId, setRenameId] = useState<number | null>(null);
-  const [dialog, setDialog] = useState("");
+  const [renamedId, setRenamedId] = useState<number | null>(null);
+  const [dialogName, setDialogName] = useState("");
   const [dismissed, setDismissed] = useState<number[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -59,7 +58,7 @@ export function App() {
   }
 
   const selectedIncident = findIncident(incidents, selectedId);
-  const renamedIncident = findIncident(incidents, renameId);
+  const renamedIncident = findIncident(incidents, renamedId);
   let telemetryPath = null;
   let telemetryInterval = LIVE_INTERVAL;
   let historyPath = null;
@@ -70,7 +69,7 @@ export function App() {
 
   if (selectedIncident !== null && selectedIncident.status !== "IN_PROGRESS") {
     telemetryInterval = ENDED_INTERVAL;
-    historyPath = `${telemetryPath}?limit=${HISTORY_LIMIT}`;
+    historyPath = `${telemetryPath}?from=${selectedIncident.startedAt}`;
   }
 
   const telemetry = usePolling<Telemetry[]>(telemetryPath, telemetryInterval);
@@ -135,23 +134,28 @@ export function App() {
     thresholds.refresh();
   }
 
-  function endSession() {
-    if (selectedIncident === null) {
-      return;
-    }
-
+  function endSession(incident: Incident) {
     setConfirmation({
       title: "Zakończyć sesję?",
-      text: `Sesja ${selectedIncident.code} zostanie zakończona.`,
+      text: `Sesja ${incident.code} zostanie zakończona.`,
       button: "Zakończ sesję",
-      action: () => api(`/incidents/${selectedIncident.id}/end`, "PUT"),
+      action: () => api(`/incidents/${incident.id}/end`, "PUT"),
+    });
+  }
+
+  function deleteSession(incident: Incident) {
+    setConfirmation({
+      title: "Usunąć sesję?",
+      text: `Sesja ${incident.code} zostanie usunięta razem z nagraniem, pomiarami i alarmami. Tej operacji nie można cofnąć.`,
+      button: "Usuń sesję",
+      action: () => api(`/incidents/${incident.id}`, "DELETE"),
     });
   }
 
   function resolveAlarm(group: AlarmGroup) {
     setConfirmation({
       title: "Rozwiązać alarm?",
-      text: `Alarm „${alarmNames[group.alarmType]}” (${group.name}) zostanie oznaczony jako rozwiązany.`,
+      text: `Alarm „${alarmLabels[group.alarmType]}” (${group.name}) zostanie oznaczony jako rozwiązany.`,
       button: "Rozwiąż",
       action: async () => {
         for (const id of group.ids) {
@@ -175,11 +179,11 @@ export function App() {
 
   function openDialog(name: string) {
     openCount.current = openCount.current + 1;
-    setDialog(name);
+    setDialogName(name);
   }
 
   function closeDialog() {
-    setDialog("");
+    setDialogName("");
   }
 
   function saveAndClose(action: () => Promise<unknown>) {
@@ -206,12 +210,12 @@ export function App() {
     });
   }
 
-  function openRename() {
-    setRenameId(selectedId);
+  function openRename(incident: Incident) {
+    setRenamedId(incident.id);
     openDialog("rename");
   }
 
-  function saveName(code: string) {
+  function saveCode(code: string) {
     if (renamedIncident !== null) {
       saveAndClose(() => api(`/incidents/${renamedIncident.id}/code`, "PUT", { code }));
     }
@@ -254,11 +258,11 @@ export function App() {
 
   let dialogWindow = null;
 
-  if (dialog === "archive") {
+  if (dialogName === "archive") {
     dialogWindow = <ArchiveDialog incidents={incidents} onOpen={openSession} onClose={closeDialog} />;
   }
 
-  if (dialog === "thresholds") {
+  if (dialogName === "thresholds") {
     dialogWindow = (
       <ThresholdsDialog
         thresholds={thresholds.data}
@@ -269,8 +273,8 @@ export function App() {
     );
   }
 
-  if (dialog === "rename" && renamedIncident !== null) {
-    dialogWindow = <RenameDialog code={renamedIncident.code} busy={busy} onSave={saveName} onClose={closeDialog} />;
+  if (dialogName === "rename" && renamedIncident !== null) {
+    dialogWindow = <RenameDialog code={renamedIncident.code} busy={busy} onSave={saveCode} onClose={closeDialog} />;
   }
 
   if (confirmation !== null) {
@@ -304,6 +308,7 @@ export function App() {
             now={now}
             busy={busy}
             onEnd={endSession}
+            onDelete={deleteSession}
             onRename={openRename}
             onClose={() => selectSession(null)}
           />
@@ -317,7 +322,7 @@ export function App() {
         <main className="layout">
           <aside className="pane glass">
             <SessionList incidents={sessions.data} selectedId={selectedId} alarmIncidentIds={alarmIncidentIds} onSelect={selectSession} />
-            <AlarmList groups={groups} busy={busy} onSelect={showAlarm} onResolve={resolveAlarm} />
+            <AlarmList groups={groups} busy={busy} onShow={showAlarm} onResolve={resolveAlarm} />
           </aside>
 
           <SessionView

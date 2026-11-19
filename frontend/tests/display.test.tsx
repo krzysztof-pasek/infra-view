@@ -3,7 +3,7 @@ import { expect, it, vi } from "vitest";
 import type { Alarm, AlarmType, Incident } from "../src/types";
 import { groupAlarms } from "../src/data";
 import { RETRY_TIMEOUT } from "../src/config";
-import { alarmTitle, formatAge, formatDelay } from "../src/format";
+import { alarmTitle, formatAge, formatClock } from "../src/format";
 import { SessionBar } from "../src/SessionBar";
 import { CameraPanel } from "../src/CameraPanel";
 import { AlarmPopups } from "../src/AlarmPopups";
@@ -16,14 +16,14 @@ function alarm(id: number, incidentId: number, alarmType: AlarmType = "FALL"): A
 }
 
 function sessionBar(incident: Incident, online: boolean, connecting: boolean) {
-  const handlers = { onEnd: () => {}, onRename: () => {}, onClose: () => {} };
+  const handlers = { onEnd: () => {}, onDelete: () => {}, onRename: () => {}, onClose: () => {} };
   const state = { online, connecting, now: START + 25000, busy: false };
   return <SessionBar incident={incident} latest={row(0, null)} {...state} {...handlers} />;
 }
 
 function cameraPanel(path: string, live: boolean) {
   const handlers = { onSeek: () => {}, onPause: () => {}, onPlay: () => {} };
-  return <CameraPanel path={path} message="Brak obrazu z kamery" live={live} paused={false} max={10} delay={0} label={null} {...handlers} />;
+  return <CameraPanel path={path} message="Brak obrazu z kamery" live={live} paused={false} max={10} delay={0} label="" {...handlers} />;
 }
 
 function popups(alarms: Alarm[]) {
@@ -67,9 +67,9 @@ it("alarmy SOS i gazu mają czytelne nazwy", () => {
   expect(alarmTitle(groups[0])).toBe("Wysoki poziom gazów");
 });
 
-it("pokazuje opóźnienie powtórki w minutach", () => {
-  expect(formatDelay(150)).toBe("−2:30");
-  expect(formatDelay(5)).toBe("−0:05");
+it("pokazuje czas w minutach i sekundach", () => {
+  expect(formatClock(150)).toBe("2:30");
+  expect(formatClock(5)).toBe("0:05");
 });
 
 it("pokazuje, jak dawno przyszedł ostatni pomiar", () => {

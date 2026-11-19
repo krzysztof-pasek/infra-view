@@ -1,12 +1,12 @@
 import type { AlarmGroup } from "./types";
-import { alarmNames } from "./config";
+import { alarmLabels } from "./config";
 
 export function alarmTitle(group: AlarmGroup) {
   if (group.ids.length > 1) {
-    return `${alarmNames[group.alarmType]} ×${group.ids.length}`;
+    return `${alarmLabels[group.alarmType]} ×${group.ids.length}`;
   }
 
-  return alarmNames[group.alarmType];
+  return alarmLabels[group.alarmType];
 }
 
 export function formatNumber(value: number | null, digits: number) {
@@ -33,10 +33,6 @@ export function formatClock(seconds: number) {
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
   return `${minutes}:${String(rest).padStart(2, "0")}`;
-}
-
-export function formatDelay(seconds: number) {
-  return `−${formatClock(seconds)}`;
 }
 
 export function formatAge(milliseconds: number) {

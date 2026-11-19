@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { SubmitEvent } from "react";
 import { Modal } from "./Modal";
 
-const MAX_NAME = 20;
+const MAX_CODE = 20;
 
 type Props = {
   code: string;
@@ -12,7 +12,7 @@ type Props = {
 };
 
 export function RenameDialog({ code, busy, onSave, onClose }: Props) {
-  const [name, setName] = useState(code);
+  const [newCode, setNewCode] = useState(code);
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -24,11 +24,11 @@ export function RenameDialog({ code, busy, onSave, onClose }: Props) {
 
   function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    onSave(name.trim());
+    onSave(newCode.trim());
   }
 
   const save = (
-    <button className="primary" form="rename" disabled={busy || name.trim() === ""}>
+    <button className="primary" form="rename" disabled={busy || newCode.trim() === ""}>
       Zapisz
     </button>
   );
@@ -38,10 +38,10 @@ export function RenameDialog({ code, busy, onSave, onClose }: Props) {
       <form id="rename" onSubmit={submit}>
         <input
           ref={input}
-          value={name}
-          maxLength={MAX_NAME}
+          value={newCode}
+          maxLength={MAX_CODE}
           aria-label="Nazwa sesji"
-          onChange={event => setName(event.target.value)}
+          onChange={event => setNewCode(event.target.value)}
         />
       </form>
     </Modal>

@@ -42,9 +42,7 @@ export function usePolling<T>(path: string | null, interval: number) {
       } catch (error) {
         const message = errorMessage(error, "Nie udało się pobrać danych");
 
-        if (wait > RETRY_TIMEOUT) {
-          wait = RETRY_TIMEOUT;
-        }
+        wait = Math.min(wait, RETRY_TIMEOUT);
 
         if (active) {
           setSnapshot(previous => {
